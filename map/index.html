@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIRE研究所 コミュニティマップ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; }
+
+    #header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: white;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    #header h1 {
+      font-size: 15px;
+      font-weight: bold;
+      white-space: nowrap;
+      color: #1f2937;
+    }
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+    }
+    .pill {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 2px solid #d1d5db;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      color: #6b7280;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .pill:hover { opacity: 0.85; }
+    .pill.on-member  { background: #3b82f6; border-color: #3b82f6; color: white; }
+    .pill.on-travel  { background: #f97316; border-color: #f97316; color: white; }
+
+    #map {
+      position: fixed;
+      top: 52px; left: 0; right: 0; bottom: 0;
+    }
+
+    /* ---- Member marker ---- */
+    .member-marker { display: flex; flex-direction: column; align-items: center; }
+    .member-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 3px solid #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 16px; color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .member-name {
+      font-size: 11px; font-weight: bold;
+      background: white;
+      padding: 1px 5px;
+      border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      margin-top: 2px;
+      white-space: nowrap;
+      color: #1f2937;
+    }
+
+    /* ---- Travel marker ---- */
+    .travel-marker { display: flex; flex-direction: column; align-items: center; }
+    .travel-thumb {
+      width: 46px; height: 46px;
+      border: 3px solid #f97316;
+      border-radius: 6px;
+      background: #fff7ed;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .travel-pin {
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 8px solid #f97316;
+    }
+
+    /* ---- Popups ---- */
+    .leaflet-popup-content { margin: 10px 12px; }
+
+    .popup-member { min-width: 160px; }
+    .popup-member .row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sm-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 2px solid #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 14px; color: white; flex-shrink: 0;
+    }
+    .popup-member .name { font-weight: bold; font-size: 14px; }
+    .popup-member .pref { font-size: 12px; color: #6b7280; }
+
+    .popup-travel { min-width: 220px; }
+    .popup-travel .t-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .t-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 13px; color: white; flex-shrink: 0;
+    }
+    .popup-travel .t-name  { font-weight: bold; font-size: 13px; }
+    .popup-travel .t-meta  { font-size: 11px; color: #9ca3af; }
+    .popup-travel .t-comment { font-size: 12px; color: #374151; line-height: 1.6; margin-top: 4px; }
+    .photo-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 4px; margin-top: 8px;
+    }
+    .photo-cell {
+      aspect-ratio: 1; border-radius: 4px;
+      background: #f3f4f6;
+      overflow: hidden;
+    }
+    .photo-cell img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    /* ---- Legend ---- */
+    .legend {
+      background: white; padding: 10px 14px;
+      border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      font-size: 12px; max-height: 220px; overflow-y: auto;
+    }
+    .legend h4 { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #374151; }
+    .legend ul  { list-style: none; }
+    .legend li  { padding: 2px 0; color: #4b5563; }
+    .legend li::before { content: "●"; color: #3b82f6; margin-right: 4px; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🗾 FIRE研究所 コミュニティマップ</h1>
+  <div class="filter-pills">
+    <button class="pill on-member" id="pill-member" onclick="toggleLayer('member')">👤 会員</button>
+    <button class="pill on-travel"  id="pill-travel"  onclick="toggleLayer('travel')">✈️ 旅行投稿</button>
+  </div>
+</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ================================================================
+// ダミーデータ
+// ================================================================
+const MEMBERS = [
+  { nickname:"みかん",    prefecture:"三重県", lat:34.73, lng:136.51, color:"#f97316", init:"み" },
+  { nickname:"モンチ",    prefecture:"大阪府", lat:34.69, lng:135.50, color:"#8b5cf6", init:"モ" },
+  { nickname:"ひつじ",    prefecture:"茨城県", lat:36.34, lng:140.45, color:"#10b981", init:"ひ" },
+  { nickname:"soto",      prefecture:"東京都", lat:35.69, lng:139.69, color:"#3b82f6", init:"S"  },
+  { nickname:"ドロリッチ",prefecture:"埼玉県", lat:35.86, lng:139.65, color:"#ec4899", init:"ド" },
+  { nickname:"かず",      prefecture:"東京都", lat:35.71, lng:139.73, color:"#14b8a6", init:"か" },
+];
+
+const TRAVEL_POSTS = [
+  {
+    nickname:"推し旅トラベラー0", avatarColor:"#6366f1", init:"推",
+    prefecture:"山口県", lat:34.40, lng:131.47,
+    date:"2026/06/14",
+    comment:"今日は１日萩市内。松下村塾、松陰神社、武家屋敷街、高杉晋作生誕の地、明倫館などを見学しました。",
+    photos:[
+      "data/photos/hagi_old_town.jpg",
+      "data/photos/hagi_tamachi.jpg",
+      "data/photos/hagi_garden.jpg",
+      "data/photos/hagi_aerial.jpg",
+    ],
+  },
+  {
+    nickname:"推し旅トラベラー0", avatarColor:"#6366f1", init:"推",
+    prefecture:"沖縄県", lat:26.21, lng:127.68,
+    date:"2026/06/10",
+    comment:"温泉後、沖縄ルーチンｎエンダーへ。町中のりっかりっかｎ湯も1250円と強気なお値段です💧",
+    photos:[
+      "data/photos/okinawa_shuri.jpg",
+      "data/photos/okinawa_manzamo.jpg",
+      "data/photos/okinawa_kabira.jpg",
+    ],
+  },
+  {
+    nickname:"たびねこ", avatarColor:"#f59e0b", init:"た",
+    prefecture:"北海道", lat:43.06, lng:141.35,
+    date:"2026/06/20",
+    comment:"札幌に来ました！ラーメン横丁で味噌ラーメン食べました🍜 最高でした",
+    photos:[
+      "data/photos/sapporo_ramen1.jpg",
+      "data/photos/sapporo_ramen2.jpg",
+      "data/photos/sapporo_ramen3.jpg",
+    ],
+  },
+  {
+    nickname:"ゆるたび", avatarColor:"#ef4444", init:"ゆ",
+    prefecture:"京都府", lat:35.02, lng:135.75,
+    date:"2026/06/18",
+    comment:"京都は祇園祭の準備が始まってた〜！街全体がお祭りムードで楽しかった",
+    photos:[
+      "data/photos/kyoto_gion1.jpg",
+      "data/photos/kyoto_gion2.jpg",
+      "data/photos/kyoto_gion3.jpg",
+    ],
+  },
+];
+
+// ================================================================
+// 地図初期化
+// ================================================================
+const map = L.map('map', { zoomControl: true }).setView([36.5, 136.0], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 18,
+}).addTo(map);
+
+// ================================================================
+// 会員レイヤー
+// ================================================================
+function makeMemberIcon(m) {
+  const html = `
+    <div class="member-marker">
+      <div class="member-avatar" style="background:${m.color}">${m.init}</div>
+      <div class="member-name">${m.nickname}</div>
+    </div>`;
+  return L.divIcon({ html, className:'', iconSize:[60,62], iconAnchor:[30,22] });
+}
+
+const memberLayer = L.layerGroup();
+MEMBERS.forEach(m => {
+  const popup = `
+    <div class="popup-member">
+      <div class="row">
+        <div class="sm-avatar" style="background:${m.color}">${m.init}</div>
+        <div>
+          <div class="name">${m.nickname}</div>
+          <div class="pref">${m.prefecture}</div>
+        </div>
+      </div>
+    </div>`;
+  L.marker([m.lat, m.lng], { icon: makeMemberIcon(m) })
+    .bindPopup(popup)
+    .addTo(memberLayer);
+});
+memberLayer.addTo(map);
+
+// ================================================================
+// 旅行投稿レイヤー
+// ================================================================
+function makeTravelIcon(p) {
+  const html = `
+    <div class="travel-marker">
+      <div class="travel-thumb"><img src="${p.photos[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:3px;"></div>
+      <div class="travel-pin"></div>
+    </div>`;
+  return L.divIcon({ html, className:'', iconSize:[52,60], iconAnchor:[26,60] });
+}
+
+const travelLayer = L.layerGroup();
+TRAVEL_POSTS.forEach(p => {
+  const grid = p.photos
+    .map(url => `<div class="photo-cell"><img src="${url}" alt="" loading="lazy"></div>`)
+    .join('');
+  const popup = `
+    <div class="popup-travel">
+      <div class="t-header">
+        <div class="t-avatar" style="background:${p.avatarColor}">${p.init}</div>
+        <div>
+          <div class="t-name">${p.nickname}</div>
+          <div class="t-meta">${p.prefecture} · ${p.date}</div>
+        </div>
+      </div>
+      <div class="t-comment">${p.comment}</div>
+      <div class="photo-grid">${grid}</div>
+    </div>`;
+  L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
+    .bindPopup(popup, { maxWidth: 260 })
+    .addTo(travelLayer);
+});
+travelLayer.addTo(map);
+
+// ================================================================
+// フィルタートグル
+// ================================================================
+const state = { member: true, travel: true };
+function toggleLayer(type) {
+  state[type] = !state[type];
+  const layer = type === 'member' ? memberLayer : travelLayer;
+  const pill  = document.getElementById(`pill-${type}`);
+  const cls   = `on-${type}`;
+  if (state[type]) { map.addLayer(layer);    pill.classList.add(cls); }
+  else             { map.removeLayer(layer); pill.classList.remove(cls); }
+}
+
+// ================================================================
+// 凡例（右下）
+// ================================================================
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = () => {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = `<h4>メンバー一覧</h4><ul>${
+    MEMBERS.map(m => `<li>${m.nickname}：${m.prefecture}</li>`).join('')
+  }</ul>`;
+  return div;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
