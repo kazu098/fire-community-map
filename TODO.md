@@ -12,9 +12,12 @@
   - [ ] 変換結果（ニックネーム・都道府県・市区町村・緯度・経度）をJSONファイルに出力する
 - [ ] Discord APIで会員のアバター画像を取得し、マーカー用に自分のサーバーへ保存する
   - [ ] フォーム回答にDiscordユーザーIDを収集するカラムを追加する
-  - [ ] Discord APIでユーザーIDからアバター画像URLを生成するスクリプトを書く
+  - [ ] Discord APIの `GET /users/{user.id}` でUser Objectを取得し、`avatar` hashを取得する
+  - [ ] `avatar` hashから `https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png?size=128` 形式のCDN URLを生成する
+  - [ ] `avatar` が `null` のユーザーはDiscordのデフォルトアバター、または自前の初期アイコンへフォールバックする
+  - [ ] サーバー固有アバターを使いたい場合は、User AvatarではなくGuild Member Avatar（`guild_id` + `member.avatar`）を取得する必要があるか確認する
   - [ ] 画像を `/wp-content/uploads/member-avatars/` にダウンロード保存する
-  - [ ] 取り込み日時を記録しておき、アバターURL変更時に再取得できるようにする
+  - [ ] 取り込み日時と `avatar_hash` を記録しておき、アバター変更時に再取得できるようにする
 - [ ] スプレッドシートをJSON化し、Leafletで読み込んでマーカー表示するHTMLを作る
   - [ ] GASでスプレッドシートをJSON出力するスクリプトを書く（フィールド例: nickname, prefecture, lat, lng, avatarPath）
   - [ ] JSONをWordPressサーバーにアップロードできる形式・場所に配置する
@@ -29,41 +32,119 @@
 
 ## ステップ2: WordPressで会員限定ページにする
 
-- [ ] 会員制プラグイン（Members / Restrict Content など）でページをログイン者限定にする
-  - [ ] MembersまたはRestrict Content Proプラグインをインストール・有効化する
+- [ ] 会員制プラグインを選定し、ページをログイン者限定にする
+  - [ ] 無料・単純なロール制限で足りる場合は **Members** を第一候補にする
+  - [ ] 有料会員・複数プラン・決済・会員レベル管理が必要な場合のみ **Kadence Memberships / Restrict Content Pro系** を検討する
+  - [ ] プラグインは「更新頻度」「WordPress対応バージョン」「アクティブインストール数」「最近の脆弱性情報」「不要機能の少なさ」で選定する
+  - [ ] 使わない会員系・フォーム系・地図系プラグインは入れない、または無効化・削除する
+  - [ ] Membersまたは選定した会員制プラグインをインストール・有効化する
   - [ ] 会員マップページを「ログイン済みユーザーのみ」に制限する設定を行う
   - [ ] 非ログインユーザーがログインページへリダイレクトされることを確認する
 - [ ] ステップ1のHTMLを自サーバーに置き、iframeで会員ページに埋め込む
   - [ ] LeafletマップのHTMLファイルをサーバーに配置する（例: `/map/index.html`）
   - [ ] WordPressの固定ページにiframeタグで埋め込む（src・height・widthを設定）
   - [ ] スマホ表示でも崩れないようレスポンシブ対応（width:100%, aspect-ratio等）を確認する
+- [ ] iframe埋め込み先だけでなく、地図HTML・JSON・画像ファイル自体への直アクセス対策を行う
+  - [ ] `/map/index.html` や `/map/data/*.json` を公開URLに置く場合、非ログインでも直接閲覧できないか確認する
+  - [ ] 可能なら地図HTML/JSONをWordPressテンプレート・REST API・PHPエンドポイント経由で配信し、`is_user_logged_in()` または権限チェックを通す
+  - [ ] Members等で固定ページを制限しても、iframe先の静的HTML/JSON/画像は別URLとして直アクセス可能な場合がある前提で設計する
+  - [ ] 本当に会員限定にしたいデータは、公開ディレクトリの静的ファイルではなく、権限チェック付きPHP/APIから返す
+  - [ ] 静的JSONを置く場合は、個人情報・DiscordユーザーID・内部ID・正確すぎる住所を含めない「表示専用JSON」にする
+  - [ ] `/wp-content/uploads/member-avatars/` と `/wp-content/uploads/travel-photos/` のURLを知っている非ログインユーザーが閲覧できる前提で、公開されても問題ない画像だけ保存する
 - [ ] （代替案）WordPressのLeaflet系プラグインのOpenStreetMapモードで表示する方法も検討
+
+## ステップ2.5: WordPress / DB / 通信のセキュリティ対策
+
+- [ ] WordPress本体・テーマ・プラグイン・PHP・MySQLを最新安定版に保つ運用を決める
+  - [ ] 自動更新の対象範囲を決め、更新前バックアップと更新後の表示確認手順を用意する
+  - [ ] 管理者アカウントは最小人数にし、普段使いは管理者以外の権限にする
+  - [ ] 管理者・編集者・会員アカウントは強固なパスワードを必須にし、可能なら2FAを導入する
+  - [ ] ログイン試行回数制限、reCAPTCHAまたは同等のBot対策、不要なXML-RPC無効化を検討する
+- [ ] HTTPSを必須にする
+  - [ ] SSL証明書を設定し、HTTPからHTTPSへ301リダイレクトする
+  - [ ] WordPressの「サイトアドレス」「WordPressアドレス」をHTTPSにする
+  - [ ] iframe、Leaflet、タイル、画像、JSON、API呼び出しがすべてHTTPSで読み込まれることを確認する
+  - [ ] HSTSの有効化を検討する
+- [ ] DBに保存する情報を最小化する
+  - [ ] 会員マップ用DB/JSONには、本名、メールアドレス、電話番号、詳細住所、DiscordユーザーIDなどの個人情報を入れない
+  - [ ] 表示に必要な項目は `nickname, prefecture, municipality_optional, lat, lng, avatar_local_path` 程度に限定する
+  - [ ] `discord_user_id` は旅行投稿の重複管理・再取得に必要な場合だけ保存し、表示用JSONには出さない
+  - [ ] 位置情報は都道府県〜市区町村の代表座標までにし、番地・建物・自宅付近の座標は保存しない
+  - [ ] 削除依頼が来た場合に、DB・JSON・画像・バックアップから削除する手順を決める
+- [ ] SQLインジェクション対策を実装ルールにする
+  - [ ] WordPressからDBを読む/書くPHPコードでは `$wpdb->prepare()` を必ず使い、文字列結合でSQLを作らない
+  - [ ] `INSERT` / `UPDATE` は可能なら `$wpdb->insert()` / `$wpdb->update()` を使い、型指定する
+  - [ ] テーブル名やカラム名を動的にする場合はホワイトリスト方式にし、ユーザー入力をそのまま識別子に使わない
+  - [ ] DBユーザー権限はWordPress用DBのみに限定し、不要なSUPER/FILE/GRANT権限を付けない
+- [ ] XSS / HTML注入対策を実装ルールにする
+  - [ ] Discord本文、ニックネーム、地名など外部由来データは保存前にバリデーションし、表示時にHTMLエスケープする
+  - [ ] Leafletポップアップへ文字列を入れるときは、`innerHTML` 直入れではなくエスケープ済み文字列またはDOM生成で表示する
+  - [ ] 現在の `map/index.html` はテンプレート文字列でHTMLを組み立てているため、本番データ投入前に `textContent` ベースのDOM生成またはエスケープ関数へ置き換える
+  - [ ] 画像URL・パスは自サーバー配下の許可ディレクトリのみ許可し、`javascript:` や外部URLを混ぜない
+- [ ] Discord Bot Token / APIキー / DB認証情報の管理を確認する
+  - [ ] Bot TokenはGitにコミットしない
+  - [ ] `.env`、サーバー環境変数、または `wp-config.php` の定数で管理し、公開ディレクトリに置かない
+  - [ ] Token漏えい時の再発行手順をメモしておく
+- [ ] 必要な権限・設定を一覧化して確認する
+  - [ ] Discord Developer Portalの作業は「Discordサーバー所有者」ではなく「Botアプリ作成者/管理者」が行う
+  - [ ] Discord Developer Portal: Botを作成し、Bot Tokenを取得する
+  - [ ] Discord Developer Portal: **Message Content Intent** を有効化する（投稿本文・添付・埋め込み等を読むため）
+  - [ ] Discord OAuth2: 読み取りバッチだけならスコープは原則 `bot`。スラッシュコマンドを使う場合のみ `applications.commands` も付与する
+  - [ ] Discordサーバー管理者: Bot招待URLからBotをサーバーへ追加する（通常は `Manage Server` 権限が必要）
+  - [ ] Discordチャンネル権限: 旅行/グルメ対象チャンネルでBotに `View Channel` を付与する
+  - [ ] Discordチャンネル権限: 対象チャンネルでBotに `Read Message History` を付与する
+  - [ ] Discordチャンネル権限: 投稿を読むだけなら `Send Messages`, `Manage Messages`, `Administrator` は不要
+  - [ ] Discord API: `GET /channels/{channel.id}/messages` を使うため、対象チャンネルIDを控える
+  - [ ] WordPress: 会員ページを制限できる管理者権限、またはプラグイン設定権限を用意する
+  - [ ] WordPress/DB: `wp_travel_posts` 作成・更新に必要なDB権限を用意する。運用DBユーザーに不要な高権限を付けない
+  - [ ] サーバー: cron設定、環境変数設定、`/wp-content/uploads/` 配下への画像保存権限を確認する
+- [ ] ファイルアップロード・画像保存の安全性を確認する
+  - [ ] Discord添付画像はMIMEタイプ・拡張子・ファイルサイズ上限を検証してから保存する
+  - [ ] 保存ファイル名は元ファイル名を使わず、ランダム名またはハッシュ名にする
+  - [ ] 画像保存ディレクトリではPHP実行を無効化する（`.htaccess` やサーバー設定）
+  - [ ] EXIFの位置情報が残る可能性を確認し、必要なら取り込み時にEXIF削除する
+- [ ] セキュリティ確認テストを行う
+  - [ ] 非ログイン状態で会員ページ、地図HTML、JSON、画像URLへ直接アクセスし、見えてはいけない情報が出ないことを確認する
+  - [ ] 一般会員権限で管理画面・DB更新API・バッチ実行URLにアクセスできないことを確認する
+  - [ ] ニックネームやコメントに `<script>alert(1)</script>` 相当の文字列を入れても実行されないことを確認する
+  - [ ] バックアップ復元手順を1回テストする
 
 ## ステップ3: Discord旅行チャンネルを連携する
 
 - [x] Discord Developer PortalでBotを作成し、Bot Token を取得する（Bot名: F研Bot）
   - [x] applications.commands / bot スコープで招待URLを生成しサーバーに追加する
+  - [ ] 読み取りバッチだけならOAuth2スコープは `bot` が基本。`applications.commands` はスラッシュコマンドを使う場合のみ必要か確認する
   - [x] Bot TokenをWordPressサーバーの環境変数または設定ファイルに安全に保存する
 - [x] **Message Content Intent** をオン（投稿本文を読むために必須）
 - [ ] サーバー管理者にBotの追加と旅行チャンネルの閲覧権限付与を依頼する
   - 依頼文: 「Botをサーバーに追加したいので、下記の招待リンクをクリックして追加をお願いできますか？あわせて旅行チャンネルをBotに見られるようにしてほしいです。」
+  - [ ] 対象チャンネルでBotに `View Channel` と `Read Message History` 権限があることを確認する
+  - [ ] 添付画像・投稿本文を取得するため、Developer Portal側で **Message Content Intent** が有効になっていることを再確認する
 - [ ] 定期バッチ（1日1回）で旅行/グルメチャンネルの投稿（場所・写真・一言）を取得する
   - [ ] WordPressのMySQLに `wp_travel_posts` カスタムテーブルを作成する
     - フィールド: `id, discord_user_id, nickname, avatar_local_path, prefecture, lat, lng, photo_local_paths, comment, discord_message_id, posted_at`
     - `photo_local_paths` はJSON配列文字列（例: `["/.../a.jpg","/.../b.jpg"]`）で複数添付画像に対応する
   - [ ] テーブル作成SQLをファイルに保存しバージョン管理する → `wp/setup.sql`
   - [ ] Pythonで Discord APIからチャンネル投稿を取得するスクリプトを書く → `scripts/discord_batch.py`
+    - [ ] `GET /channels/{channel.id}/messages?limit=100&after={last_message_id}` を使い、前回取得以降の投稿だけ読む
+    - [ ] Discord APIのレート制限（429、`Retry-After`）を処理する
+    - [ ] message objectの `author.id`, `author.global_name` / `username`, `author.avatar`, `content`, `attachments`, `timestamp`, `id` を保存対象として扱う
   - [ ] 添付画像を `/wp-content/uploads/travel-photos/YYYY-MM/` にダウンロード保存する
+    - [ ] Discord添付ファイルURLは期限付きの場合があるため、表示用JSONにはDiscord CDN URLを直接入れず、自サーバー保存後のパスだけ入れる
   - [ ] `discord_message_id` で重複チェックし、未取り込みの投稿だけDBに保存する
   - [ ] サーバーのcron（またはWP-Cron）でスクリプトを1日1回自動実行する設定をする
 - [ ] 投稿テキストから都道府県・座標を判定し、写真・コメントと一緒にJSON/DBへ保存する
   - 判定はテキストのみ対象。**画像からの場所推定は行わない**（精度・コストの観点から現時点ではスコープ外）
+  - [ ] コメント本文はDiscord message objectの `content` をそのまま保存対象にする（LLMで要約・抽出しない）
   - [ ] 投稿テキストから地名らしい文字列を正規表現で抽出する（`〇〇市`・`〇〇町`・`〇〇区`・`〇〇県` など）
+  - [ ] 無料運用を優先し、都道府県名・市区町村名の辞書マッチと正規表現で候補を作る
   - [ ] 抽出した地名を **Geolonia住所ジオコーダー**（ステップ1と共通、APIキー不要・無料）に渡して都道府県＋緯度経度を取得する
     - 例1: 「沖縄ルーチン」→「沖縄」→ Geolonia → 沖縄県・座標
     - 例2: 「萩市内」→「萩市」→ Geolonia → 山口県・座標
   - [ ] 判定できなかった投稿は `prefecture = NULL, lat = NULL, lng = NULL` で保存し、地図には表示しない運用にする
-  - [ ] 精度を上げたい場合はOpenAI APIなど外部LLMへの問い合わせを追加する（コスト要確認）
+  - [ ] 精度を上げたい場合のみ、判定不能な投稿だけOpenAI APIなど外部LLMへ問い合わせる（全投稿にLLMを使わない）
+  - [ ] LLMを使う場合は月間投稿数・1投稿あたり入力/出力トークン・モデル単価をメモし、上限予算を決めてから有効化する
+  - [ ] LLMの戻り値は `prefecture`, `place`, `confidence`, `reason` などのJSONに限定し、低信頼度は地図に表示しない
 - [ ] 会員マップと旅行投稿マップの表示方針を決める
   - [ ] 同一マップ上にレイヤー（会員ピン／旅行投稿ピン）を切り替えるUIにするか、別ページにするかを決定する
   - [ ] 旅行投稿ピンのポップアップには「投稿者アバター・ニックネーム・コメント・写真（最大N枚）」を表示するデザインを決める
@@ -75,7 +156,10 @@
 ## コスト・注意点
 
 - [ ] Leaflet.js・OpenStreetMap・Geolonia/国土地理院APIの利用規約とクレジット表記要件を確認する
+  - [ ] OpenStreetMap公式タイルを使う場合はクレジット表記を維持し、大量アクセス・事前取得・タイルの一括ダウンロードをしない
+  - [ ] 会員数やアクセスが増える場合は、国土地理院タイルまたは商用/無料枠のタイルプロバイダへの切り替えを検討する
+  - [ ] Geolonia Community Geocoderは代表座標用途として使い、ジオコーディング結果の `level` を確認して低精度な結果を無理に表示しない
 - [ ] WordPressプラグイン（Members等）の無料プランで会員制限機能が要件を満たすか確認する
 - [x] ✅ 住所のプライバシー配慮: フォーム入力時点で対応済み
-- [ ] DiscordのアバターURLは変わることがあるので、取り込み時に自サーバーへ保存しておく
+- [ ] Discordのアバターは `user_id` だけではURL生成できず `avatar_hash` が必要。hash変更に備えて取り込み時に自サーバーへ保存しておく
 - [ ] Bot方式はDiscord公式の正規ルート（規約面で安心）
