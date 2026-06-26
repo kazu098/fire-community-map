@@ -40,9 +40,9 @@ def apply_display_offsets(rows: list[dict]) -> None:
             level = row.get("location_level", "unknown")
 
             if level == "prefecture":
-                max_radius_km = 20.0
-            elif level in ("area", "region", "multi_region"):
                 max_radius_km = 10.0
+            elif level in ("area", "region", "multi_region"):
+                max_radius_km = 6.0
             else:
                 max_radius_km = 2.0
 
