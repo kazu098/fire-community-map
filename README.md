@@ -87,3 +87,32 @@ python3 scripts/normalize_member_locations.py \
 `lat` / `lng` は元入力を正規化した代表座標です。同じ代表座標に複数人が集まる場合は、地図表示用の `map_lat` / `map_lng` を少しずらして出力します。DBには両方保存し、地図マーカーは `map_lat` / `map_lng` を使います。
 
 表記ゆれや地方名は `config/location_aliases.csv` で補完します。都道府県のみの入力は `config/prefecture_centroids.csv` の代表座標を使い、市区町村はGeoloniaの公開住所データから代表点を計算します。
+
+## アバターStorage保存
+
+Discordアバター突合結果から画像をダウンロードし、Supabase Storageの `member-avatars` bucketへ保存します。まず保存予定パスだけ確認する場合はdry-runを使います。
+
+```bash
+python3 scripts/upload_member_avatars.py \
+  --matches tmp/member_avatar_matches.json \
+  --output tmp/member_avatar_storage_paths.json \
+  --dry-run
+```
+
+実アップロード時は `.env` に以下を設定します。
+
+```env
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+bucket作成も含める場合:
+
+```bash
+python3 scripts/upload_member_avatars.py \
+  --matches tmp/member_avatar_matches.json \
+  --output tmp/member_avatar_storage_paths.json \
+  --create-bucket
+```
+
+Storage pathにはDiscordユーザーIDを含めません。出力JSONの `avatar_path` を `member_locations.avatar_path` に保存します。
