@@ -14,10 +14,11 @@
       top: 0; left: 0; right: 0;
       z-index: 1000;
       background: white;
-      padding: 10px 16px;
+      padding: 8px 16px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      flex-wrap: wrap;
+      gap: 8px 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
     #header h1 {
@@ -28,10 +29,10 @@
     }
     .filter-pills {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
     .pill {
-      padding: 5px 14px;
+      padding: 4px 12px;
       border-radius: 20px;
       border: 2px solid #d1d5db;
       background: white;
@@ -40,6 +41,7 @@
       color: #6b7280;
       transition: all 0.2s;
       user-select: none;
+      white-space: nowrap;
     }
     .pill:hover { opacity: 0.85; }
     .pill.on-member  { background: #3b82f6; border-color: #3b82f6; color: white; }
@@ -48,6 +50,21 @@
     #map {
       position: fixed;
       top: 52px; left: 0; right: 0; bottom: 0;
+    }
+
+    @media (max-width: 600px) {
+      #header {
+        padding: 6px 12px;
+        row-gap: 6px;
+      }
+      #header h1 {
+        font-size: 13px;
+        flex: 1 1 100%;
+      }
+      .filter-pills { flex-shrink: 0; }
+      #search-wrap { flex: 1 1 0; min-width: 0; }
+      #search-input { width: 100%; }
+      #map { top: 80px; }
     }
 
     /* ---- Member marker ---- */
