@@ -128,16 +128,44 @@
       width: 100%; height: 100%; object-fit: cover; display: block;
     }
 
-    /* ---- Legend ---- */
-    .legend {
-      background: white; padding: 10px 14px;
-      border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      font-size: 12px; max-height: 220px; overflow-y: auto;
+    /* ---- Search ---- */
+    #search-wrap {
+      position: relative;
+      margin-left: auto;
     }
-    .legend h4 { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #374151; }
-    .legend ul  { list-style: none; }
-    .legend li  { padding: 2px 0; color: #4b5563; }
-    .legend li::before { content: "●"; color: #3b82f6; margin-right: 4px; }
+    #search-input {
+      padding: 5px 32px 5px 10px;
+      border: 2px solid #d1d5db;
+      border-radius: 20px;
+      font-size: 13px;
+      width: 180px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #search-input:focus { border-color: #3b82f6; }
+    #search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 14px; display: none; line-height: 1;
+    }
+    #search-suggestions {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: white; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      overflow: hidden; display: none; z-index: 2000;
+    }
+    .suggestion-item {
+      padding: 8px 12px; cursor: pointer; font-size: 13px; color: #1f2937;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .suggestion-item:hover { background: #f3f4f6; }
+    .suggestion-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2px solid #3b82f6; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: bold; color: white; overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -148,29 +176,45 @@
     <button class="pill on-member" id="pill-member" onclick="toggleLayer('member')">👤 会員</button>
     <button class="pill on-travel"  id="pill-travel"  onclick="toggleLayer('travel')">✈️ 旅行投稿</button>
   </div>
+  <div id="search-wrap">
+    <input id="search-input" type="text" placeholder="ニックネームで検索…" autocomplete="off">
+    <button id="search-clear">✕</button>
+    <div id="search-suggestions"></div>
+  </div>
 </div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ================================================================
-// ダミーデータ
+// Supabase 設定
 // ================================================================
-const MEMBERS = [
-  { nickname:"みかん",    prefecture:"三重県", lat:34.73, lng:136.51, color:"#f97316", init:"み" },
-  { nickname:"モンチ",    prefecture:"大阪府", lat:34.69, lng:135.50, color:"#8b5cf6", init:"モ" },
-  { nickname:"ひつじ",    prefecture:"茨城県", lat:36.34, lng:140.45, color:"#10b981", init:"ひ" },
-  { nickname:"soto",      prefecture:"東京都", lat:35.69, lng:139.69, color:"#3b82f6", init:"S"  },
-  { nickname:"ドロリッチ",prefecture:"埼玉県", lat:35.86, lng:139.65, color:"#ec4899", init:"ド" },
-  { nickname:"かず",      prefecture:"東京都", lat:35.71, lng:139.73, color:"#14b8a6", init:"か" },
-];
+const SUPABASE_URL = 'https://hchlqnsretsbhumeojdk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjaGxxbnNyZXRzYmh1bWVvamRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDAxNjcsImV4cCI6MjA5ODAxNjE2N30.iy0Fg7izs1DKonTGcMuORCiWilCujVfd3b_dwUlYyLM';
 
+function avatarUrl(path) {
+  if (!path) return null;
+  return `${SUPABASE_URL}/storage/v1/object/public/${path}`;
+}
+
+function initials(nickname) {
+  return nickname ? [...nickname][0] : '?';
+}
+
+const COLORS = ['#3b82f6','#8b5cf6','#10b981','#f97316','#ec4899','#14b8a6','#f59e0b','#ef4444','#6366f1'];
+function memberColor(nickname) {
+  let h = 0;
+  for (const c of nickname) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return COLORS[h % COLORS.length];
+}
+
+// ※旅行投稿はすべてダミーデータです（メンバーからの同意取得後に実データへ切り替え予定）
 const TRAVEL_POSTS = [
   {
-    nickname:"推し旅トラベラー0", avatarColor:"#6366f1", init:"推",
+    nickname:"さんぽにゃん", avatarColor:"#6366f1", init:"さ",
     prefecture:"山口県", lat:34.40, lng:131.47,
-    date:"2026/06/14",
-    comment:"今日は１日萩市内。松下村塾、松陰神社、武家屋敷街、高杉晋作生誕の地、明倫館などを見学しました。",
+    date:"2026/05/03",
+    comment:"萩をぶらぶら散歩してきました。白壁の街並みが素敵でした☀️",
     photos:[
       "data/photos/hagi_old_town.jpg",
       "data/photos/hagi_tamachi.jpg",
@@ -179,10 +223,10 @@ const TRAVEL_POSTS = [
     ],
   },
   {
-    nickname:"推し旅トラベラー0", avatarColor:"#6366f1", init:"推",
+    nickname:"のんびり旅人", avatarColor:"#10b981", init:"の",
     prefecture:"沖縄県", lat:26.21, lng:127.68,
-    date:"2026/06/10",
-    comment:"温泉後、沖縄ルーチンｎエンダーへ。町中のりっかりっかｎ湯も1250円と強気なお値段です💧",
+    date:"2026/04/20",
+    comment:"沖縄の海は最高でした🌊 また来たい！",
     photos:[
       "data/photos/okinawa_shuri.jpg",
       "data/photos/okinawa_manzamo.jpg",
@@ -190,10 +234,10 @@ const TRAVEL_POSTS = [
     ],
   },
   {
-    nickname:"たびねこ", avatarColor:"#f59e0b", init:"た",
+    nickname:"週末ふらり", avatarColor:"#f59e0b", init:"週",
     prefecture:"北海道", lat:43.06, lng:141.35,
-    date:"2026/06/20",
-    comment:"札幌に来ました！ラーメン横丁で味噌ラーメン食べました🍜 最高でした",
+    date:"2026/05/15",
+    comment:"札幌グルメを満喫してきました🍺",
     photos:[
       "data/photos/sapporo_ramen1.jpg",
       "data/photos/sapporo_ramen2.jpg",
@@ -201,10 +245,10 @@ const TRAVEL_POSTS = [
     ],
   },
   {
-    nickname:"ゆるたび", avatarColor:"#ef4444", init:"ゆ",
+    nickname:"てくてく歩き", avatarColor:"#ef4444", init:"て",
     prefecture:"京都府", lat:35.02, lng:135.75,
-    date:"2026/06/18",
-    comment:"京都は祇園祭の準備が始まってた〜！街全体がお祭りムードで楽しかった",
+    date:"2026/05/10",
+    comment:"京都の古い街並みを歩いてきました。風情があって良かったです",
     photos:[
       "data/photos/kyoto_gion1.jpg",
       "data/photos/kyoto_gion2.jpg",
@@ -227,31 +271,82 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // 会員レイヤー
 // ================================================================
 function makeMemberIcon(m) {
+  const color = memberColor(m.nickname);
+  const url = avatarUrl(m.avatar_path);
+  const inner = url
+    ? `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : `<span style="color:white;font-weight:bold;font-size:16px;">${initials(m.nickname)}</span>`;
   const html = `
     <div class="member-marker">
-      <div class="member-avatar" style="background:${m.color}">${m.init}</div>
-      <div class="member-name">${m.nickname}</div>
+      <div class="member-avatar" style="background:${color};overflow:hidden;">${inner}</div>
+      <div class="member-name"></div>
     </div>`;
-  return L.divIcon({ html, className:'', iconSize:[60,62], iconAnchor:[30,22] });
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  el.querySelector('.member-name').textContent = m.nickname;
+  return L.divIcon({ html: el.innerHTML, className:'', iconSize:[60,62], iconAnchor:[30,22] });
+}
+
+function makeMemberPopup(m) {
+  const color = memberColor(m.nickname);
+  const url = avatarUrl(m.avatar_path);
+  const div = document.createElement('div');
+  div.className = 'popup-member';
+
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'sm-avatar';
+  avatar.style.background = color;
+  if (url) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = initials(m.nickname);
+  }
+
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = m.nickname;
+  const pref = document.createElement('div');
+  pref.className = 'pref';
+  pref.textContent = [m.prefecture, m.municipality_optional].filter(Boolean).join(' ');
+
+  info.appendChild(name);
+  info.appendChild(pref);
+  row.appendChild(avatar);
+  row.appendChild(info);
+  div.appendChild(row);
+  return div;
 }
 
 const memberLayer = L.layerGroup();
-MEMBERS.forEach(m => {
-  const popup = `
-    <div class="popup-member">
-      <div class="row">
-        <div class="sm-avatar" style="background:${m.color}">${m.init}</div>
-        <div>
-          <div class="name">${m.nickname}</div>
-          <div class="pref">${m.prefecture}</div>
-        </div>
-      </div>
-    </div>`;
-  L.marker([m.lat, m.lng], { icon: makeMemberIcon(m) })
-    .bindPopup(popup)
-    .addTo(memberLayer);
-});
+let allMembers = [];
+
+async function loadMembers() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
+    { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+  );
+  const members = await res.json();
+
+  members.forEach(m => {
+    const marker = L.marker([m.map_lat, m.map_lng], { icon: makeMemberIcon(m) })
+      .bindPopup(makeMemberPopup(m))
+      .addTo(memberLayer);
+    m._marker = marker;
+  });
+
+  allMembers = members;
+}
+
 memberLayer.addTo(map);
+loadMembers();
 
 // ================================================================
 // 旅行投稿レイヤー
@@ -302,17 +397,74 @@ function toggleLayer(type) {
 }
 
 // ================================================================
-// 凡例（右下）
+// 検索
 // ================================================================
-const legend = L.control({ position: 'bottomright' });
-legend.onAdd = () => {
-  const div = L.DomUtil.create('div', 'legend');
-  div.innerHTML = `<h4>メンバー一覧</h4><ul>${
-    MEMBERS.map(m => `<li>${m.nickname}：${m.prefecture}</li>`).join('')
-  }</ul>`;
-  return div;
-};
-legend.addTo(map);
+const searchInput = document.getElementById('search-input');
+const searchClear = document.getElementById('search-clear');
+const searchSuggestions = document.getElementById('search-suggestions');
+
+function buildSuggestions(query) {
+  searchSuggestions.innerHTML = '';
+  if (!query) { searchSuggestions.style.display = 'none'; return; }
+  const hits = allMembers.filter(m =>
+    m.nickname.toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+  if (hits.length === 0) { searchSuggestions.style.display = 'none'; return; }
+  hits.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+
+    const av = document.createElement('div');
+    av.className = 'suggestion-avatar';
+    av.style.background = memberColor(m.nickname);
+    const url = avatarUrl(m.avatar_path);
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      av.appendChild(img);
+    } else {
+      av.textContent = initials(m.nickname);
+    }
+
+    const label = document.createElement('span');
+    label.textContent = `${m.nickname}　${m.prefecture || ''}`;
+
+    item.appendChild(av);
+    item.appendChild(label);
+    item.addEventListener('click', () => focusMember(m));
+    searchSuggestions.appendChild(item);
+  });
+  searchSuggestions.style.display = 'block';
+}
+
+function focusMember(m) {
+  searchInput.value = m.nickname;
+  searchSuggestions.style.display = 'none';
+  searchClear.style.display = 'block';
+  if (!map.hasLayer(memberLayer)) map.addLayer(memberLayer);
+  map.setView([m.map_lat, m.map_lng], 12, { animate: true });
+  m._marker.openPopup();
+}
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  searchClear.style.display = q ? 'block' : 'none';
+  buildSuggestions(q);
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  searchSuggestions.style.display = 'none';
+  searchInput.focus();
+});
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('search-wrap').contains(e.target)) {
+    searchSuggestions.style.display = 'none';
+  }
+});
 </script>
 </body>
 </html>

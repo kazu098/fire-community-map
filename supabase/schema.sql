@@ -10,7 +10,7 @@ create table if not exists public.member_locations (
   prefecture text,
   municipality_optional text,
   location_level text not null check (
-    location_level in ('prefecture', 'municipality', 'area', 'region', 'unknown')
+    location_level in ('prefecture', 'municipality', 'area', 'region', 'multi_region', 'unknown')
   ),
   lat double precision,
   lng double precision,
