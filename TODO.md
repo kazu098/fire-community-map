@@ -6,10 +6,12 @@
 - [x] 回答をスプレッドシートに集約
 - [x] プライバシー配慮: フォーム設計の段階で都道府県〜市区町村レベルの入力に限定済み。座標の丸め処理は不要
 - [ ] 住所を緯度経度に変換（ジオコーディング）。フォーム回答はすでに **都道府県〜市区町村レベル** で収集済みのため座標の丸め不要
-  - [ ] 都道府県のみの回答 -> 47都道府県の代表座標を静的JSONルックアップテーブルで引く（API不要）
-  - [ ] 市区町村まである回答 -> **Geolonia住所ジオコーダー** に「東京都渋谷区」形式で渡して代表座標を取得
-  - [ ] GASで住所列を見て都道府県のみ/市区町村ありを分岐し、上記2パターンで座標を取得するスクリプトを書く
-  - [ ] 変換結果（ニックネーム・都道府県・市区町村・緯度・経度）をSupabase投入用CSV/JSONに出力する
+  - [x] 都道府県のみの回答 -> 47都道府県の代表座標を静的CSVルックアップテーブルで引く（API不要）
+  - [x] 市区町村まである回答 -> **Geolonia住所データ** に「東京都/墨田区」形式で渡して代表座標を取得
+  - [x] 自由入力の住所列を見て都道府県のみ/市区町村あり/地方名/要確認を分岐するPythonスクリプトを書く
+  - [x] 変換結果（ニックネーム・元入力・都道府県・市区町村・代表座標・地図表示用座標）をSupabase投入用CSV/JSONに出力する
+  - [x] 東京都だけなど同一点に集まる入力は、代表座標 `lat/lng` とは別に地図表示用 `map_lat/map_lng` を少しずらして出力する
+  - [ ] 要確認の住所（例: 複数都県入力）を手動確認する
 - [ ] Discord APIで会員のアバター画像を取得し、マーカー用に保存する
   - [ ] **必須対応**: Discordアイコン連携は初期リリース要件に含める
   - [ ] スプレッドシートにDiscordユーザーIDはないため、初期実装ではGoogleフォームのニックネームとDiscord表示名を完全一致で紐づける
@@ -68,7 +70,7 @@
   - [ ] SupabaseのProject URL、anon key、service role keyの保管場所を決める
 - [ ] DBスキーマを設計する
   - [ ] `member_locations` テーブルを作成する
-    - [ ] フィールド例: `id, nickname, prefecture, municipality_optional, lat, lng, avatar_path, avatar_hash, imported_at, updated_at`
+    - [ ] フィールド例: `id, nickname, location_text, prefecture, municipality_optional, location_level, lat, lng, map_lat, map_lng, geocode_source, avatar_path, avatar_hash, imported_at, updated_at`
     - [ ] 本名、メールアドレス、電話番号、詳細住所はフォーム回答に含まれていない前提で進める
     - [ ] DiscordユーザーIDは表示用テーブルに入れない。ニックネーム突合時だけ一時的に扱う
   - [ ] `travel_posts` テーブルを作成する
