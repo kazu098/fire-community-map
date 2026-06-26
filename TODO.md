@@ -24,8 +24,9 @@
   - [x] `avatar` hashから `https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png?size=128` 形式のCDN URLを生成する
   - [x] `avatar` が `null` のユーザーはDiscordのデフォルトアバターへフォールバックする
   - [x] サーバー固有アバターがある場合はGuild Member Avatar（`guild_id` + `member.avatar`）を優先する
-  - [ ] アイコン画像はSupabase Storageの `member-avatars` bucketへ保存する
-  - [ ] Storage保存後の `avatar_path` を `member_locations` に保存し、表示時はDiscord CDNへ直接依存しない
+  - [x] アイコン画像はSupabase Storageの `member-avatars` bucketへ保存するスクリプトを作る
+  - [x] Storage保存後の `avatar_path` を出力し、`member_locations` に保存できる形にする
+  - [ ] Supabase認証情報設定後に実アップロードし、表示時はDiscord CDNへ直接依存しない
   - [ ] 取り込み日時と `avatar_hash` を記録しておき、アバター変更時に再取得できるようにする
   - [ ] Supabase投入後、全会員レコードに `avatar_path` が入っているか確認する
 - [ ] LeafletでSupabaseの表示用データを読み込んでマーカー表示する
