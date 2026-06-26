@@ -73,7 +73,7 @@
     - [ ] フィールド例: `id, nickname, location_text, prefecture, municipality_optional, location_level, lat, lng, map_lat, map_lng, geocode_source, avatar_path, avatar_hash, imported_at, updated_at`
     - [ ] 本名、メールアドレス、電話番号、詳細住所はフォーム回答に含まれていない前提で進める
     - [ ] DiscordユーザーIDは表示用テーブルに入れない。ニックネーム突合時だけ一時的に扱う
-  - [ ] `travel_posts` テーブルを作成する
+  - [ ] `travel_posts` テーブルを作成する（会員マップ表示後に対応）
     - [ ] フィールド例: `id, discord_message_id, nickname, avatar_path, prefecture, lat, lng, photo_paths, comment, posted_at, imported_at`
     - [ ] `photo_paths` は `text[]` または `jsonb` で複数添付画像に対応する
     - [ ] `discord_message_id` に一意制約を付け、重複取り込みを防ぐ
