@@ -131,7 +131,13 @@
     }
     .popup-travel .t-name  { font-weight: bold; font-size: 13px; }
     .popup-travel .t-meta  { font-size: 11px; color: #9ca3af; }
-    .popup-travel .t-comment { font-size: 12px; color: #374151; line-height: 1.6; margin-top: 4px; }
+    .popup-travel .t-comment {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.6;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
     .photo-grid {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 4px; margin-top: 8px;
@@ -190,8 +196,8 @@
 <div id="header">
   <h1>🗾 FIRE研究所 コミュニティマップ</h1>
   <div class="filter-pills">
-    <button class="pill on-member" id="pill-member" onclick="toggleLayer('member')">👤 会員</button>
-    <button class="pill on-travel"  id="pill-travel"  onclick="toggleLayer('travel')">✈️ 旅行投稿</button>
+    <button class="pill on-member" id="pill-member" onclick="selectLayer('member')">👤 会員</button>
+    <button class="pill" id="pill-travel" onclick="selectLayer('travel')">✈️ 旅行投稿</button>
   </div>
   <div id="search-wrap">
     <input id="search-input" type="text" placeholder="ニックネームで検索…" autocomplete="off">
@@ -225,54 +231,9 @@ function memberColor(nickname) {
   return COLORS[h % COLORS.length];
 }
 
-// ※旅行投稿はすべてダミーデータです（メンバーからの同意取得後に実データへ切り替え予定）
-const TRAVEL_POSTS = [
-  {
-    nickname:"さんぽにゃん", avatarColor:"#6366f1", init:"さ",
-    prefecture:"山口県", lat:34.40, lng:131.47,
-    date:"2026/05/03",
-    comment:"萩をぶらぶら散歩してきました。白壁の街並みが素敵でした☀️",
-    photos:[
-      "data/photos/hagi_old_town.jpg",
-      "data/photos/hagi_tamachi.jpg",
-      "data/photos/hagi_garden.jpg",
-      "data/photos/hagi_aerial.jpg",
-    ],
-  },
-  {
-    nickname:"のんびり旅人", avatarColor:"#10b981", init:"の",
-    prefecture:"沖縄県", lat:26.21, lng:127.68,
-    date:"2026/04/20",
-    comment:"沖縄の海は最高でした🌊 また来たい！",
-    photos:[
-      "data/photos/okinawa_shuri.jpg",
-      "data/photos/okinawa_manzamo.jpg",
-      "data/photos/okinawa_kabira.jpg",
-    ],
-  },
-  {
-    nickname:"週末ふらり", avatarColor:"#f59e0b", init:"週",
-    prefecture:"北海道", lat:43.06, lng:141.35,
-    date:"2026/05/15",
-    comment:"札幌グルメを満喫してきました🍺",
-    photos:[
-      "data/photos/sapporo_ramen1.jpg",
-      "data/photos/sapporo_ramen2.jpg",
-      "data/photos/sapporo_ramen3.jpg",
-    ],
-  },
-  {
-    nickname:"てくてく歩き", avatarColor:"#ef4444", init:"て",
-    prefecture:"京都府", lat:35.02, lng:135.75,
-    date:"2026/05/10",
-    comment:"京都の古い街並みを歩いてきました。風情があって良かったです",
-    photos:[
-      "data/photos/kyoto_gion1.jpg",
-      "data/photos/kyoto_gion2.jpg",
-      "data/photos/kyoto_gion3.jpg",
-    ],
-  },
-];
+function memberLocationLabel(m) {
+  return m.location_text || [m.prefecture, m.municipality_optional].filter(Boolean).join(' ');
+}
 
 // ================================================================
 // 地図初期化
@@ -332,7 +293,7 @@ function makeMemberPopup(m) {
   name.textContent = m.nickname;
   const pref = document.createElement('div');
   pref.className = 'pref';
-  pref.textContent = [m.prefecture, m.municipality_optional].filter(Boolean).join(' ');
+  pref.textContent = memberLocationLabel(m);
 
   info.appendChild(name);
   info.appendChild(pref);
@@ -347,7 +308,7 @@ let allMembers = [];
 
 async function loadMembers() {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
+    `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
     { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
   );
   const members = await res.json();
@@ -368,49 +329,132 @@ loadMembers();
 // ================================================================
 // 旅行投稿レイヤー
 // ================================================================
+function escapeAttr(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
 function makeTravelIcon(p) {
+  const photo = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos[0] : null;
+  const thumb = photo
+    ? `<img src="${escapeAttr(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:3px;">`
+    : '<span>✈️</span>';
   const html = `
     <div class="travel-marker">
-      <div class="travel-thumb"><img src="${p.photos[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:3px;"></div>
+      <div class="travel-thumb">${thumb}</div>
       <div class="travel-pin"></div>
     </div>`;
   return L.divIcon({ html, className:'', iconSize:[52,60], iconAnchor:[26,60] });
 }
 
 const travelLayer = L.layerGroup();
-TRAVEL_POSTS.forEach(p => {
-  const grid = p.photos
-    .map(url => `<div class="photo-cell"><img src="${url}" alt="" loading="lazy"></div>`)
-    .join('');
-  const popup = `
-    <div class="popup-travel">
-      <div class="t-header">
-        <div class="t-avatar" style="background:${p.avatarColor}">${p.init}</div>
-        <div>
-          <div class="t-name">${p.nickname}</div>
-          <div class="t-meta">${p.prefecture} · ${p.date}</div>
-        </div>
-      </div>
-      <div class="t-comment">${p.comment}</div>
-      <div class="photo-grid">${grid}</div>
-    </div>`;
-  L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
-    .bindPopup(popup, { maxWidth: 260 })
-    .addTo(travelLayer);
-});
-travelLayer.addTo(map);
+
+function makeTravelPopup(p) {
+  const div = document.createElement('div');
+  div.className = 'popup-travel';
+
+  const header = document.createElement('div');
+  header.className = 't-header';
+
+  const avatar = document.createElement('div');
+  avatar.className = 't-avatar';
+  avatar.style.background = p.avatarColor || '#f97316';
+  if (p.avatar_path) {
+    const img = document.createElement('img');
+    img.src = p.avatar_path;
+    img.alt = '';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = p.init || initials(p.nickname);
+  }
+
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.className = 't-name';
+  name.textContent = p.nickname || 'unknown';
+  const meta = document.createElement('div');
+  meta.className = 't-meta';
+  meta.textContent = [p.prefecture, p.date].filter(Boolean).join(' · ');
+  info.appendChild(name);
+  info.appendChild(meta);
+
+  header.appendChild(avatar);
+  header.appendChild(info);
+  div.appendChild(header);
+
+  if (p.comment) {
+    const comment = document.createElement('div');
+    comment.className = 't-comment';
+    comment.textContent = p.comment;
+    div.appendChild(comment);
+  }
+
+  if (Array.isArray(p.photos) && p.photos.length > 0) {
+    const grid = document.createElement('div');
+    grid.className = 'photo-grid';
+    p.photos.forEach(url => {
+      const cell = document.createElement('div');
+      cell.className = 'photo-cell';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      img.loading = 'lazy';
+      cell.appendChild(img);
+      grid.appendChild(cell);
+    });
+    div.appendChild(grid);
+  }
+
+  return div;
+}
+
+function renderTravelPosts(posts) {
+  travelLayer.clearLayers();
+  posts
+    .filter(p => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+    .forEach(p => {
+      L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
+        .bindPopup(makeTravelPopup(p), { maxWidth: 260 })
+        .addTo(travelLayer);
+    });
+}
+
+async function loadTravelPosts() {
+  try {
+    const res = await fetch('data/travel_posts.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`travel_posts.json: ${res.status}`);
+    const posts = await res.json();
+    renderTravelPosts(Array.isArray(posts) ? posts : []);
+  } catch (error) {
+    console.warn('旅行投稿データを読み込めませんでした', error);
+    renderTravelPosts([]);
+  }
+}
+
+loadTravelPosts();
 
 // ================================================================
 // フィルタートグル
 // ================================================================
-const state = { member: true, travel: true };
-function toggleLayer(type) {
-  state[type] = !state[type];
-  const layer = type === 'member' ? memberLayer : travelLayer;
-  const pill  = document.getElementById(`pill-${type}`);
-  const cls   = `on-${type}`;
-  if (state[type]) { map.addLayer(layer);    pill.classList.add(cls); }
-  else             { map.removeLayer(layer); pill.classList.remove(cls); }
+const layers = { member: memberLayer, travel: travelLayer };
+const layerClasses = { member: 'on-member', travel: 'on-travel' };
+
+function selectLayer(type) {
+  Object.entries(layers).forEach(([key, layer]) => {
+    const active = key === type;
+    const pill = document.getElementById(`pill-${key}`);
+    if (active) {
+      if (!map.hasLayer(layer)) map.addLayer(layer);
+      pill.classList.add(layerClasses[key]);
+    } else {
+      if (map.hasLayer(layer)) map.removeLayer(layer);
+      pill.classList.remove(layerClasses[key]);
+    }
+  });
 }
 
 // ================================================================
@@ -445,7 +489,7 @@ function buildSuggestions(query) {
     }
 
     const label = document.createElement('span');
-    label.textContent = `${m.nickname}　${m.prefecture || ''}`;
+    label.textContent = `${m.nickname}　${memberLocationLabel(m)}`;
 
     item.appendChild(av);
     item.appendChild(label);
@@ -459,7 +503,7 @@ function focusMember(m) {
   searchInput.value = m.nickname;
   searchSuggestions.style.display = 'none';
   searchClear.style.display = 'block';
-  if (!map.hasLayer(memberLayer)) map.addLayer(memberLayer);
+  selectLayer('member');
   map.setView([m.map_lat, m.map_lng], 12, { animate: true });
   m._marker.openPopup();
 }

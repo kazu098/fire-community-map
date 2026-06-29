@@ -1,0 +1,21 @@
+[
+  {
+    "discord_message_id": "1520776097946538217",
+    "nickname": "echo(えこー)",
+    "avatar_path": "data/travel-avatars/9da6137df1fe.png",
+    "avatarColor": "#f97316",
+    "init": "e",
+    "prefecture": "奈良県",
+    "municipality_optional": "五條市",
+    "lat": 34.317094,
+    "lng": 135.719216,
+    "date": "2026/06/28",
+    "posted_at": "2026-06-28T13:01:16.404000+00:00",
+    "comment": "美味しいお豆腐、紹介させてください！\n山本とうふ店\nhttps://gojo-yamamototofu.com\n奈良県五條市黒駒町400−2\n\nにがりきぬごしは口に入れた瞬間とろけるのに、豆の味がしっかりします🫛\nお塩かゴマだれで食べるのがオススメ\n意外に黒蜜も合うかもです\n\nお店は車で行くには若干勇気がいるロケーションなので、JAの直売所がよろしいかと",
+    "photos": [
+      "data/travel-photos/1520776097946538217-1.jpg",
+      "data/travel-photos/1520776097946538217-2.jpg"
+    ],
+    "location_source": "geolonia"
+  }
+]
