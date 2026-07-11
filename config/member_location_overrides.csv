@@ -1,0 +1,8 @@
+nickname,location_text,prefecture,municipality_optional,location_level,lat,lng,map_lat,map_lng,geocode_source,note
+えこー,大阪府,大阪府,,prefecture,34.687315,135.525878,34.687315,135.525878,manual_alias,大阪城座標へ手動固定
+さとりーまん,神奈川県,神奈川県,,prefecture,35.44778,139.6425,35.44778,139.6425,manual_alias,本人確認により神奈川県として扱う
+とみと,神奈川県川崎市中原区 武蔵小杉駅,神奈川県,川崎市中原区,municipality,35.575773,139.663704,35.575773,139.663704,manual_alias,本人確認により武蔵小杉駅へ手動固定
+モンチ,大阪府泉佐野市,大阪府,泉佐野市,municipality,34.407246,135.321687,34.407246,135.321687,manual_alias,本人確認により大阪府泉佐野市へ手動固定
+猫まる子,横須賀市,神奈川県,横須賀市,municipality,35.256799,139.666204,35.256799,139.666204,manual_alias,神奈川県横須賀市として扱う
+ノコ,東京都の東側,東京都,,prefecture,35.68944,139.69167,35.68944,139.69167,manual_alias,エリア表記のため都道府県レベルで扱う
+Aki,東京世田谷と神奈川県葉山,神奈川県,三浦郡葉山町,municipality,35.270658,139.601854,35.270658,139.601854,manual_alias,本人確認により神奈川県葉山町を採用
