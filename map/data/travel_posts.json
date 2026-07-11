@@ -1,5 +1,44 @@
 [
   {
+    "discord_message_id": "1521019857485693111",
+    "nickname": "推し旅トラベラー０",
+    "avatar_path": "data/travel-avatars/9ee825e741e1.png",
+    "avatarColor": "#f97316",
+    "init": "推",
+    "prefecture": "福井県",
+    "municipality_optional": "敦賀市",
+    "lat": 35.649211,
+    "lng": 136.071349,
+    "date": "2026/06/29",
+    "posted_at": "2026-06-29T05:09:53.207000+00:00",
+    "comment": "氣比神宮です。\nhttps://kehijingu.jp/",
+    "photos": [
+      "data/travel-photos/1521019857485693111-1.jpg",
+      "data/travel-photos/1521019857485693111-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1521018952120008876",
+    "nickname": "推し旅トラベラー０",
+    "avatar_path": "data/travel-avatars/6dc0029ad3e3.png",
+    "avatarColor": "#f97316",
+    "init": "推",
+    "prefecture": "福井県",
+    "municipality_optional": "敦賀市",
+    "lat": 35.649211,
+    "lng": 136.071349,
+    "date": "2026/06/29",
+    "posted_at": "2026-06-29T05:06:17.351000+00:00",
+    "comment": "敦賀鉄道資料館です。旧敦賀港駅舎を利用しています。敦賀港からは戦前ウラジオストックゆきの船が接続していました。\nhttps://www.city.tsuruga.lg.jp/page/4026.html",
+    "photos": [
+      "data/travel-photos/1521018952120008876-1.jpg",
+      "data/travel-photos/1521018952120008876-2.jpg",
+      "data/travel-photos/1521018952120008876-3.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1520776097946538217",
     "nickname": "echo(えこー)",
     "avatar_path": "data/travel-avatars/9da6137df1fe.png",
