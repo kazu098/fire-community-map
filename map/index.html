@@ -768,12 +768,13 @@ const CATEGORY_META = {
 };
 const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest'];
 const CARD_TAG_LIMIT = 10;
-const LINK_ICONS = { note: '📝', youtube: '▶️', blog: '📰' };
+const LINK_ICONS = { note: '📝', youtube: '▶️', memo: '🔒', blog: '📰' };
 
 function linkIcon(label) {
   const key = label.toLowerCase();
   if (key.includes('note')) return LINK_ICONS.note;
   if (key.includes('youtube')) return LINK_ICONS.youtube;
+  if (key.includes('メモ') || key.includes('memo')) return LINK_ICONS.memo;
   return LINK_ICONS.blog;
 }
 
@@ -781,6 +782,7 @@ const LINK_BADGES = {
   note:    { char: 'n', bg: '#41c9b4', color: '#ffffff' },
   x:       { char: 'X', bg: '#000000', color: '#ffffff' },
   youtube: { char: '▶', bg: '#ff0000', color: '#ffffff' },
+  memo:    { char: 'M', bg: '#7c3aed', color: '#ffffff' },
   blog:    { char: 'B', bg: '#9ca3af', color: '#ffffff' },
 };
 
@@ -794,6 +796,7 @@ function linkType(label, url) {
   if (key.includes('note')) return 'note';
   if (key.includes('youtube')) return 'youtube';
   if (key.includes('twitter') || key === 'x') return 'x';
+  if (key.includes('メモ') || key.includes('memo')) return 'memo';
   return 'blog';
 }
 
@@ -1267,6 +1270,29 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
     content.appendChild(section);
   });
 
+  function buildLinkItem(label, url) {
+    const wrap = document.createElement('span');
+    wrap.className = 'detail-link-wrap';
+    const link = document.createElement('a');
+    link.className = 'detail-link';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = `${linkIcon(label)} ${label}`;
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'detail-link-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'リンクを削除';
+    removeBtn.addEventListener('click', () => deleteLink(member.nickname, url));
+    wrap.appendChild(link);
+    wrap.appendChild(removeBtn);
+    return wrap;
+  }
+
+  const allLinks = member.links || [];
+  const memoLinks = allLinks.filter(({ label, url }) => linkType(label, url) === 'memo');
+  const snsLinks = allLinks.filter(({ label, url }) => linkType(label, url) !== 'memo');
+
   {
     const section = document.createElement('div');
     section.className = 'detail-section';
@@ -1277,24 +1303,7 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
 
     const list = document.createElement('div');
     list.className = 'detail-link-list';
-    (member.links || []).forEach(({ label, url }) => {
-      const wrap = document.createElement('span');
-      wrap.className = 'detail-link-wrap';
-      const link = document.createElement('a');
-      link.className = 'detail-link';
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.textContent = `${linkIcon(label)} ${label}`;
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'detail-link-remove';
-      removeBtn.textContent = '✕';
-      removeBtn.title = 'リンクを削除';
-      removeBtn.addEventListener('click', () => deleteLink(member.nickname, url));
-      wrap.appendChild(link);
-      wrap.appendChild(removeBtn);
-      list.appendChild(wrap);
-    });
+    snsLinks.forEach(({ label, url }) => list.appendChild(buildLinkItem(label, url)));
     section.appendChild(list);
 
     const form = document.createElement('div');
@@ -1318,6 +1327,46 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
     form.appendChild(urlInput);
     form.appendChild(addBtn);
     section.appendChild(form);
+
+    content.appendChild(section);
+  }
+
+  {
+    const section = document.createElement('div');
+    section.className = 'detail-section';
+    const title = document.createElement('div');
+    title.className = 'detail-section-title';
+    title.textContent = '個人メモ（非公開リンク）';
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'detail-link-list';
+    memoLinks.forEach(({ label, url }) => list.appendChild(buildLinkItem(label, url)));
+    section.appendChild(list);
+
+    const form = document.createElement('div');
+    form.className = 'add-tag-form';
+    const memoLabelInput = document.createElement('input');
+    memoLabelInput.type = 'hidden';
+    memoLabelInput.value = '個人メモ';
+    const urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.placeholder = '例: Notion, Google DocsなどのURL';
+    urlInput.style.flex = '1';
+    urlInput.style.minWidth = '160px';
+    urlInput.setAttribute('autocomplete', 'off');
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '＋追加';
+    addBtn.addEventListener('click', () => addLink(member.nickname, memoLabelInput, urlInput));
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addLink(member.nickname, memoLabelInput, urlInput); });
+    form.appendChild(urlInput);
+    form.appendChild(addBtn);
+    section.appendChild(form);
+
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size: 11px; color: #9ca3af; margin-top: 6px;';
+    hint.textContent = '自分だけが閲覧できるメモページへのリンクを貼れます（例: Notion、Google Docs、Google Keep、Evernoteなど、閲覧権限を限定共有できるツール）。アクセス権はリンク先のツール側の共有設定に依存するため、限定共有設定を必ずご確認ください。';
+    section.appendChild(hint);
 
     content.appendChild(section);
   }
