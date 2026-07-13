@@ -273,6 +273,15 @@
       padding: 2px 8px;
       border-radius: 10px;
     }
+    .mini-tag-more {
+      background: #f3f4f6;
+      color: #6b7280;
+      font-weight: bold;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .mini-tag-more:hover { background: #e5e7eb; }
     #no-results { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
 
     /* ---- Member detail view ---- */
@@ -746,6 +755,7 @@ const CATEGORY_META = {
   interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
 };
 const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest'];
+const CARD_TAG_LIMIT = 6;
 const LINK_ICONS = { note: '📝', youtube: '▶️', blog: '📰' };
 
 function linkIcon(label) {
@@ -840,6 +850,8 @@ function matchesFilters(member, query) {
   return nameHit || tagHit;
 }
 
+const expandedCards = new Set();
+
 function renderMemberGrid() {
   const query = document.getElementById('directory-search').value;
   const grid = document.getElementById('member-grid');
@@ -873,17 +885,44 @@ function renderMemberGrid() {
 
     const tagList = document.createElement('div');
     tagList.className = 'card-tags';
+    const allTags = [];
     CATEGORY_ORDER.forEach(cat => {
       const meta = CATEGORY_META[cat];
-      (m.tags[cat] || []).slice(0, 4).forEach(value => {
-        const chip = document.createElement('span');
-        chip.className = 'mini-tag';
-        chip.style.background = meta.bg;
-        chip.style.color = meta.text;
-        chip.textContent = value;
-        tagList.appendChild(chip);
-      });
+      (m.tags[cat] || []).forEach(value => allTags.push({ value, meta }));
     });
+    const isExpanded = expandedCards.has(m.nickname);
+    const visibleTags = isExpanded ? allTags : allTags.slice(0, CARD_TAG_LIMIT);
+    visibleTags.forEach(({ value, meta }) => {
+      const chip = document.createElement('span');
+      chip.className = 'mini-tag';
+      chip.style.background = meta.bg;
+      chip.style.color = meta.text;
+      chip.textContent = value;
+      tagList.appendChild(chip);
+    });
+    if (allTags.length > visibleTags.length) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'mini-tag mini-tag-more';
+      more.textContent = `+${allTags.length - visibleTags.length} もっと見る`;
+      more.addEventListener('click', e => {
+        e.stopPropagation();
+        expandedCards.add(m.nickname);
+        renderMemberGrid();
+      });
+      tagList.appendChild(more);
+    } else if (isExpanded && allTags.length > CARD_TAG_LIMIT) {
+      const less = document.createElement('button');
+      less.type = 'button';
+      less.className = 'mini-tag mini-tag-more';
+      less.textContent = '閉じる';
+      less.addEventListener('click', e => {
+        e.stopPropagation();
+        expandedCards.delete(m.nickname);
+        renderMemberGrid();
+      });
+      tagList.appendChild(less);
+    }
 
     card.appendChild(head);
     card.appendChild(tagList);
