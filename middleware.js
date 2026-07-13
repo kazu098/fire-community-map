@@ -1,5 +1,5 @@
 export const config = {
-  matcher: ['/map', '/map/index.html'],
+  matcher: ['/', '/map', '/map/index.html'],
 };
 
 export default function middleware(request) {
