@@ -267,6 +267,14 @@
     }
     .card-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .card-nickname { font-weight: bold; font-size: 14px; color: #1f2937; }
+    .card-links { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+    .card-link-badge {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: bold; text-decoration: none;
+      flex-shrink: 0; line-height: 1;
+    }
+    .card-link-badge:hover { filter: brightness(1.15); }
     .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
     .mini-tag {
       font-size: 11px;
@@ -769,6 +777,26 @@ function linkIcon(label) {
   return LINK_ICONS.blog;
 }
 
+const LINK_BADGES = {
+  note:    { char: 'n', bg: '#41c9b4', color: '#ffffff' },
+  x:       { char: 'X', bg: '#000000', color: '#ffffff' },
+  youtube: { char: '▶', bg: '#ff0000', color: '#ffffff' },
+  blog:    { char: 'B', bg: '#9ca3af', color: '#ffffff' },
+};
+
+function linkType(label, url) {
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
+  if (host.includes('note.com')) return 'note';
+  if (host.includes('youtube.com') || host.includes('youtu.be')) return 'youtube';
+  if (host.includes('twitter.com') || host.includes('x.com')) return 'x';
+  const key = label.toLowerCase();
+  if (key.includes('note')) return 'note';
+  if (key.includes('youtube')) return 'youtube';
+  if (key.includes('twitter') || key === 'x') return 'x';
+  return 'blog';
+}
+
 let directoryMembers = [];
 let directoryLoaded = false;
 let directoryLoadPromise = null;
@@ -886,6 +914,26 @@ function renderMemberGrid() {
     name.textContent = m.nickname;
     head.appendChild(avatar);
     head.appendChild(name);
+
+    if ((m.links || []).length) {
+      const linkRow = document.createElement('div');
+      linkRow.className = 'card-links';
+      m.links.forEach(({ label, url }) => {
+        const badge = LINK_BADGES[linkType(label, url)];
+        const a = document.createElement('a');
+        a.className = 'card-link-badge';
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.style.background = badge.bg;
+        a.style.color = badge.color;
+        a.textContent = badge.char;
+        a.title = label;
+        a.addEventListener('click', e => e.stopPropagation());
+        linkRow.appendChild(a);
+      });
+      head.appendChild(linkRow);
+    }
 
     const tagList = document.createElement('div');
     tagList.className = 'card-tags';
