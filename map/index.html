@@ -759,7 +759,18 @@ let directoryMembers = [];
 let directoryLoaded = false;
 let directoryLoadPromise = null;
 
+// GitHub Pagesは静的ホスティングでBasic認証がかけられないため、
+// より踏み込んだ個人情報を含むメンバー一覧の動線自体を出さない。
+const MEMBER_DIRECTORY_ENABLED = !/(^|\.)github\.io$/.test(location.hostname);
+
+if (!MEMBER_DIRECTORY_ENABLED) {
+  document.getElementById('view-tabs').style.display = 'none';
+  document.getElementById('header').style.top = '0';
+  document.getElementById('map').style.top = '52px';
+}
+
 function selectView(view) {
+  if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
   const isMap = view === 'map';
   document.getElementById('tab-map').classList.toggle('active', isMap);
   document.getElementById('tab-directory').classList.toggle('active', !isMap);
