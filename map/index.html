@@ -272,7 +272,11 @@
       font-size: 11px;
       padding: 2px 8px;
       border-radius: 10px;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
     }
+    .mini-tag:hover { filter: brightness(0.95); }
     .mini-tag-more {
       background: #f3f4f6;
       color: #6b7280;
@@ -893,11 +897,20 @@ function renderMemberGrid() {
     const isExpanded = expandedCards.has(m.nickname);
     const visibleTags = isExpanded ? allTags : allTags.slice(0, CARD_TAG_LIMIT);
     visibleTags.forEach(({ value, meta }) => {
-      const chip = document.createElement('span');
+      const chip = document.createElement('button');
+      chip.type = 'button';
       chip.className = 'mini-tag';
       chip.style.background = meta.bg;
       chip.style.color = meta.text;
       chip.textContent = value;
+      chip.title = `「${value}」で絞り込む`;
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        const searchInput = document.getElementById('directory-search');
+        searchInput.value = value;
+        renderMemberGrid();
+        searchInput.focus();
+      });
       tagList.appendChild(chip);
     });
     if (allTags.length > visibleTags.length) {
