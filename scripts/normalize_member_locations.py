@@ -131,6 +131,17 @@ def read_aliases(path: Path) -> dict[str, dict[str, str]]:
         }
 
 
+def read_overrides(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        return {
+            row["nickname"].strip(): row
+            for row in csv.DictReader(handle)
+            if row.get("nickname") and row["nickname"].strip()
+        }
+
+
 def normalize_location(
     member: MemberLocation,
     prefectures: dict[str, tuple[float, float]],
@@ -339,6 +350,26 @@ def make_result(
     )
 
 
+def apply_member_overrides(rows: list[dict[str, Any]], overrides: dict[str, dict[str, str]]) -> None:
+    for row in rows:
+        override = overrides.get(str(row.get("nickname") or "").strip())
+        if not override:
+            continue
+
+        for key in ("location_text", "prefecture", "municipality_optional", "location_level", "geocode_source"):
+            value = (override.get(key) or "").strip()
+            if value:
+                row[key] = value
+
+        for key in ("lat", "lng", "map_lat", "map_lng"):
+            value = (override.get(key) or "").strip()
+            if value:
+                row[key] = float(value)
+
+        row["needs_review"] = False
+        row["review_reason"] = None
+
+
 def write_json(path: Path, rows: list[dict[str, Any]]) -> None:
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -387,6 +418,7 @@ def main() -> int:
     parser.add_argument("--members-csv", default=os.environ.get("MEMBER_SOURCE_CSV"))
     parser.add_argument("--prefectures", default="config/prefecture_centroids.csv")
     parser.add_argument("--aliases", default="config/location_aliases.csv")
+    parser.add_argument("--overrides", default="config/member_location_overrides.csv")
     parser.add_argument("--cache-dir", default="tmp/geolonia_cache")
     parser.add_argument("--output-json", default="tmp/member_locations_normalized.json")
     parser.add_argument("--output-csv", default="tmp/member_locations_normalized.csv")
@@ -404,6 +436,7 @@ def main() -> int:
 
     prefectures = read_prefectures(Path(args.prefectures))
     aliases = read_aliases(Path(args.aliases))
+    overrides = read_overrides(Path(args.overrides))
     normalized = [
         normalize_location(
             member,
@@ -415,7 +448,9 @@ def main() -> int:
         for member in members
     ]
     rows = [row.__dict__ for row in normalized]
+    apply_member_overrides(rows, overrides)
     apply_display_offsets(rows)
+    apply_member_overrides(rows, overrides)
 
     write_json(Path(args.output_json), rows)
     write_csv(Path(args.output_csv), rows)

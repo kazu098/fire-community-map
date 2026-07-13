@@ -116,3 +116,44 @@ python3 scripts/upload_member_avatars.py \
 ```
 
 Storage pathにはDiscordユーザーIDを含めません。出力JSONの `avatar_path` を `member_locations.avatar_path` に保存します。
+
+## Googleフォーム回答の差分同期
+
+Googleフォーム回答シートから新しく追加されたメンバーだけをSupabaseへ追加します。まずdry-runで対象件数を確認します。
+
+```bash
+python3 scripts/sync_member_location_deltas.py \
+  --sheet-url "https://docs.google.com/spreadsheets/d/1PWU_Kx-bRJphF2KONPssu5DmxhlQEXmKHCwu9DaWK00/edit?usp=sharing" \
+  --dry-run
+```
+
+問題なければ `--dry-run` を外して実行します。
+
+```bash
+python3 scripts/sync_member_location_deltas.py \
+  --sheet-url "https://docs.google.com/spreadsheets/d/1PWU_Kx-bRJphF2KONPssu5DmxhlQEXmKHCwu9DaWK00/edit?usp=sharing"
+```
+
+既存メンバーの住所変更も反映したい場合だけ、`--update-existing` を付けます。通常の追加運用では付けません。
+
+Google Sheetが公開CSVとして読めない場合は、フォーム回答をCSVでエクスポートして `--members-csv path/to/form_responses.csv` を渡します。
+
+## Discord旅行投稿の差分同期
+
+旅行チャンネルの `#map` 付き投稿を取得し、`map/data/travel_posts.json` に追記します。投稿画像と投稿者アイコンは `map/data/travel-photos/` / `map/data/travel-avatars/` に保存します。
+
+初回だけ、読み始める日時を指定します。
+
+```bash
+python3 scripts/sync_travel_posts.py \
+  --since 2026-06-28T22:00:00+09:00
+```
+
+以後は `map/data/travel_sync_state.json` の `last_scanned_message_id` から先だけを読みます。
+
+```bash
+python3 scripts/sync_travel_posts.py --dry-run
+python3 scripts/sync_travel_posts.py
+```
+
+`--dry-run` で新規件数を確認し、問題なければ `--dry-run` を外して実行します。既存の投稿は `discord_message_id` で重複排除されます。
