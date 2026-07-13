@@ -1351,7 +1351,7 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
     memoLabelInput.value = '個人メモ';
     const urlInput = document.createElement('input');
     urlInput.type = 'text';
-    urlInput.placeholder = 'NotionなどのURL';
+    urlInput.placeholder = '例: Notion, Google DocsなどのURL';
     urlInput.style.flex = '1';
     urlInput.style.minWidth = '160px';
     urlInput.setAttribute('autocomplete', 'off');
@@ -1365,7 +1365,7 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
 
     const hint = document.createElement('div');
     hint.style.cssText = 'font-size: 11px; color: #9ca3af; margin-top: 6px;';
-    hint.textContent = '自分だけが閲覧できるNotionなどのメモページへのリンクを貼れます。アクセス権はリンク先のツール側の共有設定に依存するため、限定共有設定を必ずご確認ください。';
+    hint.textContent = '自分だけが閲覧できるメモページへのリンクを貼れます（例: Notion、Google Docs、Google Keep、Evernoteなど、閲覧権限を限定共有できるツール）。アクセス権はリンク先のツール側の共有設定に依存するため、限定共有設定を必ずご確認ください。';
     section.appendChild(hint);
 
     content.appendChild(section);
