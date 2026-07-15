@@ -343,6 +343,7 @@
     }
     #detail-intro-link { font-size: 12px; color: #3b82f6; text-decoration: none; display: inline-block; margin-top: 8px; }
     #detail-intro-link:hover { text-decoration: underline; }
+    .detail-location-text { font-size: 13px; color: #374151; }
     .detail-section-header-row {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 8px;
@@ -458,11 +459,12 @@ function cardLocationLabel(loc) {
   if (!loc) return '';
   const pref = loc.prefecture || '';
   let muni = loc.municipality_optional || '';
+  // 「川崎市中原区」のように市の下の区は詳細すぎるので市までに丸める。
+  // 「新宿区」のように市を伴わない区（東京23区など）はそれ自体が市相当の
+  // 単位なのでそのまま表示する。
   const cityMatch = muni.match(/^(.*?市)/);
   if (cityMatch) {
     muni = cityMatch[1];
-  } else if (muni.includes('区')) {
-    muni = '';
   }
   return [pref, muni].filter(Boolean).join('');
 }
@@ -1168,28 +1170,58 @@ function buildLocationSection(member) {
   title.textContent = '居住地';
   section.appendChild(title);
 
+  const body = document.createElement('div');
+  body.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;';
+  section.appendChild(body);
+
   // 自己申告欄が未入力なら、地図に登録済みの居住地を初期値として提案する。
   // 保存先はmember_profiles.location_textのみで、member_locations（地図側）は
   // 別途スクリプトでの反映待ちとする。
   const currentValue = member.location_text || cardLocationLabel(member.location);
+  let editMode = false;
 
-  const form = document.createElement('div');
-  form.className = 'add-tag-form';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = currentValue;
-  input.placeholder = '例: 神奈川県川崎市';
-  input.style.flex = '1';
-  input.style.minWidth = '160px';
-  input.setAttribute('autocomplete', 'off');
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = '保存';
-  saveBtn.addEventListener('click', () => saveLocation(member.nickname, input.value));
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveLocation(member.nickname, input.value); });
-  form.appendChild(input);
-  form.appendChild(saveBtn);
-  section.appendChild(form);
+  function renderBody() {
+    body.innerHTML = '';
 
+    if (editMode) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentValue;
+      input.placeholder = '例: 神奈川県川崎市';
+      input.style.width = '200px';
+      input.setAttribute('autocomplete', 'off');
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'intro-save-btn';
+      saveBtn.textContent = '保存';
+      saveBtn.addEventListener('click', () => saveLocation(member.nickname, input.value));
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') saveLocation(member.nickname, input.value); });
+      body.appendChild(input);
+      body.appendChild(saveBtn);
+      requestAnimationFrame(() => input.focus());
+      return;
+    }
+
+    if (currentValue) {
+      const text = document.createElement('div');
+      text.className = 'detail-location-text';
+      text.textContent = currentValue;
+      body.appendChild(text);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'intro-placeholder';
+      placeholder.textContent = '居住地はまだ登録されていません。';
+      body.appendChild(placeholder);
+    }
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'intro-icon-btn';
+    editBtn.textContent = currentValue ? '編集' : '＋追加';
+    editBtn.title = currentValue ? '居住地を編集' : '居住地を追加';
+    editBtn.addEventListener('click', () => { editMode = true; renderBody(); });
+    body.appendChild(editBtn);
+  }
+
+  renderBody();
   return section;
 }
 
