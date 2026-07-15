@@ -21,12 +21,6 @@
       gap: 8px 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
-    #header h1 {
-      font-size: 15px;
-      font-weight: bold;
-      white-space: nowrap;
-      color: #1f2937;
-    }
     .filter-pills {
       display: flex;
       gap: 6px;
@@ -56,10 +50,6 @@
       #header {
         padding: 6px 12px;
         row-gap: 6px;
-      }
-      #header h1 {
-        font-size: 13px;
-        flex: 1 1 100%;
       }
       .filter-pills { flex-shrink: 0; }
       #search-wrap { flex: 1 1 0; min-width: 0; }
@@ -110,6 +100,7 @@
     .leaflet-popup-content { margin: 10px 12px; }
 
     .popup-member { min-width: 160px; }
+    .popup-member .name.linked { color: #2563eb; text-decoration: underline; cursor: pointer; }
     .popup-member .row {
       display: flex; align-items: center; gap: 8px;
     }
@@ -401,15 +392,14 @@
 <body>
 
 <div id="view-tabs">
-  <button class="view-tab active" id="tab-map" onclick="selectView('map')">🗾 地図</button>
-  <button class="view-tab" id="tab-directory" onclick="selectView('directory')">👥 メンバー一覧</button>
+  <button class="view-tab" id="tab-directory" onclick="selectView('directory')">メンバー</button>
+  <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
 </div>
 
 <div id="header">
-  <h1>🗾 FIRE研究所 コミュニティマップ</h1>
   <div class="filter-pills">
-    <button class="pill on-member" id="pill-member" onclick="selectLayer('member')">👤 会員</button>
-    <button class="pill" id="pill-travel" onclick="selectLayer('travel')">✈️ 旅行投稿</button>
+    <button class="pill on-member" id="pill-member" onclick="selectLayer('member')">メンバー</button>
+    <button class="pill" id="pill-travel" onclick="selectLayer('travel')">旅行投稿</button>
   </div>
   <div id="search-wrap">
     <input id="search-input" type="text" placeholder="ニックネームで検索…" autocomplete="off">
@@ -522,6 +512,11 @@ function makeMemberPopup(m) {
   pref.className = 'pref';
   pref.textContent = memberLocationLabel(m);
 
+  if (profileNicknames.has(m.nickname)) {
+    name.classList.add('linked');
+    name.addEventListener('click', () => goToMemberDetail(m.nickname));
+  }
+
   info.appendChild(name);
   info.appendChild(pref);
   row.appendChild(avatar);
@@ -532,13 +527,22 @@ function makeMemberPopup(m) {
 
 const memberLayer = L.layerGroup();
 let allMembers = [];
+let profileNicknames = new Set();
 
 async function loadMembers() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
-    { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
-  );
-  const members = await res.json();
+  const [locRes, profRes] = await Promise.all([
+    fetch(
+      `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    ),
+    fetch(
+      `${SUPABASE_URL}/rest/v1/member_profiles?select=nickname`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    ),
+  ]);
+  const members = await locRes.json();
+  const profiles = await profRes.json();
+  profileNicknames = new Set(profiles.map(p => p.nickname));
 
   members.forEach(m => {
     const marker = L.marker([m.map_lat, m.map_lng], { icon: makeMemberIcon(m) })
@@ -812,6 +816,12 @@ if (!MEMBER_DIRECTORY_ENABLED) {
   document.getElementById('view-tabs').style.display = 'none';
   document.getElementById('header').style.top = '0';
   document.getElementById('map').style.top = '52px';
+}
+
+function goToMemberDetail(nickname) {
+  if (!MEMBER_DIRECTORY_ENABLED) return;
+  history.pushState(null, '', `#member/${encodeURIComponent(nickname)}`);
+  selectView('directory');
 }
 
 function selectView(view) {
