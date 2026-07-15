@@ -375,7 +375,7 @@ create table if not exists public.member_profile_edits (
 );
 
 comment on table public.member_profile_edits is
-  'Append-only audit trail of self_intro_text edits, written by trigger only.';
+  'Append-only audit trail of self_intro_text/location_text edits, written by trigger only.';
 
 alter table public.member_profile_edits enable row level security;
 
@@ -397,6 +397,10 @@ begin
     insert into public.member_profile_edits (member_nickname, old_self_intro_text, new_self_intro_text)
     values (new.nickname, old.self_intro_text, new.self_intro_text);
   end if;
+  if new.location_text is distinct from old.location_text then
+    insert into public.member_profile_edits (member_nickname, old_location_text, new_location_text)
+    values (new.nickname, old.location_text, new.location_text);
+  end if;
   return new;
 end;
 $$;
@@ -406,3 +410,22 @@ create trigger log_member_profile_edits
 after update on public.member_profiles
 for each row
 execute function public.log_member_profile_edit();
+
+-- ================================================================
+-- Member directory: open editing of location_text
+-- ================================================================
+-- Self-reported residence text, editable by anyone (same open-editing
+-- pattern as self_intro_text above). Independent of member_locations (the
+-- map pin source of truth, populated/reviewed via scripts/normalize_member_locations.py
+-- and friends) -- new/changed location_text values are synced into
+-- member_locations manually, on request, not automatically.
+
+alter table public.member_profiles add column if not exists location_text text;
+
+comment on column public.member_profiles.location_text is
+  'Self-reported residence text, editable by anyone. Independent of member_locations; synced into member_locations manually via the geocode scripts when requested.';
+
+alter table public.member_profile_edits add column if not exists old_location_text text;
+alter table public.member_profile_edits add column if not exists new_location_text text;
+
+grant update (location_text) on public.member_profiles to anon, authenticated;

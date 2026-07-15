@@ -858,6 +858,8 @@ function selectView(view) {
   });
 }
 
+selectView('directory');
+
 function ensureDirectoryLoaded() {
   if (!directoryLoadPromise) directoryLoadPromise = loadDirectory();
   return directoryLoadPromise;
@@ -865,7 +867,7 @@ function ensureDirectoryLoaded() {
 
 async function loadDirectory() {
   const [profilesRes, tagsRes, linksRes, locationsRes] = await Promise.all([
-    fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at&order=nickname`,
+    fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text&order=nickname`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -1142,6 +1144,55 @@ function autoGrowTextarea(textarea, minHeight) {
   textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
 }
 
+async function saveLocation(nickname, text) {
+  const trimmed = text.trim();
+  await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ location_text: trimmed || null }),
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+function buildLocationSection(member) {
+  const section = document.createElement('div');
+  section.className = 'detail-section';
+  const title = document.createElement('div');
+  title.className = 'detail-section-title';
+  title.textContent = '居住地';
+  section.appendChild(title);
+
+  // 自己申告欄が未入力なら、地図に登録済みの居住地を初期値として提案する。
+  // 保存先はmember_profiles.location_textのみで、member_locations（地図側）は
+  // 別途スクリプトでの反映待ちとする。
+  const currentValue = member.location_text || cardLocationLabel(member.location);
+
+  const form = document.createElement('div');
+  form.className = 'add-tag-form';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentValue;
+  input.placeholder = '例: 神奈川県川崎市';
+  input.style.flex = '1';
+  input.style.minWidth = '160px';
+  input.setAttribute('autocomplete', 'off');
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = '保存';
+  saveBtn.addEventListener('click', () => saveLocation(member.nickname, input.value));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveLocation(member.nickname, input.value); });
+  form.appendChild(input);
+  form.appendChild(saveBtn);
+  section.appendChild(form);
+
+  return section;
+}
+
 function buildIntroSection(member) {
   const section = document.createElement('div');
   section.className = 'detail-section';
@@ -1309,6 +1360,8 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
 
     content.appendChild(section);
   });
+
+  content.appendChild(buildLocationSection(member));
 
   function buildLinkItem(label, url) {
     const wrap = document.createElement('span');
