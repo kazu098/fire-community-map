@@ -221,6 +221,10 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       padding: 12px 16px;
       z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     #directory-search {
       width: 100%;
@@ -233,6 +237,14 @@
       display: block;
     }
     #directory-search:focus { border-color: #3b82f6; }
+    #directory-register-link {
+      margin-left: auto;
+      font-size: 13px;
+      color: #2563eb;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    #directory-register-link:hover { text-decoration: underline; }
 
     #member-grid {
       display: grid;
@@ -428,6 +440,7 @@
   <div id="member-grid-view">
     <div id="directory-header">
       <input id="directory-search" type="text" placeholder="ニックネーム・タグで検索…" autocomplete="off">
+      <a id="directory-register-link" href="https://forms.gle/YQzyWn93B54QNoB99" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
     </div>
     <div id="member-grid"></div>
     <div id="no-results" style="display:none;">該当するメンバーが見つかりません</div>
