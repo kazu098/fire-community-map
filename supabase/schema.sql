@@ -154,7 +154,7 @@ create table if not exists public.member_tags (
   id uuid primary key default gen_random_uuid(),
   member_nickname text not null references public.member_profiles (nickname) on delete cascade,
   category text not null check (
-    category in ('investment_style', 'fire_status', 'mbti', 'skill', 'interest')
+    category in ('investment_style', 'fire_status', 'mbti', 'skill', 'interest', 'affiliation')
   ),
   value text not null,
   created_at timestamptz not null default now(),
