@@ -157,12 +157,24 @@ create table if not exists public.member_tags (
     category in ('investment_style', 'fire_status', 'mbti', 'skill', 'interest', 'affiliation')
   ),
   value text not null,
+  sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   unique (member_nickname, category, value)
 );
 
 comment on table public.member_tags is
   'Editable tags shown in the member directory. Open write access by design for the initial rollout (see member_tags_history for an audit trail).';
+
+comment on column public.member_tags.sort_order is
+  'Display order within a member+category, user-editable via the directory reorder buttons. Not unique; ties fall back to created_at.';
+
+drop policy if exists "member tags are publicly updatable" on public.member_tags;
+create policy "member tags are publicly updatable"
+on public.member_tags
+for update
+to anon, authenticated
+using (true)
+with check (true);
 
 create index if not exists member_tags_member_nickname_idx
   on public.member_tags (member_nickname);
