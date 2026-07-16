@@ -362,6 +362,12 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
     .intro-icon-btn:hover { background: #2563eb; }
+    .external-link-icon {
+      background: none; border: none; cursor: pointer;
+      padding: 0; opacity: 0.55; line-height: 1;
+      display: inline-flex; align-items: center; color: #374151;
+    }
+    .external-link-icon:hover { opacity: 1; }
     .intro-placeholder {
       font-size: 13px; color: #9ca3af; background: #f9fafb;
       border-radius: 8px; padding: 12px 14px;
@@ -1243,8 +1249,8 @@ function buildLocationSection(member) {
       const mapMember = allMembers.find(m => m.nickname === member.nickname && m.map_lat != null);
       if (mapMember) {
         const mapLink = document.createElement('button');
-        mapLink.className = 'intro-icon-btn';
-        mapLink.textContent = '🔗 地図で見る';
+        mapLink.className = 'external-link-icon';
+        mapLink.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>';
         mapLink.title = '地図でこの人の場所を表示';
         mapLink.addEventListener('click', () => {
           selectView('map');
