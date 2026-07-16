@@ -38,9 +38,8 @@ fire-community-map/
 │   ├── geocode.gs     # GAS: 住所→緯度経度変換
 │   ├── export_json.gs # GAS: スプレッドシート→JSON出力
 │   └── discord_batch.py  # Discord投稿取得バッチ（必要な場合）
-├── map/
-│   ├── index.html     # Leafletマップ本体
-│   └── data/          # ローカル確認用JSON/画像
+├── index.html         # サイト本体（メンバー一覧・Leafletマップ）
+├── data/              # ローカル確認用JSON/画像
 ├── supabase/
 │   └── schema.sql     # Supabaseテーブル/RLS定義
 └── api/               # Vercel API Route / Serverless Function（必要な場合）
@@ -140,7 +139,7 @@ Google Sheetが公開CSVとして読めない場合は、フォーム回答をCS
 
 ## Discord旅行投稿の差分同期
 
-旅行チャンネルの `#map` 付き投稿を取得し、`map/data/travel_posts.json` に追記します。投稿画像と投稿者アイコンは `map/data/travel-photos/` / `map/data/travel-avatars/` に保存します。
+旅行チャンネルの `#map` 付き投稿を取得し、`data/travel_posts.json` に追記します。投稿画像と投稿者アイコンは `data/travel-photos/` / `data/travel-avatars/` に保存します。
 
 初回だけ、読み始める日時を指定します。
 
@@ -149,7 +148,7 @@ python3 scripts/sync_travel_posts.py \
   --since 2026-06-28T22:00:00+09:00
 ```
 
-以後は `map/data/travel_sync_state.json` の `last_scanned_message_id` から先だけを読みます。
+以後は `data/travel_sync_state.json` の `last_scanned_message_id` から先だけを読みます。
 
 ```bash
 python3 scripts/sync_travel_posts.py --dry-run

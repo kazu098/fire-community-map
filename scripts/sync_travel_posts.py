@@ -340,7 +340,7 @@ def fetch_messages(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Sync Discord #map travel posts into map/data/travel_posts.json.")
+    parser = argparse.ArgumentParser(description="Sync Discord #map travel posts into data/travel_posts.json.")
     parser.add_argument("--env-file", default=".env")
     parser.add_argument("--channel-name", default="旅行")
     parser.add_argument("--channel-id")
@@ -353,10 +353,10 @@ def main() -> int:
     parser.add_argument("--prefectures", default="config/prefecture_centroids.csv")
     parser.add_argument("--aliases", default="config/location_aliases.csv")
     parser.add_argument("--cache-dir", default="tmp/geolonia_cache")
-    parser.add_argument("--output", default="map/data/travel_posts.json")
-    parser.add_argument("--state-file", default="map/data/travel_sync_state.json")
-    parser.add_argument("--photos-dir", default="map/data/travel-photos")
-    parser.add_argument("--avatar-dir", default="map/data/travel-avatars")
+    parser.add_argument("--output", default="data/travel_posts.json")
+    parser.add_argument("--state-file", default="data/travel_sync_state.json")
+    parser.add_argument("--photos-dir", default="data/travel-photos")
+    parser.add_argument("--avatar-dir", default="data/travel-avatars")
     parser.add_argument("--reset-state", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
