@@ -830,7 +830,20 @@ const CATEGORY_META = {
   affiliation:      { label: '所属活動・部活', bg: '#f1f5f9', text: '#334155' },
 };
 const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest', 'affiliation'];
-const CARD_TAG_LIMIT = 10;
+const CARD_TAG_CHAR_LIMIT = 90;
+
+// タグの合計文字数がCARD_TAG_CHAR_LIMITを超えない範囲で表示するタグを選ぶ
+// (文字数が多いタグに引っ張られてカードの高さがばらつくのを防ぐため、単純な件数制限ではなく文字数で絞る)
+function takeTagsByCharLimit(tags, limit) {
+  const result = [];
+  let total = 0;
+  for (const tag of tags) {
+    if (result.length > 0 && total + tag.value.length > limit) break;
+    result.push(tag);
+    total += tag.value.length;
+  }
+  return result;
+}
 const LINK_ICONS = { note: '📝', youtube: '▶️', memo: '🔒', blog: '📰' };
 
 function linkIcon(label) {
@@ -1045,7 +1058,8 @@ function renderMemberGrid() {
       (m.tags[cat] || []).forEach(value => allTags.push({ value, meta }));
     });
     const isExpanded = expandedCards.has(m.nickname);
-    const visibleTags = isExpanded ? allTags : allTags.slice(0, CARD_TAG_LIMIT);
+    const collapsedTags = takeTagsByCharLimit(allTags, CARD_TAG_CHAR_LIMIT);
+    const visibleTags = isExpanded ? allTags : collapsedTags;
     visibleTags.forEach(({ value, meta }) => {
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -1058,6 +1072,7 @@ function renderMemberGrid() {
         e.stopPropagation();
         const searchInput = document.getElementById('directory-search');
         searchInput.value = value;
+        document.getElementById('directory-search-clear').style.display = 'block';
         renderMemberGrid();
         searchInput.focus();
       });
@@ -1074,7 +1089,7 @@ function renderMemberGrid() {
         renderMemberGrid();
       });
       tagList.appendChild(more);
-    } else if (isExpanded && allTags.length > CARD_TAG_LIMIT) {
+    } else if (isExpanded && allTags.length > collapsedTags.length) {
       const less = document.createElement('button');
       less.type = 'button';
       less.className = 'mini-tag mini-tag-more';
