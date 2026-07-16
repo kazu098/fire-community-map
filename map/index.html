@@ -321,7 +321,7 @@
     .detail-tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
     .detail-tag {
       display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; padding: 5px 6px 5px 12px;
+      font-size: 12px; padding: 5px 6px;
       border-radius: 12px;
     }
     .detail-tag button {
@@ -329,6 +329,7 @@
       font-size: 13px; line-height: 1; padding: 0; opacity: 0.55;
     }
     .detail-tag button:hover { opacity: 1; }
+    .detail-tag button:disabled { opacity: 0.2; cursor: default; }
     .add-tag-form { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
     .add-tag-form input {
       font-size: 12px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px;
@@ -872,7 +873,7 @@ async function loadDirectory() {
   const [profilesRes, tagsRes, linksRes, locationsRes] = await Promise.all([
     fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text&order=nickname`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
-    fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category`,
+    fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_links?select=member_nickname,label,url&order=created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -1059,6 +1060,8 @@ function closeMemberDetail({ updateHash = true } = {}) {
 
 async function addTag(nickname, category, value) {
   if (!value.trim()) return;
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  const sortOrder = member ? (member.tags[category] || []).length : 0;
   await fetch(`${SUPABASE_URL}/rest/v1/member_tags`, {
     method: 'POST',
     headers: {
@@ -1067,8 +1070,31 @@ async function addTag(nickname, category, value) {
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
-    body: JSON.stringify([{ member_nickname: nickname, category, value: value.trim() }]),
+    body: JSON.stringify([{ member_nickname: nickname, category, value: value.trim(), sort_order: sortOrder }]),
   });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+async function moveTag(nickname, category, index, direction) {
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (!member) return;
+  const values = [...(member.tags[category] || [])];
+  const target = index + direction;
+  if (target < 0 || target >= values.length) return;
+  [values[index], values[target]] = [values[target], values[index]];
+  await Promise.all(values.map((value, i) => fetch(
+    `${SUPABASE_URL}/rest/v1/member_tags?member_nickname=eq.${encodeURIComponent(nickname)}&category=eq.${encodeURIComponent(category)}&value=eq.${encodeURIComponent(value)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sort_order: i }),
+    }
+  )));
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
 }
@@ -1349,19 +1375,34 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
 
     const list = document.createElement('div');
     list.className = 'detail-tag-list';
-    (member.tags[cat] || []).forEach(value => {
+    const catValues = member.tags[cat] || [];
+    catValues.forEach((value, index) => {
       const tag = document.createElement('span');
       tag.className = 'detail-tag';
       tag.style.background = meta.bg;
       tag.style.color = meta.text;
+      const moveLeftBtn = document.createElement('button');
+      moveLeftBtn.textContent = '←';
+      moveLeftBtn.style.color = meta.text;
+      moveLeftBtn.title = '一つ前に移動';
+      moveLeftBtn.disabled = index === 0;
+      moveLeftBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, -1));
       const label = document.createElement('span');
       label.textContent = value;
+      const moveRightBtn = document.createElement('button');
+      moveRightBtn.textContent = '→';
+      moveRightBtn.style.color = meta.text;
+      moveRightBtn.title = '一つ後ろに移動';
+      moveRightBtn.disabled = index === catValues.length - 1;
+      moveRightBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, 1));
       const removeBtn = document.createElement('button');
       removeBtn.textContent = '✕';
       removeBtn.style.color = meta.text;
       removeBtn.title = 'タグを削除';
       removeBtn.addEventListener('click', () => deleteTag(member.nickname, cat, value));
+      tag.appendChild(moveLeftBtn);
       tag.appendChild(label);
+      tag.appendChild(moveRightBtn);
       tag.appendChild(removeBtn);
       list.appendChild(tag);
     });
