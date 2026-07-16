@@ -226,17 +226,29 @@
       gap: 12px;
       flex-wrap: wrap;
     }
-    #directory-search {
+    #directory-search-wrap {
+      position: relative;
       width: 100%;
       max-width: 420px;
-      padding: 8px 14px;
+    }
+    #directory-search {
+      width: 100%;
+      padding: 8px 34px 8px 14px;
       border: 2px solid #d1d5db;
       border-radius: 20px;
       font-size: 14px;
       outline: none;
       display: block;
+      box-sizing: border-box;
     }
     #directory-search:focus { border-color: #3b82f6; }
+    #directory-search-clear {
+      position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 15px; display: none; line-height: 1;
+    }
+    #directory-search-clear:hover { color: #4b5563; }
     #directory-register-link {
       margin-left: auto;
       font-size: 13px;
@@ -249,6 +261,7 @@
     #member-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      align-items: start;
       gap: 12px;
       padding: 16px;
     }
@@ -419,7 +432,7 @@
 <body>
 
 <div id="view-tabs">
-  <button class="view-tab" id="tab-directory" onclick="selectView('directory')">メンバー</button>
+  <button class="view-tab" id="tab-directory" onclick="goToMemberGrid()">メンバー</button>
   <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
 </div>
 
@@ -439,7 +452,10 @@
 <div id="directory-view">
   <div id="member-grid-view">
     <div id="directory-header">
-      <input id="directory-search" type="text" placeholder="ニックネーム・タグで検索…" autocomplete="off">
+      <div id="directory-search-wrap">
+        <input id="directory-search" type="text" placeholder="ニックネーム・タグで検索…" autocomplete="off">
+        <button id="directory-search-clear">✕</button>
+      </div>
       <a id="directory-register-link" href="https://forms.gle/YQzyWn93B54QNoB99" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
     </div>
     <div id="member-grid"></div>
@@ -868,6 +884,19 @@ function goToMemberDetail(nickname) {
   selectView('directory');
 }
 
+function goToMemberGrid() {
+  if (!MEMBER_DIRECTORY_ENABLED) return;
+  const searchInput = document.getElementById('directory-search');
+  if (searchInput.value) {
+    searchInput.value = '';
+    document.getElementById('directory-search-clear').style.display = 'none';
+    renderMemberGrid();
+  }
+  if (location.hash.startsWith('#member/')) history.pushState(null, '', location.pathname);
+  closeMemberDetail({ updateHash: false });
+  selectView('directory');
+}
+
 function selectView(view) {
   if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
   const isMap = view === 'map';
@@ -1065,7 +1094,19 @@ function renderMemberGrid() {
   });
 }
 
-document.getElementById('directory-search').addEventListener('input', renderMemberGrid);
+document.getElementById('directory-search').addEventListener('input', () => {
+  document.getElementById('directory-search-clear').style.display =
+    document.getElementById('directory-search').value ? 'block' : 'none';
+  renderMemberGrid();
+});
+
+document.getElementById('directory-search-clear').addEventListener('click', () => {
+  const input = document.getElementById('directory-search');
+  input.value = '';
+  document.getElementById('directory-search-clear').style.display = 'none';
+  renderMemberGrid();
+  input.focus();
+});
 
 window.addEventListener('hashchange', () => {
   if (document.getElementById('tab-directory').classList.contains('active')) {
