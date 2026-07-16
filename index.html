@@ -1239,6 +1239,19 @@ function buildLocationSection(member) {
       text.className = 'detail-location-text';
       text.textContent = currentValue;
       body.appendChild(text);
+
+      const mapMember = allMembers.find(m => m.nickname === member.nickname && m.map_lat != null);
+      if (mapMember) {
+        const mapLink = document.createElement('button');
+        mapLink.className = 'intro-icon-btn';
+        mapLink.textContent = '🔗 地図で見る';
+        mapLink.title = '地図でこの人の場所を表示';
+        mapLink.addEventListener('click', () => {
+          selectView('map');
+          focusMember(mapMember);
+        });
+        body.appendChild(mapLink);
+      }
     } else {
       const placeholder = document.createElement('div');
       placeholder.className = 'intro-placeholder';
