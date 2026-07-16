@@ -35,7 +35,7 @@ def require_env(name: str) -> str:
 
 MEMBER_LINKS: dict[str, list[dict[str, str]]] = {
     "トマト🍅": [],
-    "ゆき": [{"label": "note", "url": "https://note.com/noter_lab"}],
+    "うつきゆき": [{"label": "note", "url": "https://note.com/noter_lab"}],
 }
 
 # category is one of: investment_style, fire_status, mbti, skill, interest
@@ -47,7 +47,7 @@ MEMBER_TAGS: dict[str, dict[str, list[str]]] = {
         "skill": ["資産管理法人運営"],
         "interest": ["資格取得"],
     },
-    "ゆき": {
+    "うつきゆき": {
         "investment_style": ["米国インデックス", "高配当株投資（日本）", "仮想通貨"],
         "fire_status": ["コーストFIRE"],
         "mbti": [],
