@@ -1072,6 +1072,7 @@ function renderMemberGrid() {
         e.stopPropagation();
         const searchInput = document.getElementById('directory-search');
         searchInput.value = value;
+        document.getElementById('directory-search-clear').style.display = 'block';
         renderMemberGrid();
         searchInput.focus();
       });
