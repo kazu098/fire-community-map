@@ -103,7 +103,7 @@
 - [ ] XSS / HTML注入対策を実装ルールにする
   - [ ] Discord本文、ニックネーム、地名など外部由来データは保存前にバリデーションし、表示時にHTMLエスケープする
   - [ ] Leafletポップアップへ文字列を入れるときは、`innerHTML` 直入れではなくエスケープ済み文字列またはDOM生成で表示する
-  - [ ] 現在の `map/index.html` はテンプレート文字列でHTMLを組み立てているため、本番データ投入前に `textContent` ベースのDOM生成またはエスケープ関数へ置き換える
+  - [ ] 現在の `index.html` はテンプレート文字列でHTMLを組み立てているため、本番データ投入前に `textContent` ベースのDOM生成またはエスケープ関数へ置き換える
   - [ ] 画像URL・パスはSupabase StorageまたはVercel配下の許可パスのみ許可し、`javascript:` や想定外の外部URLを混ぜない
 - [ ] Supabase Storageの方針を決める
   - [ ] `member-avatars` bucketと `travel-photos` bucketを作成する

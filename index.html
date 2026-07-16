@@ -1,12 +1,1545 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=./map/index.html">
-<script>location.replace('./map/index.html');</script>
-<title>FIRE研究所 コミュニティマップ</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIRE研究所 コミュニティマップ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; }
+
+    #header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: white;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+    }
+    .pill {
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 2px solid #d1d5db;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      color: #6b7280;
+      transition: all 0.2s;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .pill:hover { opacity: 0.85; }
+    .pill.on-member  { background: #3b82f6; border-color: #3b82f6; color: white; }
+    .pill.on-travel  { background: #f97316; border-color: #f97316; color: white; }
+
+    #map {
+      position: fixed;
+      top: 52px; left: 0; right: 0; bottom: 0;
+    }
+
+    @media (max-width: 600px) {
+      #header {
+        padding: 6px 12px;
+        row-gap: 6px;
+      }
+      .filter-pills { flex-shrink: 0; }
+      #search-wrap { flex: 1 1 0; min-width: 0; }
+      #search-input { width: 100%; }
+      #map { top: 80px; }
+    }
+
+    /* ---- Member marker ---- */
+    .member-marker { display: flex; flex-direction: column; align-items: center; }
+    .member-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 3px solid #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 16px; color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .member-name {
+      font-size: 11px; font-weight: bold;
+      background: white;
+      padding: 1px 5px;
+      border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      margin-top: 2px;
+      white-space: nowrap;
+      color: #1f2937;
+    }
+
+    /* ---- Travel marker ---- */
+    .travel-marker { display: flex; flex-direction: column; align-items: center; }
+    .travel-thumb {
+      width: 46px; height: 46px;
+      border: 3px solid #f97316;
+      border-radius: 6px;
+      background: #fff7ed;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .travel-pin {
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 8px solid #f97316;
+    }
+
+    /* ---- Popups ---- */
+    .leaflet-popup-content { margin: 10px 12px; }
+
+    .popup-member { min-width: 160px; }
+    .popup-member .name.linked { color: #2563eb; text-decoration: underline; cursor: pointer; }
+    .popup-member .row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sm-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 2px solid #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 14px; color: white; flex-shrink: 0;
+    }
+    .popup-member .name { font-weight: bold; font-size: 14px; }
+    .popup-member .pref { font-size: 12px; color: #6b7280; }
+
+    .popup-travel { min-width: 220px; }
+    .popup-travel .t-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .t-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 13px; color: white; flex-shrink: 0;
+    }
+    .popup-travel .t-name  { font-weight: bold; font-size: 13px; }
+    .popup-travel .t-meta  { font-size: 11px; color: #9ca3af; }
+    .popup-travel .t-comment {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.6;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
+    .photo-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 4px; margin-top: 8px;
+    }
+    .photo-cell {
+      aspect-ratio: 1; border-radius: 4px;
+      background: #f3f4f6;
+      overflow: hidden;
+    }
+    .photo-cell img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    /* ---- Search ---- */
+    #search-wrap {
+      position: relative;
+      margin-left: auto;
+    }
+    #search-input {
+      padding: 5px 32px 5px 10px;
+      border: 2px solid #d1d5db;
+      border-radius: 20px;
+      font-size: 13px;
+      width: 180px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #search-input:focus { border-color: #3b82f6; }
+    #search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 14px; display: none; line-height: 1;
+    }
+    #search-suggestions {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: white; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      overflow: hidden; display: none; z-index: 2000;
+    }
+    .suggestion-item {
+      padding: 8px 12px; cursor: pointer; font-size: 13px; color: #1f2937;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .suggestion-item:hover { background: #f3f4f6; }
+    .suggestion-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2px solid #3b82f6; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: bold; color: white; overflow: hidden;
+    }
+
+    /* ---- Top-level view tabs ---- */
+    #view-tabs {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1100;
+      background: #1f2937;
+      display: flex;
+      gap: 4px;
+      padding: 0 12px;
+    }
+    .view-tab {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+    .view-tab.active { color: white; border-bottom-color: #3b82f6; }
+    #header { top: 38px; }
+    #map { top: 90px; }
+    @media (max-width: 600px) { #map { top: 118px; } }
+
+    /* ---- Directory view ---- */
+    #directory-view {
+      position: fixed;
+      top: 38px; left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
+      background: #f9fafb;
+      display: none;
+    }
+    #directory-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 12px 16px;
+      z-index: 10;
+    }
+    #directory-search {
+      width: 100%;
+      max-width: 420px;
+      padding: 8px 14px;
+      border: 2px solid #d1d5db;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+      display: block;
+    }
+    #directory-search:focus { border-color: #3b82f6; }
+
+    #member-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .member-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 12px;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+    }
+    .member-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+    .member-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .card-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: white; font-size: 15px;
+    }
+    .card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .card-nickname { font-weight: bold; font-size: 14px; color: #1f2937; }
+    .card-location { font-size: 11px; color: #6b7280; }
+    .card-links { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+    .card-link-badge {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: bold; text-decoration: none;
+      flex-shrink: 0; line-height: 1;
+    }
+    .card-link-badge:hover { filter: brightness(1.15); }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .mini-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .mini-tag:hover { filter: brightness(0.95); }
+    .mini-tag-more {
+      background: #f3f4f6;
+      color: #6b7280;
+      font-weight: bold;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .mini-tag-more:hover { background: #e5e7eb; }
+    #no-results { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+
+    /* ---- Member detail view ---- */
+    #member-detail-view {
+      display: none;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+    #detail-back {
+      background: none; border: none; color: #3b82f6; font-size: 13px;
+      cursor: pointer; margin-bottom: 14px; padding: 4px 0;
+    }
+    .detail-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 24px;
+    }
+    #detail-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    #detail-avatar {
+      width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: white; font-size: 22px;
+    }
+    #detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    #detail-nickname { font-size: 19px; font-weight: bold; color: #1f2937; }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section-title {
+      font-size: 11px; font-weight: bold; color: #9ca3af;
+      text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;
+    }
+    .detail-tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .detail-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; padding: 5px 6px;
+      border-radius: 12px;
+    }
+    .detail-tag button {
+      background: none; border: none; cursor: pointer;
+      font-size: 13px; line-height: 1; padding: 0; opacity: 0.55;
+    }
+    .detail-tag button:hover { opacity: 1; }
+    .detail-tag button:disabled { opacity: 0.2; cursor: default; }
+    .add-tag-form { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .add-tag-form input {
+      font-size: 12px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px;
+    }
+    .add-tag-form button {
+      font-size: 12px; padding: 5px 12px; border: none; border-radius: 6px;
+      background: #3b82f6; color: white; cursor: pointer;
+    }
+    #detail-intro-text {
+      font-size: 13px; color: #374151; line-height: 1.7; white-space: pre-wrap;
+      background: #f9fafb; border-radius: 8px; padding: 12px 14px;
+    }
+    #detail-intro-link { font-size: 12px; color: #3b82f6; text-decoration: none; display: inline-block; margin-top: 8px; }
+    #detail-intro-link:hover { text-decoration: underline; }
+    .detail-location-text { font-size: 13px; color: #374151; }
+    .detail-section-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .detail-section-header-row .detail-section-title { margin-bottom: 0; }
+    .intro-icon-btn {
+      background: #3b82f6; border: none; cursor: pointer;
+      font-size: 12px; color: white; padding: 5px 14px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .intro-icon-btn:hover { background: #2563eb; }
+    .intro-placeholder {
+      font-size: 13px; color: #9ca3af; background: #f9fafb;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    #detail-intro-textarea {
+      width: 100%; min-height: 300px; font-size: 13px; line-height: 1.6;
+      font-family: inherit; padding: 10px 12px; border: 1px solid #d1d5db;
+      border-radius: 8px; resize: vertical;
+    }
+    .intro-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .intro-save-btn {
+      font-size: 12px; padding: 6px 14px; border: none; border-radius: 6px;
+      background: #3b82f6; color: white; cursor: pointer;
+    }
+    .intro-cancel-btn {
+      font-size: 12px; padding: 6px 14px; border: 1px solid #d1d5db; border-radius: 6px;
+      background: white; color: #6b7280; cursor: pointer;
+    }
+    .detail-link-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .detail-link-wrap {
+      display: inline-flex; align-items: center; gap: 4px;
+      border-radius: 8px; background: #f3f4f6;
+    }
+    .detail-link-wrap:hover { background: #e5e7eb; }
+    .detail-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; padding: 6px 4px 6px 12px;
+      color: #374151; text-decoration: none;
+    }
+    .detail-link-remove {
+      background: none; border: none; cursor: pointer;
+      font-size: 12px; color: #9ca3af; padding: 4px 10px 4px 0; line-height: 1;
+    }
+    .detail-link-remove:hover { color: #374151; }
+  </style>
 </head>
 <body>
-<p><a href="./map/index.html">こちらをクリックしてください</a></p>
+
+<div id="view-tabs">
+  <button class="view-tab" id="tab-directory" onclick="selectView('directory')">メンバー</button>
+  <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
+</div>
+
+<div id="header">
+  <div class="filter-pills">
+    <button class="pill on-member" id="pill-member" onclick="selectLayer('member')">メンバー</button>
+    <button class="pill" id="pill-travel" onclick="selectLayer('travel')">旅行投稿</button>
+  </div>
+  <div id="search-wrap">
+    <input id="search-input" type="text" placeholder="ニックネームで検索…" autocomplete="off">
+    <button id="search-clear">✕</button>
+    <div id="search-suggestions"></div>
+  </div>
+</div>
+<div id="map"></div>
+
+<div id="directory-view">
+  <div id="member-grid-view">
+    <div id="directory-header">
+      <input id="directory-search" type="text" placeholder="ニックネーム・タグで検索…" autocomplete="off">
+    </div>
+    <div id="member-grid"></div>
+    <div id="no-results" style="display:none;">該当するメンバーが見つかりません</div>
+  </div>
+
+  <div id="member-detail-view">
+    <button id="detail-back" onclick="closeMemberDetail()">← 一覧に戻る</button>
+    <div class="detail-card" id="detail-content"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ================================================================
+// Supabase 設定
+// ================================================================
+const SUPABASE_URL = 'https://hchlqnsretsbhumeojdk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjaGxxbnNyZXRzYmh1bWVvamRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDAxNjcsImV4cCI6MjA5ODAxNjE2N30.iy0Fg7izs1DKonTGcMuORCiWilCujVfd3b_dwUlYyLM';
+
+function avatarUrl(path) {
+  if (!path) return null;
+  return `${SUPABASE_URL}/storage/v1/object/public/${path}`;
+}
+
+function initials(nickname) {
+  return nickname ? [...nickname][0] : '?';
+}
+
+const COLORS = ['#3b82f6','#8b5cf6','#10b981','#f97316','#ec4899','#14b8a6','#f59e0b','#ef4444','#6366f1'];
+function memberColor(nickname) {
+  let h = 0;
+  for (const c of nickname) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return COLORS[h % COLORS.length];
+}
+
+function memberLocationLabel(m) {
+  return m.location_text || [m.prefecture, m.municipality_optional].filter(Boolean).join(' ');
+}
+
+// メンバー一覧カード用: 区・駅名などは詳細すぎるので市区町村の「市」「郡~町/村」までに丸める
+function cardLocationLabel(loc) {
+  if (!loc) return '';
+  const pref = loc.prefecture || '';
+  let muni = loc.municipality_optional || '';
+  // 「川崎市中原区」のように市の下の区は詳細すぎるので市までに丸める。
+  // 「新宿区」のように市を伴わない区（東京23区など）はそれ自体が市相当の
+  // 単位なのでそのまま表示する。
+  const cityMatch = muni.match(/^(.*?市)/);
+  if (cityMatch) {
+    muni = cityMatch[1];
+  }
+  return [pref, muni].filter(Boolean).join('');
+}
+
+// ================================================================
+// 地図初期化
+// ================================================================
+const map = L.map('map', { zoomControl: true }).setView([36.5, 136.0], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 18,
+}).addTo(map);
+
+// ================================================================
+// 会員レイヤー
+// ================================================================
+function makeMemberIcon(m) {
+  const color = memberColor(m.nickname);
+  const url = avatarUrl(m.avatar_path);
+  const inner = url
+    ? `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : `<span style="color:white;font-weight:bold;font-size:16px;">${initials(m.nickname)}</span>`;
+  const html = `
+    <div class="member-marker">
+      <div class="member-avatar" style="background:${color};overflow:hidden;">${inner}</div>
+      <div class="member-name"></div>
+    </div>`;
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  el.querySelector('.member-name').textContent = m.nickname;
+  return L.divIcon({ html: el.innerHTML, className:'', iconSize:[60,62], iconAnchor:[30,22] });
+}
+
+function makeMemberPopup(m) {
+  const color = memberColor(m.nickname);
+  const url = avatarUrl(m.avatar_path);
+  const div = document.createElement('div');
+  div.className = 'popup-member';
+
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'sm-avatar';
+  avatar.style.background = color;
+  if (url) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = initials(m.nickname);
+  }
+
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = m.nickname;
+  const pref = document.createElement('div');
+  pref.className = 'pref';
+  pref.textContent = memberLocationLabel(m);
+
+  if (profileNicknames.has(m.nickname)) {
+    name.classList.add('linked');
+    name.addEventListener('click', () => goToMemberDetail(m.nickname));
+  }
+
+  info.appendChild(name);
+  info.appendChild(pref);
+  row.appendChild(avatar);
+  row.appendChild(info);
+  div.appendChild(row);
+  return div;
+}
+
+const memberLayer = L.layerGroup();
+let allMembers = [];
+let profileNicknames = new Set();
+
+async function loadMembers() {
+  const [locRes, profRes] = await Promise.all([
+    fetch(
+      `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    ),
+    fetch(
+      `${SUPABASE_URL}/rest/v1/member_profiles?select=nickname`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    ),
+  ]);
+  const members = await locRes.json();
+  const profiles = await profRes.json();
+  profileNicknames = new Set(profiles.map(p => p.nickname));
+
+  members.forEach(m => {
+    const marker = L.marker([m.map_lat, m.map_lng], { icon: makeMemberIcon(m) })
+      .bindPopup(makeMemberPopup(m))
+      .addTo(memberLayer);
+    m._marker = marker;
+  });
+
+  allMembers = members;
+}
+
+memberLayer.addTo(map);
+loadMembers();
+
+// ================================================================
+// 旅行投稿レイヤー
+// ================================================================
+function escapeAttr(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function makeTravelIcon(p) {
+  const photo = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos[0] : null;
+  const thumb = photo
+    ? `<img src="${escapeAttr(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:3px;">`
+    : '<span>✈️</span>';
+  const html = `
+    <div class="travel-marker">
+      <div class="travel-thumb">${thumb}</div>
+      <div class="travel-pin"></div>
+    </div>`;
+  return L.divIcon({ html, className:'', iconSize:[52,60], iconAnchor:[26,60] });
+}
+
+const travelLayer = L.layerGroup();
+
+function makeTravelPopup(p) {
+  const div = document.createElement('div');
+  div.className = 'popup-travel';
+
+  const header = document.createElement('div');
+  header.className = 't-header';
+
+  const avatar = document.createElement('div');
+  avatar.className = 't-avatar';
+  avatar.style.background = p.avatarColor || '#f97316';
+  if (p.avatar_path) {
+    const img = document.createElement('img');
+    img.src = p.avatar_path;
+    img.alt = '';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = p.init || initials(p.nickname);
+  }
+
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.className = 't-name';
+  name.textContent = p.nickname || 'unknown';
+  const meta = document.createElement('div');
+  meta.className = 't-meta';
+  meta.textContent = [p.prefecture, p.date].filter(Boolean).join(' · ');
+  info.appendChild(name);
+  info.appendChild(meta);
+
+  header.appendChild(avatar);
+  header.appendChild(info);
+  div.appendChild(header);
+
+  if (p.comment) {
+    const comment = document.createElement('div');
+    comment.className = 't-comment';
+    comment.textContent = p.comment;
+    div.appendChild(comment);
+  }
+
+  if (Array.isArray(p.photos) && p.photos.length > 0) {
+    const grid = document.createElement('div');
+    grid.className = 'photo-grid';
+    p.photos.forEach(url => {
+      const cell = document.createElement('div');
+      cell.className = 'photo-cell';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      img.loading = 'lazy';
+      cell.appendChild(img);
+      grid.appendChild(cell);
+    });
+    div.appendChild(grid);
+  }
+
+  return div;
+}
+
+function renderTravelPosts(posts) {
+  travelLayer.clearLayers();
+  posts
+    .filter(p => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+    .forEach(p => {
+      L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
+        .bindPopup(makeTravelPopup(p), { maxWidth: 260 })
+        .addTo(travelLayer);
+    });
+}
+
+async function loadTravelPosts() {
+  try {
+    const res = await fetch('data/travel_posts.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`travel_posts.json: ${res.status}`);
+    const posts = await res.json();
+    renderTravelPosts(Array.isArray(posts) ? posts : []);
+  } catch (error) {
+    console.warn('旅行投稿データを読み込めませんでした', error);
+    renderTravelPosts([]);
+  }
+}
+
+loadTravelPosts();
+
+// ================================================================
+// フィルタートグル
+// ================================================================
+const layers = { member: memberLayer, travel: travelLayer };
+const layerClasses = { member: 'on-member', travel: 'on-travel' };
+
+function selectLayer(type) {
+  Object.entries(layers).forEach(([key, layer]) => {
+    const active = key === type;
+    const pill = document.getElementById(`pill-${key}`);
+    if (active) {
+      if (!map.hasLayer(layer)) map.addLayer(layer);
+      pill.classList.add(layerClasses[key]);
+    } else {
+      if (map.hasLayer(layer)) map.removeLayer(layer);
+      pill.classList.remove(layerClasses[key]);
+    }
+  });
+}
+
+// ================================================================
+// 検索
+// ================================================================
+const searchInput = document.getElementById('search-input');
+const searchClear = document.getElementById('search-clear');
+const searchSuggestions = document.getElementById('search-suggestions');
+
+function buildSuggestions(query) {
+  searchSuggestions.innerHTML = '';
+  if (!query) { searchSuggestions.style.display = 'none'; return; }
+  const hits = allMembers.filter(m =>
+    m.nickname.toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+  if (hits.length === 0) { searchSuggestions.style.display = 'none'; return; }
+  hits.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+
+    const av = document.createElement('div');
+    av.className = 'suggestion-avatar';
+    av.style.background = memberColor(m.nickname);
+    const url = avatarUrl(m.avatar_path);
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      av.appendChild(img);
+    } else {
+      av.textContent = initials(m.nickname);
+    }
+
+    const label = document.createElement('span');
+    label.textContent = `${m.nickname}　${memberLocationLabel(m)}`;
+
+    item.appendChild(av);
+    item.appendChild(label);
+    item.addEventListener('click', () => focusMember(m));
+    searchSuggestions.appendChild(item);
+  });
+  searchSuggestions.style.display = 'block';
+}
+
+function focusMember(m) {
+  searchInput.value = m.nickname;
+  searchSuggestions.style.display = 'none';
+  searchClear.style.display = 'block';
+  selectLayer('member');
+  map.setView([m.map_lat, m.map_lng], 12, { animate: true });
+  m._marker.openPopup();
+}
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  searchClear.style.display = q ? 'block' : 'none';
+  buildSuggestions(q);
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  searchSuggestions.style.display = 'none';
+  searchInput.focus();
+});
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('search-wrap').contains(e.target)) {
+    searchSuggestions.style.display = 'none';
+  }
+});
+</script>
+
+<script>
+// ================================================================
+// メンバー一覧タブ（プロフィール・タグ・自己紹介）
+// ================================================================
+const CATEGORY_META = {
+  investment_style: { label: '投資スタイル', bg: '#eff6ff', text: '#1d4ed8' },
+  fire_status:      { label: 'FIREステータス', bg: '#fff7ed', text: '#c2410c' },
+  mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
+  skill:            { label: 'スキル・相談できること', bg: '#ecfdf5', text: '#047857' },
+  interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
+  affiliation:      { label: '所属活動・部活', bg: '#f1f5f9', text: '#334155' },
+};
+const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest', 'affiliation'];
+const CARD_TAG_LIMIT = 10;
+const LINK_ICONS = { note: '📝', youtube: '▶️', memo: '🔒', blog: '📰' };
+
+function linkIcon(label) {
+  const key = label.toLowerCase();
+  if (key.includes('note')) return LINK_ICONS.note;
+  if (key.includes('youtube')) return LINK_ICONS.youtube;
+  if (key.includes('メモ') || key.includes('memo')) return LINK_ICONS.memo;
+  return LINK_ICONS.blog;
+}
+
+const LINK_BADGES = {
+  note:    { char: 'n', bg: '#41c9b4', color: '#ffffff' },
+  x:       { char: 'X', bg: '#000000', color: '#ffffff' },
+  youtube: { char: '▶', bg: '#ff0000', color: '#ffffff' },
+  memo:    { char: 'M', bg: '#7c3aed', color: '#ffffff' },
+  blog:    { char: 'B', bg: '#9ca3af', color: '#ffffff' },
+};
+
+function linkType(label, url) {
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
+  if (host.includes('note.com')) return 'note';
+  if (host.includes('youtube.com') || host.includes('youtu.be')) return 'youtube';
+  if (host.includes('twitter.com') || host.includes('x.com')) return 'x';
+  const key = label.toLowerCase();
+  if (key.includes('note')) return 'note';
+  if (key.includes('youtube')) return 'youtube';
+  if (key.includes('twitter') || key === 'x') return 'x';
+  if (key.includes('メモ') || key.includes('memo')) return 'memo';
+  return 'blog';
+}
+
+let directoryMembers = [];
+let directoryLoaded = false;
+let directoryLoadPromise = null;
+
+// GitHub Pagesは静的ホスティングでBasic認証がかけられないため、
+// より踏み込んだ個人情報を含むメンバー一覧の動線自体を出さない。
+const MEMBER_DIRECTORY_ENABLED = !/(^|\.)github\.io$/.test(location.hostname);
+
+if (!MEMBER_DIRECTORY_ENABLED) {
+  document.getElementById('view-tabs').style.display = 'none';
+  document.getElementById('header').style.top = '0';
+  document.getElementById('map').style.top = '52px';
+}
+
+function goToMemberDetail(nickname) {
+  if (!MEMBER_DIRECTORY_ENABLED) return;
+  history.pushState(null, '', `#member/${encodeURIComponent(nickname)}`);
+  selectView('directory');
+}
+
+function selectView(view) {
+  if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
+  const isMap = view === 'map';
+  document.getElementById('tab-map').classList.toggle('active', isMap);
+  document.getElementById('tab-directory').classList.toggle('active', !isMap);
+  document.getElementById('header').style.display = isMap ? 'flex' : 'none';
+  document.getElementById('map').style.display = isMap ? 'block' : 'none';
+  document.getElementById('directory-view').style.display = isMap ? 'none' : 'block';
+  if (isMap) {
+    if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
+    return;
+  }
+  ensureDirectoryLoaded().then(() => {
+    const match = location.hash.match(/^#member\/(.+)$/);
+    if (match) openMemberDetail(decodeURIComponent(match[1]), { updateHash: false });
+    else closeMemberDetail({ updateHash: false });
+  });
+}
+
+selectView('directory');
+
+function ensureDirectoryLoaded() {
+  if (!directoryLoadPromise) directoryLoadPromise = loadDirectory();
+  return directoryLoadPromise;
+}
+
+async function loadDirectory() {
+  const [profilesRes, tagsRes, linksRes, locationsRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text&order=nickname`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetch(`${SUPABASE_URL}/rest/v1/member_links?select=member_nickname,label,url&order=created_at`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+  ]);
+  const profiles = await profilesRes.json();
+  const tags = await tagsRes.json();
+  const links = await linksRes.json();
+  const locations = await locationsRes.json();
+
+  const tagsByNickname = {};
+  tags.forEach(t => {
+    (tagsByNickname[t.member_nickname] ??= {});
+    (tagsByNickname[t.member_nickname][t.category] ??= []).push(t.value);
+  });
+
+  const linksByNickname = {};
+  links.forEach(l => {
+    (linksByNickname[l.member_nickname] ??= []).push({ label: l.label, url: l.url });
+  });
+
+  const locationByNickname = {};
+  locations.forEach(l => { locationByNickname[l.nickname] = l; });
+
+  directoryMembers = profiles.map(p => ({
+    ...p,
+    tags: tagsByNickname[p.nickname] || {},
+    links: linksByNickname[p.nickname] || [],
+    location: locationByNickname[p.nickname] || null,
+  }));
+  directoryLoaded = true;
+
+  renderMemberGrid();
+}
+
+async function refreshDirectory() {
+  directoryLoadPromise = loadDirectory();
+  await directoryLoadPromise;
+}
+
+function matchesFilters(member, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const nameHit = member.nickname.toLowerCase().includes(q);
+  const tagHit = CATEGORY_ORDER.some(cat => (member.tags[cat] || []).some(v => v.toLowerCase().includes(q)));
+  return nameHit || tagHit;
+}
+
+const expandedCards = new Set();
+
+function renderMemberGrid() {
+  const query = document.getElementById('directory-search').value;
+  const grid = document.getElementById('member-grid');
+  grid.innerHTML = '';
+  const filtered = directoryMembers.filter(m => matchesFilters(m, query));
+  document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
+
+  filtered.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    card.addEventListener('click', () => openMemberDetail(m.nickname));
+
+    const head = document.createElement('div');
+    head.className = 'member-card-head';
+    const avatar = document.createElement('div');
+    avatar.className = 'card-avatar';
+    avatar.style.background = memberColor(m.nickname);
+    if (m.avatar_url) {
+      const img = document.createElement('img');
+      img.src = m.avatar_url;
+      img.alt = '';
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = initials(m.nickname);
+    }
+    const info = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'card-nickname';
+    name.textContent = m.nickname;
+    info.appendChild(name);
+    if (m.location) {
+      const locationEl = document.createElement('div');
+      locationEl.className = 'card-location';
+      locationEl.textContent = cardLocationLabel(m.location);
+      info.appendChild(locationEl);
+    }
+    head.appendChild(avatar);
+    head.appendChild(info);
+
+    if ((m.links || []).length) {
+      const linkRow = document.createElement('div');
+      linkRow.className = 'card-links';
+      m.links.forEach(({ label, url }) => {
+        const badge = LINK_BADGES[linkType(label, url)];
+        const a = document.createElement('a');
+        a.className = 'card-link-badge';
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.style.background = badge.bg;
+        a.style.color = badge.color;
+        a.textContent = badge.char;
+        a.title = label;
+        a.addEventListener('click', e => e.stopPropagation());
+        linkRow.appendChild(a);
+      });
+      head.appendChild(linkRow);
+    }
+
+    const tagList = document.createElement('div');
+    tagList.className = 'card-tags';
+    const allTags = [];
+    CATEGORY_ORDER.forEach(cat => {
+      const meta = CATEGORY_META[cat];
+      (m.tags[cat] || []).forEach(value => allTags.push({ value, meta }));
+    });
+    const isExpanded = expandedCards.has(m.nickname);
+    const visibleTags = isExpanded ? allTags : allTags.slice(0, CARD_TAG_LIMIT);
+    visibleTags.forEach(({ value, meta }) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'mini-tag';
+      chip.style.background = meta.bg;
+      chip.style.color = meta.text;
+      chip.textContent = value;
+      chip.title = `「${value}」で絞り込む`;
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        const searchInput = document.getElementById('directory-search');
+        searchInput.value = value;
+        renderMemberGrid();
+        searchInput.focus();
+      });
+      tagList.appendChild(chip);
+    });
+    if (allTags.length > visibleTags.length) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'mini-tag mini-tag-more';
+      more.textContent = `+${allTags.length - visibleTags.length} もっと見る`;
+      more.addEventListener('click', e => {
+        e.stopPropagation();
+        expandedCards.add(m.nickname);
+        renderMemberGrid();
+      });
+      tagList.appendChild(more);
+    } else if (isExpanded && allTags.length > CARD_TAG_LIMIT) {
+      const less = document.createElement('button');
+      less.type = 'button';
+      less.className = 'mini-tag mini-tag-more';
+      less.textContent = '閉じる';
+      less.addEventListener('click', e => {
+        e.stopPropagation();
+        expandedCards.delete(m.nickname);
+        renderMemberGrid();
+      });
+      tagList.appendChild(less);
+    }
+
+    card.appendChild(head);
+    card.appendChild(tagList);
+    grid.appendChild(card);
+  });
+}
+
+document.getElementById('directory-search').addEventListener('input', renderMemberGrid);
+
+window.addEventListener('hashchange', () => {
+  if (document.getElementById('tab-directory').classList.contains('active')) {
+    const match = location.hash.match(/^#member\/(.+)$/);
+    if (match) openMemberDetail(decodeURIComponent(match[1]), { updateHash: false });
+    else closeMemberDetail({ updateHash: false });
+  }
+});
+
+// ---- メンバー詳細ページ（タグ編集・自己紹介・外部リンク表示） ----
+
+function closeMemberDetail({ updateHash = true } = {}) {
+  document.getElementById('member-detail-view').style.display = 'none';
+  document.getElementById('member-grid-view').style.display = 'block';
+  if (updateHash) history.pushState(null, '', location.pathname);
+}
+
+async function addTag(nickname, category, value) {
+  if (!value.trim()) return;
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  const sortOrder = member ? (member.tags[category] || []).length : 0;
+  await fetch(`${SUPABASE_URL}/rest/v1/member_tags`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify([{ member_nickname: nickname, category, value: value.trim(), sort_order: sortOrder }]),
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+async function moveTag(nickname, category, index, direction) {
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (!member) return;
+  const values = [...(member.tags[category] || [])];
+  const target = index + direction;
+  if (target < 0 || target >= values.length) return;
+  [values[index], values[target]] = [values[target], values[index]];
+  await Promise.all(values.map((value, i) => fetch(
+    `${SUPABASE_URL}/rest/v1/member_tags?member_nickname=eq.${encodeURIComponent(nickname)}&category=eq.${encodeURIComponent(category)}&value=eq.${encodeURIComponent(value)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sort_order: i }),
+    }
+  )));
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+async function deleteTag(nickname, category, value) {
+  const params = new URLSearchParams({
+    member_nickname: `eq.${nickname}`,
+    category: `eq.${category}`,
+    value: `eq.${value}`,
+  });
+  await fetch(`${SUPABASE_URL}/rest/v1/member_tags?${params.toString()}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+// 既存タグ値からカテゴリごとの候補一覧を作る（入力時のオートコンプリート用）
+function tagOptionsForCategory(category) {
+  const seen = new Set();
+  directoryMembers.forEach(m => (m.tags[category] || []).forEach(v => seen.add(v)));
+  return [...seen].sort((a, b) => a.localeCompare(b, 'ja'));
+}
+
+async function addLink(nickname, labelInput, urlInput) {
+  const label = labelInput.value.trim();
+  let url = urlInput.value.trim();
+  if (!label || !url) return;
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+  await fetch(`${SUPABASE_URL}/rest/v1/member_links`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify([{ member_nickname: nickname, label, url }]),
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+async function deleteLink(nickname, url) {
+  const params = new URLSearchParams({
+    member_nickname: `eq.${nickname}`,
+    url: `eq.${url}`,
+  });
+  await fetch(`${SUPABASE_URL}/rest/v1/member_links?${params.toString()}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+async function saveIntro(nickname, text) {
+  const trimmed = text.trim();
+  await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ self_intro_text: trimmed || null }),
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+function autoGrowTextarea(textarea, minHeight) {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
+}
+
+async function saveLocation(nickname, text) {
+  const trimmed = text.trim();
+  await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ location_text: trimmed || null }),
+  });
+  await refreshDirectory();
+  openMemberDetail(nickname, { updateHash: false });
+}
+
+function buildLocationSection(member) {
+  const section = document.createElement('div');
+  section.className = 'detail-section';
+  const title = document.createElement('div');
+  title.className = 'detail-section-title';
+  title.textContent = '居住地';
+  section.appendChild(title);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;';
+  section.appendChild(body);
+
+  // 自己申告欄が未入力なら、地図に登録済みの居住地を初期値として提案する。
+  // 保存先はmember_profiles.location_textのみで、member_locations（地図側）は
+  // 別途スクリプトでの反映待ちとする。
+  const currentValue = member.location_text || cardLocationLabel(member.location);
+  let editMode = false;
+
+  function renderBody() {
+    body.innerHTML = '';
+
+    if (editMode) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentValue;
+      input.placeholder = '例: 神奈川県川崎市';
+      input.style.width = '200px';
+      input.setAttribute('autocomplete', 'off');
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'intro-save-btn';
+      saveBtn.textContent = '保存';
+      saveBtn.addEventListener('click', () => saveLocation(member.nickname, input.value));
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') saveLocation(member.nickname, input.value); });
+      body.appendChild(input);
+      body.appendChild(saveBtn);
+      requestAnimationFrame(() => input.focus());
+      return;
+    }
+
+    if (currentValue) {
+      const text = document.createElement('div');
+      text.className = 'detail-location-text';
+      text.textContent = currentValue;
+      body.appendChild(text);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'intro-placeholder';
+      placeholder.textContent = '居住地はまだ登録されていません。';
+      body.appendChild(placeholder);
+    }
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'intro-icon-btn';
+    editBtn.textContent = currentValue ? '編集' : '＋追加';
+    editBtn.title = currentValue ? '居住地を編集' : '居住地を追加';
+    editBtn.addEventListener('click', () => { editMode = true; renderBody(); });
+    body.appendChild(editBtn);
+  }
+
+  renderBody();
+  return section;
+}
+
+function buildIntroSection(member) {
+  const section = document.createElement('div');
+  section.className = 'detail-section';
+
+  const headerRow = document.createElement('div');
+  headerRow.className = 'detail-section-header-row';
+  const title = document.createElement('div');
+  title.className = 'detail-section-title';
+  title.textContent = '自己紹介';
+  headerRow.appendChild(title);
+  const iconBtn = document.createElement('button');
+  iconBtn.className = 'intro-icon-btn';
+  headerRow.appendChild(iconBtn);
+  section.appendChild(headerRow);
+
+  const body = document.createElement('div');
+  section.appendChild(body);
+
+  let editMode = false;
+
+  function renderBody() {
+    body.innerHTML = '';
+
+    iconBtn.style.display = editMode ? 'none' : 'inline-flex';
+    iconBtn.textContent = member.self_intro_text ? '編集' : '＋追加';
+    iconBtn.title = member.self_intro_text ? '自己紹介を編集' : '自己紹介を追加';
+    iconBtn.onclick = () => { editMode = true; renderBody(); };
+
+    if (editMode) {
+      const textarea = document.createElement('textarea');
+      textarea.id = 'detail-intro-textarea';
+      textarea.value = member.self_intro_text || '';
+      textarea.placeholder = '自己紹介を入力してください…';
+      body.appendChild(textarea);
+      requestAnimationFrame(() => autoGrowTextarea(textarea, 300));
+      textarea.addEventListener('input', () => autoGrowTextarea(textarea, 300));
+
+      const actions = document.createElement('div');
+      actions.className = 'intro-edit-actions';
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'intro-save-btn';
+      saveBtn.textContent = '保存';
+      saveBtn.addEventListener('click', () => saveIntro(member.nickname, textarea.value));
+      actions.appendChild(saveBtn);
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'intro-cancel-btn';
+      cancelBtn.textContent = 'キャンセル';
+      cancelBtn.addEventListener('click', () => { editMode = false; renderBody(); });
+      actions.appendChild(cancelBtn);
+      body.appendChild(actions);
+      return;
+    }
+
+    if (!member.self_intro_text) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'intro-placeholder';
+      placeholder.textContent = '自己紹介はまだ登録されていません。右上の＋から追加できます。';
+      body.appendChild(placeholder);
+      return;
+    }
+
+    const text = document.createElement('div');
+    text.id = 'detail-intro-text';
+    text.textContent = member.self_intro_text;
+    body.appendChild(text);
+
+    if (member.self_intro_url) {
+      const link = document.createElement('a');
+      link.id = 'detail-intro-link';
+      link.href = member.self_intro_url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = 'Discordで元の投稿を見る ↗';
+      body.appendChild(link);
+    }
+  }
+
+  renderBody();
+  return section;
+}
+
+function openMemberDetail(nickname, { updateHash = true } = {}) {
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (!member) return;
+
+  document.getElementById('member-grid-view').style.display = 'none';
+  document.getElementById('member-detail-view').style.display = 'block';
+  window.scrollTo(0, 0);
+  if (updateHash) history.pushState(null, '', `#member/${encodeURIComponent(nickname)}`);
+
+  const content = document.getElementById('detail-content');
+  content.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.id = 'detail-head';
+  const avatar = document.createElement('div');
+  avatar.id = 'detail-avatar';
+  avatar.style.background = memberColor(member.nickname);
+  if (member.avatar_url) {
+    const img = document.createElement('img');
+    img.src = member.avatar_url;
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = initials(member.nickname);
+  }
+  const nameEl = document.createElement('div');
+  nameEl.id = 'detail-nickname';
+  nameEl.textContent = member.nickname;
+  head.appendChild(avatar);
+  head.appendChild(nameEl);
+  content.appendChild(head);
+
+  CATEGORY_ORDER.forEach(cat => {
+    const meta = CATEGORY_META[cat];
+    const section = document.createElement('div');
+    section.className = 'detail-section';
+    const title = document.createElement('div');
+    title.className = 'detail-section-title';
+    title.textContent = meta.label;
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'detail-tag-list';
+    const catValues = member.tags[cat] || [];
+    catValues.forEach((value, index) => {
+      const tag = document.createElement('span');
+      tag.className = 'detail-tag';
+      tag.style.background = meta.bg;
+      tag.style.color = meta.text;
+      const moveLeftBtn = document.createElement('button');
+      moveLeftBtn.textContent = '←';
+      moveLeftBtn.style.color = meta.text;
+      moveLeftBtn.title = '一つ前に移動';
+      moveLeftBtn.disabled = index === 0;
+      moveLeftBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, -1));
+      const label = document.createElement('span');
+      label.textContent = value;
+      const moveRightBtn = document.createElement('button');
+      moveRightBtn.textContent = '→';
+      moveRightBtn.style.color = meta.text;
+      moveRightBtn.title = '一つ後ろに移動';
+      moveRightBtn.disabled = index === catValues.length - 1;
+      moveRightBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, 1));
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '✕';
+      removeBtn.style.color = meta.text;
+      removeBtn.title = 'タグを削除';
+      removeBtn.addEventListener('click', () => deleteTag(member.nickname, cat, value));
+      tag.appendChild(moveLeftBtn);
+      tag.appendChild(label);
+      tag.appendChild(moveRightBtn);
+      tag.appendChild(removeBtn);
+      list.appendChild(tag);
+    });
+    section.appendChild(list);
+
+    const form = document.createElement('div');
+    form.className = 'add-tag-form';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = `${meta.label}を追加`;
+    input.setAttribute('autocomplete', 'off');
+    const datalistId = `tag-options-${cat}`;
+    const datalist = document.createElement('datalist');
+    datalist.id = datalistId;
+    tagOptionsForCategory(cat).forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      datalist.appendChild(option);
+    });
+    input.setAttribute('list', datalistId);
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '＋追加';
+    addBtn.addEventListener('click', () => addTag(member.nickname, cat, input.value));
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') addTag(member.nickname, cat, input.value); });
+    form.appendChild(input);
+    form.appendChild(datalist);
+    form.appendChild(addBtn);
+    section.appendChild(form);
+
+    content.appendChild(section);
+  });
+
+  content.appendChild(buildLocationSection(member));
+
+  function buildLinkItem(label, url) {
+    const wrap = document.createElement('span');
+    wrap.className = 'detail-link-wrap';
+    const link = document.createElement('a');
+    link.className = 'detail-link';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = `${linkIcon(label)} ${label}`;
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'detail-link-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'リンクを削除';
+    removeBtn.addEventListener('click', () => deleteLink(member.nickname, url));
+    wrap.appendChild(link);
+    wrap.appendChild(removeBtn);
+    return wrap;
+  }
+
+  const allLinks = member.links || [];
+  const memoLinks = allLinks.filter(({ label, url }) => linkType(label, url) === 'memo');
+  const snsLinks = allLinks.filter(({ label, url }) => linkType(label, url) !== 'memo');
+
+  {
+    const section = document.createElement('div');
+    section.className = 'detail-section';
+    const title = document.createElement('div');
+    title.className = 'detail-section-title';
+    title.textContent = 'リンク（note・YouTube・ブログなど）';
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'detail-link-list';
+    snsLinks.forEach(({ label, url }) => list.appendChild(buildLinkItem(label, url)));
+    section.appendChild(list);
+
+    const form = document.createElement('div');
+    form.className = 'add-tag-form';
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.placeholder = 'ラベル（例: note）';
+    labelInput.style.width = '110px';
+    labelInput.setAttribute('autocomplete', 'off');
+    const urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.placeholder = 'URL';
+    urlInput.style.flex = '1';
+    urlInput.style.minWidth = '160px';
+    urlInput.setAttribute('autocomplete', 'off');
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '＋追加';
+    addBtn.addEventListener('click', () => addLink(member.nickname, labelInput, urlInput));
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addLink(member.nickname, labelInput, urlInput); });
+    form.appendChild(labelInput);
+    form.appendChild(urlInput);
+    form.appendChild(addBtn);
+    section.appendChild(form);
+
+    content.appendChild(section);
+  }
+
+  {
+    const section = document.createElement('div');
+    section.className = 'detail-section';
+    const title = document.createElement('div');
+    title.className = 'detail-section-title';
+    title.textContent = '個人メモ（非公開リンク）';
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'detail-link-list';
+    memoLinks.forEach(({ label, url }) => list.appendChild(buildLinkItem(label, url)));
+    section.appendChild(list);
+
+    const form = document.createElement('div');
+    form.className = 'add-tag-form';
+    const memoLabelInput = document.createElement('input');
+    memoLabelInput.type = 'hidden';
+    memoLabelInput.value = '個人メモ';
+    const urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.placeholder = '例: Notion, Google DocsなどのURL';
+    urlInput.style.flex = '1';
+    urlInput.style.minWidth = '160px';
+    urlInput.setAttribute('autocomplete', 'off');
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '＋追加';
+    addBtn.addEventListener('click', () => addLink(member.nickname, memoLabelInput, urlInput));
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addLink(member.nickname, memoLabelInput, urlInput); });
+    form.appendChild(urlInput);
+    form.appendChild(addBtn);
+    section.appendChild(form);
+
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size: 11px; color: #9ca3af; margin-top: 6px;';
+    hint.textContent = '自分だけが閲覧できるメモページへのリンクを貼れます（例: Notion、Google Docs、Google Keep、Evernoteなど、閲覧権限を限定共有できるツール）。アクセス権はリンク先のツール側の共有設定に依存するため、限定共有設定を必ずご確認ください。';
+    section.appendChild(hint);
+
+    content.appendChild(section);
+  }
+
+  content.appendChild(buildIntroSection(member));
+}
+</script>
 </body>
 </html>
