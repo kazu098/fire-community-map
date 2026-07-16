@@ -1400,28 +1400,32 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
       tag.className = 'detail-tag';
       tag.style.background = meta.bg;
       tag.style.color = meta.text;
-      const moveLeftBtn = document.createElement('button');
-      moveLeftBtn.textContent = '←';
-      moveLeftBtn.style.color = meta.text;
-      moveLeftBtn.title = '一つ前に移動';
-      moveLeftBtn.disabled = index === 0;
-      moveLeftBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, -1));
       const label = document.createElement('span');
       label.textContent = value;
-      const moveRightBtn = document.createElement('button');
-      moveRightBtn.textContent = '→';
-      moveRightBtn.style.color = meta.text;
-      moveRightBtn.title = '一つ後ろに移動';
-      moveRightBtn.disabled = index === catValues.length - 1;
-      moveRightBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, 1));
       const removeBtn = document.createElement('button');
       removeBtn.textContent = '✕';
       removeBtn.style.color = meta.text;
       removeBtn.title = 'タグを削除';
       removeBtn.addEventListener('click', () => deleteTag(member.nickname, cat, value));
-      tag.appendChild(moveLeftBtn);
+      if (catValues.length > 1) {
+        const moveLeftBtn = document.createElement('button');
+        moveLeftBtn.textContent = '←';
+        moveLeftBtn.style.color = meta.text;
+        moveLeftBtn.title = '一つ前に移動';
+        moveLeftBtn.disabled = index === 0;
+        moveLeftBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, -1));
+        tag.appendChild(moveLeftBtn);
+      }
       tag.appendChild(label);
-      tag.appendChild(moveRightBtn);
+      if (catValues.length > 1) {
+        const moveRightBtn = document.createElement('button');
+        moveRightBtn.textContent = '→';
+        moveRightBtn.style.color = meta.text;
+        moveRightBtn.title = '一つ後ろに移動';
+        moveRightBtn.disabled = index === catValues.length - 1;
+        moveRightBtn.addEventListener('click', () => moveTag(member.nickname, cat, index, 1));
+        tag.appendChild(moveRightBtn);
+      }
       tag.appendChild(removeBtn);
       list.appendChild(tag);
     });
