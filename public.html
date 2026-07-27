@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIRE研究所 メンバー紹介</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif;
+      background: #eef2f7;
+      color: #1f2937;
+    }
+    header {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 18px 16px;
+    }
+    .header-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      font-size: 20px;
+      line-height: 1.35;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    #status {
+      font-size: 13px;
+      color: #64748b;
+      padding: 24px 0;
+    }
+    #member-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .member-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+    }
+    .member-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    }
+    .member-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0;
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #dbeafe;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .avatar svg {
+      width: 21px;
+      height: 21px;
+    }
+    .nickname {
+      font-size: 14px;
+      font-weight: bold;
+      color: #111827;
+      overflow-wrap: anywhere;
+    }
+    .location {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .intro {
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .intro.is-excerpt {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: auto;
+    }
+    .tag {
+      font-size: 11px;
+      line-height: 1.35;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .link-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .link {
+      font-size: 12px;
+      color: #2563eb;
+      text-decoration: none;
+      background: #eff6ff;
+      border-radius: 999px;
+      padding: 4px 9px;
+    }
+    .link:hover { text-decoration: underline; }
+    #detail-view {
+      display: none;
+    }
+    #back-btn {
+      border: none;
+      background: none;
+      color: #2563eb;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0;
+      margin-bottom: 12px;
+    }
+    .detail-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .detail-card .member-head {
+      margin-bottom: 16px;
+    }
+    .detail-card .avatar {
+      width: 58px;
+      height: 58px;
+    }
+    .detail-card .nickname {
+      font-size: 19px;
+    }
+    .section {
+      margin-top: 18px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 18px; }
+      main { padding: 14px 12px 32px; }
+      #member-grid { grid-template-columns: 1fr; }
+      .member-card { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>FIRE研究所 メンバー紹介</h1>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="status">読み込み中...</div>
+  <div id="grid-view">
+    <div id="member-grid"></div>
+  </div>
+  <div id="detail-view">
+    <button id="back-btn" type="button">← 一覧に戻る</button>
+    <div class="detail-card" id="detail-card"></div>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://hchlqnsretsbhumeojdk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjaGxxbnNyZXRzYmh1bWVvamRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDAxNjcsImV4cCI6MjA5ODAxNjE2N30.iy0Fg7izs1DKonTGcMuORCiWilCujVfd3b_dwUlYyLM';
+
+const CATEGORY_META = {
+  investment_style: { label: '投資スタイル', bg: '#eff6ff', text: '#1d4ed8' },
+  fire_status:      { label: 'FIREステータス', bg: '#fff7ed', text: '#c2410c' },
+  mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
+  skill:            { label: 'スキル・相談できること', bg: '#ecfdf5', text: '#047857' },
+  interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
+};
+const PUBLIC_CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest'];
+
+let publicMembers = [];
+
+function genericIcon() {
+  const wrap = document.createElement('div');
+  wrap.className = 'avatar';
+  wrap.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>';
+  return wrap;
+}
+
+function buildAvatar(member) {
+  if (!member.display_avatar_url) return genericIcon();
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  const img = document.createElement('img');
+  img.src = member.display_avatar_url;
+  img.alt = '';
+  avatar.appendChild(img);
+  return avatar;
+}
+
+function normalizeList(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function introExcerpt(text) {
+  const normalized = String(text || '').trim();
+  if (normalized.length <= 120) return normalized;
+  return `${normalized.slice(0, 120)}...`;
+}
+
+function linkLabel(label) {
+  return label || 'リンク';
+}
+
+function publicTags(tags) {
+  return normalizeList(tags)
+    .filter(tag => PUBLIC_CATEGORY_ORDER.includes(tag.category))
+    .sort((a, b) => {
+      const categoryDiff = PUBLIC_CATEGORY_ORDER.indexOf(a.category) - PUBLIC_CATEGORY_ORDER.indexOf(b.category);
+      if (categoryDiff !== 0) return categoryDiff;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
+}
+
+function buildMemberHead(member) {
+  const head = document.createElement('div');
+  head.className = 'member-head';
+  head.appendChild(buildAvatar(member));
+
+  if (member.display_nickname || member.display_location_text) {
+    const info = document.createElement('div');
+    if (member.display_nickname) {
+      const nickname = document.createElement('div');
+      nickname.className = 'nickname';
+      nickname.textContent = member.display_nickname;
+      info.appendChild(nickname);
+    }
+    if (member.display_location_text) {
+      const location = document.createElement('div');
+      location.className = 'location';
+      location.textContent = member.display_location_text;
+      info.appendChild(location);
+    }
+    head.appendChild(info);
+  }
+
+  return head;
+}
+
+function buildTags(tags) {
+  const tagList = document.createElement('div');
+  tagList.className = 'tag-list';
+  publicTags(tags).forEach(tag => {
+    const item = document.createElement('span');
+    const meta = CATEGORY_META[tag.category] || { label: tag.category, bg: '#f1f5f9', text: '#475569' };
+    item.className = 'tag';
+    item.style.background = meta.bg;
+    item.style.color = meta.text;
+    item.textContent = tag.value;
+    tagList.appendChild(item);
+  });
+  return tagList;
+}
+
+function buildLinks(links) {
+  const linkList = document.createElement('div');
+  linkList.className = 'link-list';
+  normalizeList(links).forEach(({ label, url }) => {
+    const a = document.createElement('a');
+    a.className = 'link';
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = linkLabel(label);
+    a.addEventListener('click', e => e.stopPropagation());
+    linkList.appendChild(a);
+  });
+  return linkList;
+}
+
+function buildCard(member) {
+  const card = document.createElement('article');
+  card.className = 'member-card';
+  card.appendChild(buildMemberHead(member));
+
+  if (member.display_self_intro_text) {
+    const intro = document.createElement('div');
+    intro.className = 'intro is-excerpt';
+    intro.textContent = introExcerpt(member.display_self_intro_text);
+    card.appendChild(intro);
+  }
+
+  const tags = publicTags(member.tags);
+  if (tags.length) card.appendChild(buildTags(tags));
+
+  const links = normalizeList(member.links);
+  if (links.length) card.appendChild(buildLinks(links));
+
+  card.addEventListener('click', () => openDetail(member.member_id));
+  return card;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('member-grid');
+  grid.innerHTML = '';
+  publicMembers.forEach(member => grid.appendChild(buildCard(member)));
+}
+
+function section(title, node) {
+  const wrap = document.createElement('section');
+  wrap.className = 'section';
+  const heading = document.createElement('div');
+  heading.className = 'section-title';
+  heading.textContent = title;
+  wrap.appendChild(heading);
+  wrap.appendChild(node);
+  return wrap;
+}
+
+function openDetail(memberId, { updateHash = true } = {}) {
+  const member = publicMembers.find(m => m.member_id === memberId);
+  if (!member) return;
+
+  document.getElementById('grid-view').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'block';
+  if (updateHash) history.pushState(null, '', `#member/${encodeURIComponent(memberId)}`);
+  window.scrollTo(0, 0);
+
+  const card = document.getElementById('detail-card');
+  card.innerHTML = '';
+  card.appendChild(buildMemberHead(member));
+
+  if (member.display_self_intro_text) {
+    const intro = document.createElement('div');
+    intro.className = 'intro';
+    intro.textContent = member.display_self_intro_text;
+    card.appendChild(section('自己紹介', intro));
+  }
+
+  const tags = publicTags(member.tags);
+  if (tags.length) card.appendChild(section('タグ', buildTags(tags)));
+
+  const links = normalizeList(member.links);
+  if (links.length) card.appendChild(section('リンク', buildLinks(links)));
+}
+
+function closeDetail({ updateHash = true } = {}) {
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('grid-view').style.display = 'block';
+  if (updateHash) history.pushState(null, '', location.pathname);
+}
+
+async function loadPublicMembers() {
+  const status = document.getElementById('status');
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/public_member_profiles?select=member_id,display_nickname,display_avatar_url,display_self_intro_text,display_location_text,tags,links&order=display_nickname.asc.nullslast`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    publicMembers = await res.json();
+    status.style.display = 'none';
+    renderGrid();
+
+    const match = location.hash.match(/^#member\/(.+)$/);
+    if (match) openDetail(decodeURIComponent(match[1]), { updateHash: false });
+  } catch (error) {
+    status.textContent = '公開プロフィールを読み込めませんでした。Supabaseに公開用viewが反映されているか確認してください。';
+    console.error(error);
+  }
+}
+
+document.getElementById('back-btn').addEventListener('click', () => closeDetail());
+window.addEventListener('hashchange', () => {
+  const match = location.hash.match(/^#member\/(.+)$/);
+  if (match) openDetail(decodeURIComponent(match[1]), { updateHash: false });
+  else closeDetail({ updateHash: false });
+});
+
+loadPublicMembers();
+</script>
+</body>
+</html>
