@@ -426,6 +426,119 @@
       font-size: 12px; color: #9ca3af; padding: 4px 10px 4px 0; line-height: 1;
     }
     .detail-link-remove:hover { color: #374151; }
+    .public-settings {
+      background: #f8fafc;
+      border: 1px solid #dbeafe;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .public-settings summary {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .public-settings summary::-webkit-details-marker {
+      display: none;
+    }
+    .public-settings-title {
+      font-size: 13px; font-weight: bold; color: #1f2937;
+    }
+    .public-settings-summary {
+      font-size: 11px;
+      color: #64748b;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .public-settings-chevron {
+      color: #64748b;
+      font-size: 13px;
+      transition: transform 0.15s;
+    }
+    .public-settings[open] .public-settings-chevron {
+      transform: rotate(180deg);
+    }
+    .public-settings-body {
+      border-top: 1px solid #dbeafe;
+      padding: 12px 14px 14px;
+    }
+    .public-settings-hint {
+      font-size: 12px; line-height: 1.6; color: #64748b;
+      margin-bottom: 10px;
+    }
+    .public-toggle-list {
+      display: grid;
+      gap: 8px;
+    }
+    .public-toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .public-toggle-copy {
+      min-width: 0;
+    }
+    .public-toggle-label {
+      font-size: 13px; font-weight: bold; color: #374151;
+    }
+    .public-toggle-description {
+      font-size: 11px; color: #6b7280; line-height: 1.5; margin-top: 2px;
+    }
+    .public-toggle {
+      position: relative;
+      width: 64px; height: 30px;
+      border: none;
+      border-radius: 999px;
+      background: #cbd5e1;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .public-toggle::before {
+      content: '';
+      position: absolute;
+      top: 4px; left: 4px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      transition: transform 0.15s;
+    }
+    .public-toggle span {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      line-height: 1;
+    }
+    .public-toggle.is-on {
+      background: #2563eb;
+    }
+    .public-toggle.is-on::before {
+      transform: translateX(34px);
+    }
+    .public-toggle.is-on span {
+      left: 10px;
+      right: auto;
+    }
+    .public-toggle:disabled {
+      opacity: 0.65;
+      cursor: progress;
+    }
+    .public-toggle-status {
+      font-size: 11px;
+      color: #2563eb;
+      min-height: 16px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -935,10 +1048,30 @@ function ensureDirectoryLoaded() {
   return directoryLoadPromise;
 }
 
+async function fetchDirectoryProfiles() {
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+  const fullSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
+  const baseSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text';
+  const fullRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${fullSelect}&order=nickname`, { headers });
+  if (fullRes.ok) return fullRes.json();
+
+  console.warn('Public setting columns are not available yet. Falling back to the existing member profile schema.');
+  const baseRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${baseSelect}&order=nickname`, { headers });
+  if (!baseRes.ok) throw new Error(`member_profiles fetch failed: HTTP ${baseRes.status}`);
+  const profiles = await baseRes.json();
+  return profiles.map(p => ({
+    ...p,
+    nickname_public: false,
+    avatar_public: false,
+    self_intro_public: false,
+    location_public: false,
+    links_public: false,
+  }));
+}
+
 async function loadDirectory() {
-  const [profilesRes, tagsRes, linksRes, locationsRes] = await Promise.all([
-    fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text&order=nickname`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+  const [profiles, tagsRes, linksRes, locationsRes] = await Promise.all([
+    fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_links?select=member_nickname,label,url&order=created_at`,
@@ -946,7 +1079,6 @@ async function loadDirectory() {
     fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
   ]);
-  const profiles = await profilesRes.json();
   const tags = await tagsRes.json();
   const links = await linksRes.json();
   const locations = await locationsRes.json();
@@ -1269,6 +1401,128 @@ async function saveLocation(nickname, text) {
   openMemberDetail(nickname, { updateHash: false });
 }
 
+const PUBLIC_FIELD_CONFIG = [
+  {
+    field: 'nickname_public',
+    label: 'ニックネーム',
+    description: 'OFFにすると外部公開ページでは名前欄を表示しません。',
+  },
+  {
+    field: 'avatar_public',
+    label: 'アイコン',
+    description: 'OFFにすると外部公開ページでは汎用アイコンを表示します。',
+  },
+  {
+    field: 'self_intro_public',
+    label: '自己紹介文',
+    description: 'ONのときだけ外部公開ページに自己紹介文を表示します。',
+  },
+  {
+    field: 'location_public',
+    label: '居住地',
+    description: 'ONのときだけ外部公開ページに居住地を表示します。',
+  },
+  {
+    field: 'links_public',
+    label: 'リンク',
+    description: 'note、YouTube、ブログ、出版物などを公開します。個人メモは常に内部専用です。',
+  },
+];
+
+async function savePublicSetting(nickname, field, value, button, status) {
+  button.disabled = true;
+  status.textContent = '保存中...';
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ [field]: value }),
+  });
+  if (!res.ok) {
+    button.disabled = false;
+    status.textContent = '保存できませんでした。Supabaseに公開設定カラムを反映してください。';
+    return;
+  }
+  await refreshDirectory();
+  status.textContent = '保存しました';
+  openMemberDetail(nickname, { updateHash: false, publicSettingsOpen: true, scrollToTop: false });
+}
+
+function buildPublicSettingsSection(member, { open = false } = {}) {
+  const section = document.createElement('details');
+  section.className = 'detail-section public-settings';
+  section.open = open;
+
+  const summary = document.createElement('summary');
+  const title = document.createElement('div');
+  title.className = 'public-settings-title';
+  title.textContent = '外部公開設定';
+  const summaryText = document.createElement('div');
+  summaryText.className = 'public-settings-summary';
+  summaryText.textContent = '公開項目を変更';
+  const chevron = document.createElement('div');
+  chevron.className = 'public-settings-chevron';
+  chevron.textContent = '⌄';
+  summary.appendChild(title);
+  summary.appendChild(summaryText);
+  summary.appendChild(chevron);
+  section.appendChild(summary);
+
+  const body = document.createElement('div');
+  body.className = 'public-settings-body';
+  section.appendChild(body);
+
+  const hint = document.createElement('div');
+  hint.className = 'public-settings-hint';
+  hint.textContent = '外部公開ページや埋め込みで表示してよい項目だけONにしてください。内部の個別ページではOFFの項目もこれまで通り表示されます。';
+  body.appendChild(hint);
+
+  const list = document.createElement('div');
+  list.className = 'public-toggle-list';
+  body.appendChild(list);
+
+  const status = document.createElement('div');
+  status.className = 'public-toggle-status';
+
+  PUBLIC_FIELD_CONFIG.forEach(({ field, label, description }) => {
+    const row = document.createElement('div');
+    row.className = 'public-toggle-row';
+
+    const copy = document.createElement('div');
+    copy.className = 'public-toggle-copy';
+    const labelEl = document.createElement('div');
+    labelEl.className = 'public-toggle-label';
+    labelEl.textContent = label;
+    const descriptionEl = document.createElement('div');
+    descriptionEl.className = 'public-toggle-description';
+    descriptionEl.textContent = description;
+    copy.appendChild(labelEl);
+    copy.appendChild(descriptionEl);
+
+    const isOn = Boolean(member[field]);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = `public-toggle${isOn ? ' is-on' : ''}`;
+    toggle.setAttribute('aria-pressed', String(isOn));
+    toggle.setAttribute('aria-label', `${label}を外部公開${isOn ? 'しない' : 'する'}`);
+    const state = document.createElement('span');
+    state.textContent = isOn ? 'ON' : 'OFF';
+    toggle.appendChild(state);
+    toggle.addEventListener('click', () => savePublicSetting(member.nickname, field, !isOn, toggle, status));
+
+    row.appendChild(copy);
+    row.appendChild(toggle);
+    list.appendChild(row);
+  });
+
+  body.appendChild(status);
+  return section;
+}
+
 function buildLocationSection(member) {
   const section = document.createElement('div');
   section.className = 'detail-section';
@@ -1426,13 +1680,13 @@ function buildIntroSection(member) {
   return section;
 }
 
-function openMemberDetail(nickname, { updateHash = true } = {}) {
+function openMemberDetail(nickname, { updateHash = true, publicSettingsOpen = false, scrollToTop = true } = {}) {
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (!member) return;
 
   document.getElementById('member-grid-view').style.display = 'none';
   document.getElementById('member-detail-view').style.display = 'block';
-  window.scrollTo(0, 0);
+  if (scrollToTop) window.scrollTo(0, 0);
   if (updateHash) history.pushState(null, '', `#member/${encodeURIComponent(nickname)}`);
 
   const content = document.getElementById('detail-content');
@@ -1469,6 +1723,7 @@ function openMemberDetail(nickname, { updateHash = true } = {}) {
   head.appendChild(nameEl);
   head.appendChild(copyLinkBtn);
   content.appendChild(head);
+  content.appendChild(buildPublicSettingsSection(member, { open: publicSettingsOpen }));
 
   CATEGORY_ORDER.forEach(cat => {
     const meta = CATEGORY_META[cat];
