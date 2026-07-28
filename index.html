@@ -623,6 +623,10 @@ function cardLocationLabel(loc) {
   return [pref, muni].filter(Boolean).join('');
 }
 
+function directoryLocationLabel(member) {
+  return member.location_text || cardLocationLabel(member.location);
+}
+
 // ================================================================
 // 地図初期化
 // ================================================================
@@ -1153,10 +1157,11 @@ function renderMemberGrid() {
     name.className = 'card-nickname';
     name.textContent = m.nickname;
     info.appendChild(name);
-    if (m.location) {
+    const locationLabel = directoryLocationLabel(m);
+    if (locationLabel) {
       const locationEl = document.createElement('div');
       locationEl.className = 'card-location';
-      locationEl.textContent = cardLocationLabel(m.location);
+      locationEl.textContent = locationLabel;
       info.appendChild(locationEl);
     }
     head.appendChild(avatar);
@@ -1387,7 +1392,7 @@ function autoGrowTextarea(textarea, minHeight) {
 
 async function saveLocation(nickname, text) {
   const trimmed = text.trim();
-  await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
     method: 'PATCH',
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -1397,6 +1402,7 @@ async function saveLocation(nickname, text) {
     },
     body: JSON.stringify({ location_text: trimmed || null }),
   });
+  if (!res.ok) throw new Error(`location save failed: HTTP ${res.status}`);
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
 }
