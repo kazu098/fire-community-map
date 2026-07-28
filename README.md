@@ -204,3 +204,51 @@ python3 scripts/load_community_posts.py
 ```
 
 ✕ボタンで非表示にされた投稿(`community_posts_history` に `action=delete` が記録されたもの)は自動的にスキップされ、再クロールしても復活しません。
+
+## Discordイベント開催記録
+
+イベントは「暮らしの知恵」とは別のタブで表示します。Discordの告知・振り返り投稿をそのまま一覧化するのではなく、開催単位で人手レビュー済みの `tmp/community_events_curated.json` を作成し、Supabaseの `community_events` へ反映します。
+
+初回は `supabase/community_events.sql` をSupabaseに適用してください。
+
+Discordからの取得は、イベント系チャンネルの投稿と、Discordの「イベント作成」機能で作られたサーバーイベントの両方を対象にします。
+
+```bash
+python3 scripts/fetch_community_events.py --since 2026-01-01T00:00:00+09:00
+python3 scripts/fetch_community_events.py
+```
+
+`tmp/community_events_raw.json` に raw 候補が書き出されます。サーバーイベント由来の行は `source_type: "scheduled_event"` として入り、`discord_permalink` は `https://discord.com/events/...` になります。
+
+`tmp/community_events_curated.json` の例:
+
+```json
+[
+  {
+    "title": "オンライン雑談会",
+    "tags": ["交流会", "雑談"],
+    "starts_at": "2026-08-10T20:00:00+09:00",
+    "ends_at": "2026-08-10T21:30:00+09:00",
+    "format": "online",
+    "prefecture": "オンライン",
+    "location_label": "Discordボイス",
+    "participant_count": 12,
+    "participation_note": "告知投稿にリアクション",
+    "summary": "新メンバー同士の交流を目的に開催。",
+    "highlights": "初参加者も話しやすい雰囲気だった。",
+    "learnings": "冒頭に自己紹介タイムを固定で入れるとよさそう。",
+    "discord_channel_name": "イベント告知",
+    "discord_message_id": "123456789012345678",
+    "discord_permalink": "https://discord.com/channels/..."
+  }
+]
+```
+
+反映:
+
+```bash
+python3 scripts/load_community_events.py --dry-run
+python3 scripts/load_community_events.py
+```
+
+画面では `starts_at` / `ends_at` を見て「これから開催」「開催済み」に自動で分けます。イベント種別はタブではなく、カード内の小さなタグとして表示します。
