@@ -222,10 +222,11 @@ const CATEGORY_META = {
   investment_style: { label: '投資スタイル', bg: '#eff6ff', text: '#1d4ed8' },
   fire_status:      { label: 'FIREステータス', bg: '#fff7ed', text: '#c2410c' },
   mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
-  skill:            { label: 'スキル・相談できること', bg: '#ecfdf5', text: '#047857' },
+  skill:            { label: 'スキル', bg: '#ecfdf5', text: '#047857' },
+  consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e' },
   interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
 };
-const PUBLIC_CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest'];
+const PUBLIC_CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'interest'];
 
 let publicMembers = [];
 const EMBED_MODE = new URLSearchParams(location.search).get('embed') === '1';

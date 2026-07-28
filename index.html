@@ -942,11 +942,12 @@ const CATEGORY_META = {
   investment_style: { label: '投資スタイル', bg: '#eff6ff', text: '#1d4ed8' },
   fire_status:      { label: 'FIREステータス', bg: '#fff7ed', text: '#c2410c' },
   mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
-  skill:            { label: 'スキル・相談できること', bg: '#ecfdf5', text: '#047857' },
+  skill:            { label: 'スキル', bg: '#ecfdf5', text: '#047857' },
+  consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e' },
   interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
   affiliation:      { label: '所属活動・部活', bg: '#f1f5f9', text: '#334155' },
 };
-const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest', 'affiliation'];
+const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'interest', 'affiliation'];
 const CARD_TAG_CHAR_LIMIT = 90;
 
 // タグの合計文字数がCARD_TAG_CHAR_LIMITを超えない範囲で表示するタグを選ぶ
@@ -1279,7 +1280,7 @@ async function addTag(nickname, category, value) {
   if (!value.trim()) return;
   const member = directoryMembers.find(m => m.nickname === nickname);
   const sortOrder = member ? (member.tags[category] || []).length : 0;
-  await fetch(`${SUPABASE_URL}/rest/v1/member_tags`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_tags`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -1289,6 +1290,12 @@ async function addTag(nickname, category, value) {
     },
     body: JSON.stringify([{ member_nickname: nickname, category, value: value.trim(), sort_order: sortOrder }]),
   });
+  if (!res.ok) {
+    const message = await res.text();
+    console.error('tag save failed', res.status, message);
+    alert('タグを保存できませんでした。Supabaseのカテゴリ設定が未反映の可能性があります。');
+    return;
+  }
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
 }
