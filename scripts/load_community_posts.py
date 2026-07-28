@@ -64,6 +64,13 @@ def supabase_request(method: str, url: str, service_role_key: str, body: Any = N
         raise RuntimeError(f"Supabase API request failed for {method} {url}: {exc}") from exc
 
 
+def fetch_known_nicknames(supabase_url: str, service_role_key: str) -> set[str]:
+    rows = supabase_request(
+        "GET", f"{supabase_url}/rest/v1/member_profiles?select=nickname", service_role_key
+    )
+    return {row["nickname"] for row in (rows or [])}
+
+
 def fetch_deleted_message_ids(supabase_url: str, service_role_key: str, message_ids: list[str]) -> set[str]:
     if not message_ids:
         return set()
@@ -106,17 +113,24 @@ def main() -> int:
 
     message_ids = [str(e["discord_message_id"]) for e in curated]
     deleted_ids = fetch_deleted_message_ids(supabase_url, service_role_key, message_ids) if not args.dry_run else set()
+    known_nicknames = fetch_known_nicknames(supabase_url, service_role_key) if not args.dry_run else None
 
     rows = []
     skipped_deleted = 0
+    unmatched_nicknames = 0
     for entry in curated:
         message_id = str(entry["discord_message_id"])
         if message_id in deleted_ids:
             skipped_deleted += 1
             continue
+        member_nickname = entry.get("member_nickname")
+        if known_nicknames is not None and member_nickname and member_nickname not in known_nicknames:
+            print(f"Unmatched member_nickname {member_nickname!r} for {message_id} -- storing as unattributed.")
+            member_nickname = None
+            unmatched_nicknames += 1
         rows.append(
             {
-                "member_nickname": entry.get("member_nickname"),
+                "member_nickname": member_nickname,
                 "content_type": entry["content_type"],
                 "title": entry.get("title"),
                 "summary": entry["summary"],
@@ -128,7 +142,10 @@ def main() -> int:
             }
         )
 
-    print(f"Prepared {len(rows)} rows to upsert ({skipped_deleted} skipped as previously deleted).")
+    print(
+        f"Prepared {len(rows)} rows to upsert "
+        f"({skipped_deleted} skipped as previously deleted, {unmatched_nicknames} unmatched member_nickname)."
+    )
 
     if args.dry_run:
         print(json.dumps(rows, ensure_ascii=False, indent=2))

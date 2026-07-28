@@ -162,7 +162,7 @@ def build_raw_entry(
         "channel_name": channel_name,
         "content_type": content_type,
         "discord_author_display_name": author_name,
-        "member_nickname": name_map.get(author_name),
+        "member_nickname": name_map.get(author_name, author_name),
         "content": content,
         "posted_at": posted_at.isoformat(),
         "discord_permalink": f"https://discord.com/channels/{guild_id}/{channel_id}/{message['id']}",
