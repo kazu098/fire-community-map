@@ -222,9 +222,33 @@
       padding: 10px 16px;
       z-index: 10;
       display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 8px;
     }
+    #community-search-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+    }
+    #community-search {
+      width: 100%;
+      padding: 8px 34px 8px 14px;
+      border: 2px solid #d1d5db;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+      display: block;
+      box-sizing: border-box;
+    }
+    #community-search:focus { border-color: #3b82f6; }
+    #community-search-clear {
+      position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 15px; display: none; line-height: 1;
+    }
+    #community-search-clear:hover { color: #4b5563; }
+    #community-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
     .community-type-pill {
       padding: 5px 14px;
       border-radius: 20px;
@@ -1239,8 +1263,24 @@ async function fetchDirectoryProfiles() {
   }));
 }
 
+async function fetchCommunityPosts() {
+  const select = 'id,member_nickname,content_type,title,summary,discord_author_display_name,discord_permalink,posted_at';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?select=${select}&order=posted_at.desc`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) {
+      console.warn('community_posts fetch failed (table may not exist yet). Community tab will be empty.', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('community_posts fetch failed. Community tab will be empty.', err);
+    return [];
+  }
+}
+
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes] = await Promise.all([
+  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData] = await Promise.all([
     fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -1248,10 +1288,12 @@ async function loadDirectory() {
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetchCommunityPosts(),
   ]);
   const tags = await tagsRes.json();
   const links = await linksRes.json();
   const locations = await locationsRes.json();
+  communityPosts = communityPostsData;
 
   const tagsByNickname = {};
   tags.forEach(t => {
@@ -2267,9 +2309,10 @@ function openMemberDetail(nickname, {
 }
 
 // ================================================================
-// コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療) — UIプロトタイプ
-// ダミーデータのみ。Supabaseへの読み書きは行わず、画面上の一時的な
-// 削除操作もローカル配列を書き換えるだけ(リロードで復元される)。
+// コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療)
+// community_posts テーブルから読み込み、✕は member_tags/member_links と
+// 同じくSupabase REST DELETE(anon key)で削除する(open-delete パターン)。
+// テーブル未作成の環境では fetchCommunityPosts() が空配列にフォールバックする。
 // ================================================================
 
 const CONTENT_TYPE_META = {
@@ -2280,88 +2323,7 @@ const CONTENT_TYPE_META = {
 };
 const CONTENT_TYPE_ORDER = ['book', 'travel', 'money_consultation', 'care_medical'];
 
-let communityPosts = [
-  {
-    id: 'dummy-1',
-    member_nickname: 'かず',
-    content_type: 'book',
-    title: '『DIE WITH ZERO』',
-    summary: '資産を使い切る発想が新鮮でした。FIREを目指す上での「貯める」から「使う」への切り替えタイミングを考えるきっかけになった本です。',
-    discord_author_display_name: 'かず',
-    discord_permalink: 'https://discord.com/channels/000/111/222',
-    posted_at: '2026-06-02T10:00:00+09:00',
-  },
-  {
-    id: 'dummy-2',
-    member_nickname: 'たびお',
-    content_type: 'book',
-    title: '『サピエンス全史』',
-    summary: '長期投資のマインドセットにも通じる、人類史の大きな視点を得られる一冊。上下巻あるので時間があるときにどうぞ。',
-    discord_author_display_name: 'たびお',
-    discord_permalink: 'https://discord.com/channels/000/111/223',
-    posted_at: '2026-05-20T09:30:00+09:00',
-  },
-  {
-    id: 'dummy-3',
-    member_nickname: null,
-    content_type: 'book',
-    title: '『インデックス投資は勝者のゲーム』',
-    summary: 'インデックス投資の教科書的な一冊として紹介されていました。',
-    discord_author_display_name: 'ふくろう',
-    discord_permalink: 'https://discord.com/channels/000/111/224',
-    posted_at: '2026-05-15T21:00:00+09:00',
-  },
-  {
-    id: 'dummy-4',
-    member_nickname: 'たびお',
-    content_type: 'travel',
-    title: '金沢2泊3日',
-    summary: '兼六園と近江町市場を巡ってきました。冬の寒ブリが最高だったので、金沢に行くなら11〜2月がおすすめです。',
-    discord_author_display_name: 'たびお',
-    discord_permalink: 'https://discord.com/channels/000/111/225',
-    posted_at: '2026-06-10T18:00:00+09:00',
-  },
-  {
-    id: 'dummy-5',
-    member_nickname: 'みかん',
-    content_type: 'travel',
-    title: '台湾一人旅',
-    summary: '台北から台南まで新幹線で移動。九份の夜景がとても綺麗でした。',
-    discord_author_display_name: 'みかん０',
-    discord_permalink: 'https://discord.com/channels/000/111/226',
-    posted_at: '2026-04-28T20:15:00+09:00',
-  },
-  {
-    id: 'dummy-6',
-    member_nickname: 'きたさん',
-    content_type: 'money_consultation',
-    title: 'iDeCoと新NISAの併用について',
-    summary: '会社員がiDeCoと新NISAをどちらから優先すべきか相談していました。結論としては流動性の高いNISAをまず優先しつつ、iDeCoは所得控除メリットを踏まえて併用という声が多かったです。',
-    discord_author_display_name: 'きたさん',
-    discord_permalink: 'https://discord.com/channels/000/111/227',
-    posted_at: '2026-06-15T13:00:00+09:00',
-  },
-  {
-    id: 'dummy-7',
-    member_nickname: null,
-    content_type: 'money_consultation',
-    title: '火災保険の見直し相談',
-    summary: '持ち家の火災保険を10年契約から更新するタイミングでの見直しについて相談が上がっていました。',
-    discord_author_display_name: 'えこー',
-    discord_permalink: 'https://discord.com/channels/000/111/228',
-    posted_at: '2026-06-18T08:45:00+09:00',
-  },
-  {
-    id: 'dummy-8',
-    member_nickname: 'ちぃ',
-    content_type: 'care_medical',
-    title: '親の介護保険サービス利用の相談',
-    summary: '看護師の視点から、要介護認定の申請〜ケアマネジャーとの連携までの流れを解説してくれていました。',
-    discord_author_display_name: 'ちぃ',
-    discord_permalink: 'https://discord.com/channels/000/111/229',
-    posted_at: '2026-06-20T11:20:00+09:00',
-  },
-];
+let communityPosts = [];
 
 function buildCommunityPostCard(post, { onRemove }) {
   const card = document.createElement('div');
@@ -2404,7 +2366,12 @@ function buildCommunityPostCard(post, { onRemove }) {
   return card;
 }
 
-function deleteCommunityPostPrototype(post) {
+async function deleteCommunityPost(post) {
+  const params = new URLSearchParams({ id: `eq.${post.id}` });
+  await fetch(`${SUPABASE_URL}/rest/v1/community_posts?${params.toString()}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
   communityPosts = communityPosts.filter(p => p.id !== post.id);
   renderCommunityView();
   if (document.getElementById('member-detail-view').style.display === 'block') {
@@ -2414,24 +2381,69 @@ function deleteCommunityPostPrototype(post) {
 }
 
 let activeCommunityType = null; // null = すべて
+let communityQuery = '';
+
+function matchesCommunityQuery(post, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [post.title, post.summary, post.member_nickname, post.discord_author_display_name]
+    .filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(q);
+}
 
 function renderCommunityView() {
   const header = document.getElementById('community-header');
   header.innerHTML = '';
+
+  const searchWrap = document.createElement('div');
+  searchWrap.id = 'community-search-wrap';
+  const searchInput = document.createElement('input');
+  searchInput.id = 'community-search';
+  searchInput.type = 'text';
+  searchInput.placeholder = 'タイトル・本文・投稿者で検索…';
+  searchInput.autocomplete = 'off';
+  searchInput.value = communityQuery;
+  const searchClear = document.createElement('button');
+  searchClear.id = 'community-search-clear';
+  searchClear.textContent = '✕';
+  searchClear.style.display = communityQuery ? 'block' : 'none';
+  searchInput.addEventListener('input', () => {
+    communityQuery = searchInput.value;
+    searchClear.style.display = communityQuery ? 'block' : 'none';
+    renderCommunityBody();
+  });
+  searchClear.addEventListener('click', () => {
+    communityQuery = '';
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    searchInput.focus();
+    renderCommunityBody();
+  });
+  searchWrap.appendChild(searchInput);
+  searchWrap.appendChild(searchClear);
+  header.appendChild(searchWrap);
+
+  const pillRow = document.createElement('div');
+  pillRow.id = 'community-pill-row';
   const allPill = document.createElement('button');
   allPill.className = 'community-type-pill' + (activeCommunityType === null ? ' active' : '');
   allPill.textContent = 'すべて';
   allPill.addEventListener('click', () => { activeCommunityType = null; renderCommunityView(); });
-  header.appendChild(allPill);
+  pillRow.appendChild(allPill);
   CONTENT_TYPE_ORDER.forEach(type => {
     const meta = CONTENT_TYPE_META[type];
     const pill = document.createElement('button');
     pill.className = 'community-type-pill' + (activeCommunityType === type ? ' active' : '');
     pill.textContent = `${meta.icon} ${meta.label}`;
     pill.addEventListener('click', () => { activeCommunityType = type; renderCommunityView(); });
-    header.appendChild(pill);
+    pillRow.appendChild(pill);
   });
+  header.appendChild(pillRow);
 
+  renderCommunityBody();
+}
+
+function renderCommunityBody() {
   const body = document.getElementById('community-body');
   body.innerHTML = '';
 
@@ -2440,7 +2452,7 @@ function renderCommunityView() {
 
   typesToShow.forEach(type => {
     const posts = communityPosts
-      .filter(p => p.content_type === type)
+      .filter(p => p.content_type === type && matchesCommunityQuery(p, communityQuery))
       .sort((a, b) => (a.posted_at < b.posted_at ? 1 : -1));
     if (!posts.length) return;
     totalShown += posts.length;
@@ -2451,7 +2463,7 @@ function renderCommunityView() {
     body.appendChild(title);
 
     posts.forEach(post => {
-      body.appendChild(buildCommunityPostCard(post, { onRemove: deleteCommunityPostPrototype }));
+      body.appendChild(buildCommunityPostCard(post, { onRemove: deleteCommunityPost }));
     });
   });
 
@@ -2489,7 +2501,7 @@ function buildCommunityPostsSection(member) {
       removeBtn.className = 'detail-community-remove';
       removeBtn.textContent = '✕';
       removeBtn.title = '非表示にする';
-      removeBtn.addEventListener('click', () => deleteCommunityPostPrototype(post));
+      removeBtn.addEventListener('click', () => deleteCommunityPost(post));
       item.appendChild(removeBtn);
 
       if (post.title) {
