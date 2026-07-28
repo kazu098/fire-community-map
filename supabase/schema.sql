@@ -433,20 +433,42 @@ execute function public.log_member_profile_edit();
 -- Member directory: open editing of location_text
 -- ================================================================
 -- Self-reported residence text, editable by anyone (same open-editing
--- pattern as self_intro_text above). Independent of member_locations (the
--- map pin source of truth, populated/reviewed via scripts/normalize_member_locations.py
--- and friends) -- new/changed location_text values are synced into
--- member_locations manually, on request, not automatically.
+-- pattern as self_intro_text above). Map coordinates remain managed in
+-- member_locations, while the display text is kept in sync from this field.
 
 alter table public.member_profiles add column if not exists location_text text;
 
 comment on column public.member_profiles.location_text is
-  'Self-reported residence text, editable by anyone. Independent of member_locations; synced into member_locations manually via the geocode scripts when requested.';
+  'Self-reported residence text, editable by anyone. Synced to member_locations.location_text for map display; map coordinates are not changed automatically.';
 
 alter table public.member_profile_edits add column if not exists old_location_text text;
 alter table public.member_profile_edits add column if not exists new_location_text text;
 
 grant update (location_text) on public.member_profiles to anon, authenticated;
+
+create or replace function public.sync_member_profile_location_to_map()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.location_text is distinct from old.location_text then
+    update public.member_locations
+    set location_text = new.location_text
+    where nickname = new.nickname
+      and new.location_text is not null
+      and btrim(new.location_text) <> '';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists sync_member_profile_location_to_map on public.member_profiles;
+create trigger sync_member_profile_location_to_map
+after update on public.member_profiles
+for each row
+execute function public.sync_member_profile_location_to_map();
 
 -- ================================================================
 -- Member directory: external publication settings
