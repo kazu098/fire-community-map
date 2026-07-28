@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WordPress Embed Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f7f7f7;
+      color: #1f2937;
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif;
+    }
+    header {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 22px 16px;
+    }
+    .site-shell {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+    .site-title {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+      font-size: 14px;
+    }
+    nav a {
+      color: #374151;
+      text-decoration: none;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 32px 16px 56px;
+    }
+    h1 {
+      font-size: 28px;
+      line-height: 1.35;
+      margin: 0 0 12px;
+    }
+    .lead {
+      color: #4b5563;
+      line-height: 1.8;
+      margin: 0 0 24px;
+    }
+    iframe {
+      width: 100%;
+      min-height: 900px;
+      border: 0;
+      display: block;
+      background: transparent;
+    }
+    @media (max-width: 600px) {
+      .site-title { font-size: 20px; }
+      main { padding: 24px 12px 40px; }
+      h1 { font-size: 23px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="site-shell">
+    <div class="site-title">FIRE研究所</div>
+    <nav aria-label="プレビュー用ナビゲーション">
+      <a href="#">FIRE研究所について</a>
+      <a href="#">メンバー一覧</a>
+      <a href="#">note</a>
+      <a href="#">YouTube</a>
+      <a href="#">X</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <h1>メンバー一覧</h1>
+  <p class="lead">FIRE研究所で活動しているメンバーの公開プロフィールです。</p>
+  <iframe
+    id="fire-member-directory"
+    src="public-embed.html"
+    loading="lazy"
+    title="FIRE研究所 メンバー紹介"
+  ></iframe>
+</main>
+<script>
+window.addEventListener('message', event => {
+  if (event.data?.type !== 'fire-member-directory-height') return;
+  const iframe = document.getElementById('fire-member-directory');
+  if (iframe) iframe.style.height = `${event.data.height}px`;
+});
+</script>
+</body>
+</html>

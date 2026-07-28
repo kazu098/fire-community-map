@@ -182,6 +182,16 @@
       #member-grid { grid-template-columns: 1fr; }
       .member-card { min-height: 0; }
     }
+    html.embed-mode body {
+      background: transparent;
+    }
+    html.embed-mode header {
+      display: none;
+    }
+    html.embed-mode main {
+      max-width: none;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -218,6 +228,25 @@ const CATEGORY_META = {
 const PUBLIC_CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'interest'];
 
 let publicMembers = [];
+const EMBED_MODE = new URLSearchParams(location.search).get('embed') === '1';
+if (EMBED_MODE) document.documentElement.classList.add('embed-mode');
+
+function notifyEmbedHeight() {
+  if (!EMBED_MODE || window.parent === window) return;
+  requestAnimationFrame(() => {
+    const height = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight
+    );
+    window.parent.postMessage({ type: 'fire-member-directory-height', height }, '*');
+  });
+}
+
+if (EMBED_MODE && 'ResizeObserver' in window) {
+  new ResizeObserver(notifyEmbedHeight).observe(document.body);
+}
 
 function genericIcon() {
   const wrap = document.createElement('div');
@@ -233,6 +262,8 @@ function buildAvatar(member) {
   const img = document.createElement('img');
   img.src = member.display_avatar_url;
   img.alt = '';
+  img.addEventListener('load', notifyEmbedHeight);
+  img.addEventListener('error', notifyEmbedHeight);
   avatar.appendChild(img);
   return avatar;
 }
@@ -343,6 +374,7 @@ function renderGrid() {
   const grid = document.getElementById('member-grid');
   grid.innerHTML = '';
   publicMembers.forEach(member => grid.appendChild(buildCard(member)));
+  notifyEmbedHeight();
 }
 
 function section(title, node) {
@@ -381,12 +413,14 @@ function openDetail(memberId, { updateHash = true } = {}) {
 
   const links = normalizeList(member.links);
   if (links.length) card.appendChild(section('リンク', buildLinks(links)));
+  notifyEmbedHeight();
 }
 
 function closeDetail({ updateHash = true } = {}) {
   document.getElementById('detail-view').style.display = 'none';
   document.getElementById('grid-view').style.display = 'block';
-  if (updateHash) history.pushState(null, '', location.pathname);
+  if (updateHash) history.pushState(null, '', `${location.pathname}${location.search}`);
+  notifyEmbedHeight();
 }
 
 async function loadPublicMembers() {
@@ -415,6 +449,7 @@ window.addEventListener('hashchange', () => {
   if (match) openDetail(decodeURIComponent(match[1]), { updateHash: false });
   else closeDetail({ updateHash: false });
 });
+window.addEventListener('load', notifyEmbedHeight);
 
 loadPublicMembers();
 </script>
