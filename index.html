@@ -676,6 +676,15 @@ function memberLocationLabel(m) {
   return m.location_text || [m.prefecture, m.municipality_optional].filter(Boolean).join(' ');
 }
 
+function updateMapMemberLocationLabel(nickname, locationText) {
+  const mapMember = allMembers.find(m => m.nickname === nickname);
+  if (!mapMember) return;
+  mapMember.location_text = locationText || mapMember.location_text;
+  if (mapMember._marker) {
+    mapMember._marker.setPopupContent(makeMemberPopup(mapMember));
+  }
+}
+
 // メンバー一覧カード用: 区・駅名などは詳細すぎるので市区町村の「市」「郡~町/村」までに丸める
 function cardLocationLabel(loc) {
   if (!loc) return '';
@@ -1479,6 +1488,7 @@ async function saveLocation(nickname, text) {
     body: JSON.stringify({ location_text: trimmed || null }),
   });
   if (!res.ok) throw new Error(`location save failed: HTTP ${res.status}`);
+  updateMapMemberLocationLabel(nickname, trimmed);
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
 }
