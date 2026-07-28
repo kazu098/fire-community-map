@@ -28,7 +28,8 @@ jobs:
           python3 scripts/fetch_community_events.py \
             --since 2026-01-01T00:00:00+09:00 \
             --output tmp/community_events_raw.json \
-            --state-file tmp/community_events_sync_state.json
+            --state-file tmp/community_events_sync_state.json \
+            --skip-scheduled-events
 
       - name: Sync Discord scheduled events
         env:

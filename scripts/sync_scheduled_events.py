@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import argparse
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -55,7 +56,7 @@ def require_env(name: str) -> str:
     return value
 
 
-def request_json(method: str, url: str, headers: dict[str, str], body: Any = None) -> Any:
+def request_json(method: str, url: str, headers: dict[str, str], body: Any = None, retries: int = 2) -> Any:
     data = json.dumps(body).encode("utf-8") if body is not None else None
     req = Request(url, data=data, headers=headers, method=method)
     try:
@@ -64,6 +65,13 @@ def request_json(method: str, url: str, headers: dict[str, str], body: Any = Non
             return json.loads(raw) if raw else None
     except HTTPError as exc:
         body_text = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 429 and retries > 0:
+            try:
+                retry_after = float(json.loads(body_text).get("retry_after", 5))
+            except (ValueError, json.JSONDecodeError, TypeError):
+                retry_after = 5
+            time.sleep(retry_after + 0.5)
+            return request_json(method, url, headers, body, retries - 1)
         raise RuntimeError(f"HTTP {exc.code} for {method} {url}: {body_text}") from exc
     except URLError as exc:
         raise RuntimeError(f"Request failed for {method} {url}: {exc}") from exc
