@@ -1,19 +1,5 @@
 [
   {
-    "title": "【メモ】YouTube収録",
-    "tags": ["オンライン", "メモ", "収録"],
-    "starts_at": "2026-07-29T20:00:00+09:00",
-    "format": "online",
-    "prefecture": "オンライン",
-    "location_label": "Discord / YouTube用（出演者のみ）",
-    "participant_count": 1,
-    "participation_note": "Discordのサーバーイベントから確認。",
-    "summary": "YouTube収録用の予定メモ。",
-    "discord_channel_name": "YouTube用（出演者のみ）",
-    "discord_message_id": "scheduled_event:1530727526450724935",
-    "discord_permalink": "https://discord.com/events/1389921372683112539/1530727526450724935"
-  },
-  {
     "title": "麻雀会 お助けモード",
     "tags": ["オンライン", "ゲーム"],
     "starts_at": "2026-07-31T10:00:00+09:00",
@@ -82,20 +68,6 @@
     "discord_channel_name": "打ち合わせ",
     "discord_message_id": "scheduled_event:1528931417038520371",
     "discord_permalink": "https://discord.com/events/1389921372683112539/1528931417038520371"
-  },
-  {
-    "title": "【メモ】YouTube収録",
-    "tags": ["オンライン", "メモ", "収録"],
-    "starts_at": "2026-08-08T20:00:00+09:00",
-    "format": "online",
-    "prefecture": "オンライン",
-    "location_label": "Discord / YouTube用（出演者のみ）",
-    "participant_count": 1,
-    "participation_note": "Discordのサーバーイベントから確認。",
-    "summary": "YouTube収録用の予定メモ。",
-    "discord_channel_name": "YouTube用（出演者のみ）",
-    "discord_message_id": "scheduled_event:1531164823247786064",
-    "discord_permalink": "https://discord.com/events/1389921372683112539/1531164823247786064"
   },
   {
     "title": "少人数オンライン飲み会",

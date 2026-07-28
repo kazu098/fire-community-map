@@ -37,6 +37,16 @@ ENTITY_TYPE_LABELS = {
     3: "external",
 }
 
+PRIVATE_EVENT_MARKERS = (
+    "【メモ】",
+    "[メモ]",
+    "メモ",
+    "出演者のみ",
+    "内部",
+    "非公開",
+    "収録",
+)
+
 
 def load_dotenv(path: Path) -> None:
     if not path.exists():
@@ -132,6 +142,18 @@ def infer_tags(event: dict[str, Any], channel_name: str | None) -> list[str]:
     return list(dict.fromkeys(tags))
 
 
+def is_public_event(event: dict[str, Any], channel_name: str | None) -> bool:
+    text = " ".join(
+        str(value or "")
+        for value in (
+            event.get("name"),
+            event.get("description"),
+            channel_name,
+        )
+    )
+    return not any(marker in text for marker in PRIVATE_EVENT_MARKERS)
+
+
 def event_row(event: dict[str, Any], guild_id: str, channel_names_by_id: dict[str, str]) -> dict[str, Any]:
     event_id = str(event["id"])
     channel_id = str(event.get("channel_id") or "")
@@ -161,6 +183,21 @@ def event_row(event: dict[str, Any], guild_id: str, channel_names_by_id: dict[st
     }
 
 
+def delete_events(supabase_url: str, service_role_key: str, discord_message_ids: list[str]) -> None:
+    if not discord_message_ids:
+        return
+    ids_csv = ",".join(discord_message_ids)
+    query = urlencode({"discord_message_id": f"in.({ids_csv})"}, safe="(),.:")
+    request_json(
+        "DELETE",
+        f"{supabase_url}/rest/v1/community_events?{query}",
+        {
+            "apikey": service_role_key,
+            "Authorization": f"Bearer {service_role_key}",
+        },
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync Discord scheduled events into Supabase.")
     parser.add_argument("--env-file", default=os.environ.get("ENV_FILE", ".env"))
@@ -175,9 +212,21 @@ def main() -> int:
 
     names = channel_names(token, guild_id)
     events = scheduled_events(token, guild_id)
-    rows = [event_row(event, guild_id, names) for event in events if event.get("scheduled_start_time")]
+    private_ids = [
+        f"scheduled_event:{event['id']}"
+        for event in events
+        if event.get("scheduled_start_time") and not is_public_event(event, names.get(str(event.get("channel_id") or "")))
+    ]
+    rows = [
+        event_row(event, guild_id, names)
+        for event in events
+        if event.get("scheduled_start_time") and is_public_event(event, names.get(str(event.get("channel_id") or "")))
+    ]
     print(f"Prepared {len(rows)} Discord scheduled events.")
+    print(f"Private scheduled events to delete: {len(private_ids)}")
     if args.dry_run:
+        if private_ids:
+            print(json.dumps({"delete_discord_message_ids": private_ids}, ensure_ascii=False, indent=2))
         print(json.dumps(rows, ensure_ascii=False, indent=2))
         return 0
     if rows:
@@ -188,6 +237,9 @@ def main() -> int:
             rows,
         )
         print("Upserted Discord scheduled events into community_events.")
+    if private_ids:
+        delete_events(supabase_url, service_role_key, private_ids)
+        print("Deleted private scheduled events from community_events.")
     return 0
 
 
