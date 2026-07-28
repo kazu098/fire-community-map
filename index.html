@@ -190,6 +190,8 @@
       display: flex;
       gap: 4px;
       padding: 0 12px;
+      overflow-x: auto;
+      white-space: nowrap;
     }
     .view-tab {
       background: none;
@@ -202,12 +204,17 @@
       border-bottom: 3px solid transparent;
     }
     .view-tab.active { color: white; border-bottom-color: #3b82f6; }
+    @media (max-width: 600px) {
+      #view-tabs { padding: 0 8px; }
+      .view-tab { padding: 10px 12px; font-size: 12px; }
+    }
     #header { top: 38px; }
     #map { top: 90px; }
     @media (max-width: 600px) { #map { top: 118px; } }
 
     /* ---- Community posts view (書籍・旅行・相談などのストック型コンテンツ) ---- */
-    #community-view {
+    #community-view,
+    #events-view {
       position: fixed;
       top: 38px; left: 0; right: 0; bottom: 0;
       overflow-y: auto;
@@ -292,6 +299,156 @@
     .community-post-permalink { color: #3b82f6; text-decoration: none; }
     .community-post-permalink:hover { text-decoration: underline; }
     #community-empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+
+    /* ---- Events view ---- */
+    #events-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 10px 16px;
+      z-index: 10;
+    }
+    #events-switcher {
+      display: inline-flex;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .events-switch-tab {
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .events-switch-tab.active {
+      background: white;
+      color: #1f2937;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    #events-body { max-width: 760px; margin: 0 auto; padding: 16px; }
+    .events-section-title {
+      font-size: 13px; font-weight: bold; color: #374151;
+      margin: 18px 0 10px;
+    }
+    .events-section-title:first-child { margin-top: 0; }
+    .event-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .event-card.cancelled { opacity: 0.72; }
+    .event-card-main {
+      display: flex;
+      align-items: stretch;
+      gap: 14px;
+    }
+    .event-date-block {
+      width: 82px;
+      min-width: 82px;
+      border-radius: 8px;
+      background: #1f2937;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 6px;
+      align-self: flex-start;
+    }
+    .event-date-side {
+      width: 82px;
+      min-width: 82px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .event-date-day { font-size: 22px; line-height: 1; font-weight: bold; }
+    .event-date-weekday { font-size: 12px; margin-top: 4px; color: #d1d5db; }
+    .event-date-time { font-size: 12px; margin-top: 7px; color: #bfdbfe; font-weight: bold; }
+    .event-calendar-link {
+      color: #64748b;
+      text-align: center;
+      text-decoration: none;
+      font-size: 10px;
+      line-height: 1.35;
+    }
+    .event-calendar-link:hover { color: #2563eb; text-decoration: underline; }
+    .event-content { min-width: 0; flex: 1; }
+    .event-title { font-size: 15px; font-weight: bold; color: #1f2937; line-height: 1.4; }
+    .event-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+    .event-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .event-tag.status { background: #fee2e2; color: #991b1b; }
+    .event-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      color: #6b7280;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .event-text {
+      color: #374151;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-top: 6px;
+    }
+    .event-note-label { font-weight: bold; color: #1f2937; }
+    .event-link {
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 12px;
+      display: inline-block;
+      margin-top: 8px;
+    }
+    .event-link:hover { text-decoration: underline; }
+    .event-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .event-actions .event-link { margin-top: 0; }
+    .event-primary-link {
+      color: #2563eb;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .event-primary-link:hover { text-decoration: underline; }
+    #events-empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+    @media (max-width: 520px) {
+      #events-header { padding: 8px 12px; }
+      #events-switcher { display: flex; width: 100%; }
+      .events-switch-tab { flex: 1; padding: 8px 10px; }
+      .event-card-main { gap: 10px; }
+      .event-date-side,
+      .event-date-block { width: 68px; min-width: 68px; }
+      .event-date-day { font-size: 19px; }
+    }
 
     /* ---- Member detail: community posts mini-sections ---- */
     .detail-community-list { display: flex; flex-direction: column; gap: 8px; }
@@ -730,6 +887,7 @@
 
 <div id="view-tabs">
   <button class="view-tab" id="tab-directory" onclick="goToMemberGrid()">メンバー</button>
+  <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
   <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
 </div>
@@ -769,6 +927,11 @@
 <div id="community-view">
   <div id="community-header"></div>
   <div id="community-body"></div>
+</div>
+
+<div id="events-view">
+  <div id="events-header"></div>
+  <div id="events-body"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1232,16 +1395,19 @@ function selectView(view) {
   if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
   const isMap = view === 'map';
   const isCommunity = view === 'community';
-  const isDirectory = !isMap && !isCommunity;
+  const isEvents = view === 'events';
+  const isDirectory = !isMap && !isCommunity && !isEvents;
 
   document.getElementById('tab-map').classList.toggle('active', isMap);
   document.getElementById('tab-directory').classList.toggle('active', isDirectory);
   document.getElementById('tab-community').classList.toggle('active', isCommunity);
+  document.getElementById('tab-events').classList.toggle('active', isEvents);
 
   document.getElementById('header').style.display = isMap ? 'flex' : 'none';
   document.getElementById('map').style.display = isMap ? 'block' : 'none';
   document.getElementById('directory-view').style.display = isDirectory ? 'block' : 'none';
   document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
+  document.getElementById('events-view').style.display = isEvents ? 'block' : 'none';
 
   if (isMap) {
     if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
@@ -1249,6 +1415,10 @@ function selectView(view) {
   }
   if (isCommunity) {
     renderCommunityView();
+    return;
+  }
+  if (isEvents) {
+    ensureDirectoryLoaded().then(renderEventsView);
     return;
   }
   ensureDirectoryLoaded().then(() => {
@@ -1303,8 +1473,39 @@ async function fetchCommunityPosts() {
   }
 }
 
+async function fetchCommunityEvents() {
+  const select = 'id,title,tags,starts_at,ends_at,format,prefecture,location_label,participant_count,participation_note,summary,highlights,learnings,discord_permalink,cancelled_at';
+  const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_events?select=${select}&order=starts_at.desc`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) {
+      console.warn('community_events fetch failed (table may not exist yet). Events tab will be empty.', res.status);
+      if (isLocalPreview) return await fetchLocalCommunityEvents();
+      return { rows: [], unavailable: true };
+    }
+    return { rows: await res.json(), unavailable: false };
+  } catch (err) {
+    console.warn('community_events fetch failed. Events tab will be empty.', err);
+    if (isLocalPreview) return await fetchLocalCommunityEvents();
+    return { rows: [], unavailable: true };
+  }
+}
+
+async function fetchLocalCommunityEvents() {
+  try {
+    const res = await fetch('data/community_events_curated.json', { cache: 'no-store' });
+    if (!res.ok) return { rows: [], unavailable: true };
+    const rows = await res.json();
+    return { rows: Array.isArray(rows) ? rows : [], unavailable: false };
+  } catch (err) {
+    console.warn('local community_events fallback failed.', err);
+    return { rows: [], unavailable: true };
+  }
+}
+
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData] = await Promise.all([
+  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData] = await Promise.all([
     fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -1313,11 +1514,14 @@ async function loadDirectory() {
     fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetchCommunityPosts(),
+    fetchCommunityEvents(),
   ]);
   const tags = await tagsRes.json();
   const links = await linksRes.json();
   const locations = await locationsRes.json();
   communityPosts = communityPostsData;
+  communityEvents = communityEventsData.rows;
+  communityEventsUnavailable = communityEventsData.unavailable;
 
   const tagsByNickname = {};
   tags.forEach(t => {
@@ -2339,6 +2543,250 @@ function openMemberDetail(nickname, {
 
   content.appendChild(buildIntroSection(member));
   content.appendChild(buildCommunityPostsSection(member));
+}
+
+// ================================================================
+// イベント開催記録
+// community_events テーブルから読み込み、開催日時で「これから開催」と
+// 「開催済み」に分ける。種別はナビゲーションではなく小さなタグとして出す。
+// ================================================================
+
+let communityEvents = [];
+let communityEventsUnavailable = false;
+let activeEventsSection = 'upcoming';
+
+const EVENT_FORMAT_LABELS = {
+  online: 'オンライン',
+  offline: 'オフ会',
+  hybrid: 'ハイブリッド',
+  unknown: '形式未定',
+};
+
+function formatEventDateParts(value) {
+  if (!value) return { day: '', weekday: '', time: '' };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { day: '', weekday: '', time: '' };
+  const day = new Intl.DateTimeFormat('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+  }).format(date);
+  const weekday = new Intl.DateTimeFormat('ja-JP', {
+    weekday: 'short',
+  }).format(date);
+  const time = new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+  return { day, weekday, time };
+}
+
+function eventTags(event) {
+  const tags = Array.isArray(event.tags) ? event.tags.filter(Boolean) : [];
+  const formatLabel = EVENT_FORMAT_LABELS[event.format];
+  if (formatLabel && !tags.includes(formatLabel)) return [formatLabel, ...tags];
+  return tags;
+}
+
+function isUpcomingEvent(event, now) {
+  if (event.cancelled_at) return false;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+  const start = new Date(event.starts_at);
+  const boundary = end && !Number.isNaN(end.getTime()) ? end : start;
+  return !Number.isNaN(boundary.getTime()) && boundary >= now;
+}
+
+function formatGoogleCalendarDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().replace(/[-:]|\.\d{3}/g, '');
+}
+
+function googleCalendarUrl(event) {
+  const start = formatGoogleCalendarDate(event.starts_at);
+  if (!start) return null;
+  const startDate = new Date(event.starts_at);
+  const endDate = event.ends_at ? new Date(event.ends_at) : new Date(startDate.getTime() + 60 * 60 * 1000);
+  const end = Number.isNaN(endDate.getTime()) ? null : formatGoogleCalendarDate(endDate.toISOString());
+  if (!end) return null;
+  const details = [event.summary, event.participation_note, event.discord_permalink]
+    .filter(Boolean)
+    .join('\n\n');
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${start}/${end}`,
+  });
+  if (details) params.set('details', details);
+  const locationText = [event.prefecture, event.location_label].filter(Boolean).join(' / ');
+  if (locationText) params.set('location', locationText);
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function appendEventText(card, label, text) {
+  if (!text) return;
+  const row = document.createElement('div');
+  row.className = 'event-text';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'event-note-label';
+  labelEl.textContent = `${label}: `;
+  row.appendChild(labelEl);
+  row.appendChild(document.createTextNode(text));
+  card.appendChild(row);
+}
+
+function buildEventCard(event, mode) {
+  const card = document.createElement('div');
+  card.className = 'event-card' + (event.cancelled_at ? ' cancelled' : '');
+
+  const main = document.createElement('div');
+  main.className = 'event-card-main';
+
+  const dateSide = document.createElement('div');
+  dateSide.className = 'event-date-side';
+  const dateParts = formatEventDateParts(event.starts_at);
+  const dateBlock = document.createElement('div');
+  dateBlock.className = 'event-date-block';
+  const day = document.createElement('div');
+  day.className = 'event-date-day';
+  day.textContent = dateParts.day;
+  const weekday = document.createElement('div');
+  weekday.className = 'event-date-weekday';
+  weekday.textContent = `(${dateParts.weekday})`;
+  const time = document.createElement('div');
+  time.className = 'event-date-time';
+  time.textContent = dateParts.time;
+  dateBlock.appendChild(day);
+  dateBlock.appendChild(weekday);
+  dateBlock.appendChild(time);
+  dateSide.appendChild(dateBlock);
+  const calendarUrl = googleCalendarUrl(event);
+  if (calendarUrl) {
+    const calendarLink = document.createElement('a');
+    calendarLink.className = 'event-calendar-link';
+    calendarLink.href = calendarUrl;
+    calendarLink.target = '_blank';
+    calendarLink.rel = 'noopener';
+    calendarLink.textContent = 'Googleカレンダーに追加';
+    dateSide.appendChild(calendarLink);
+  }
+  main.appendChild(dateSide);
+
+  const content = document.createElement('div');
+  content.className = 'event-content';
+
+  const title = document.createElement('div');
+  title.className = 'event-title';
+  title.textContent = event.title;
+  content.appendChild(title);
+
+  const tags = document.createElement('div');
+  tags.className = 'event-tags';
+  if (event.cancelled_at) {
+    const cancelled = document.createElement('span');
+    cancelled.className = 'event-tag status';
+    cancelled.textContent = '中止';
+    tags.appendChild(cancelled);
+  }
+  eventTags(event).forEach(value => {
+    const tag = document.createElement('span');
+    tag.className = 'event-tag';
+    tag.textContent = value;
+    tags.appendChild(tag);
+  });
+  if (tags.children.length) content.appendChild(tags);
+
+  const meta = document.createElement('div');
+  meta.className = 'event-meta';
+  const metaValues = [];
+  const locationText = [event.prefecture, event.location_label].filter(Boolean).join(' / ');
+  if (locationText) metaValues.push(locationText);
+  if (event.participant_count != null) metaValues.push(`参加 ${event.participant_count}名`);
+  metaValues.forEach(value => {
+    const item = document.createElement('span');
+    item.textContent = value;
+    meta.appendChild(item);
+  });
+  if (meta.children.length) content.appendChild(meta);
+
+  if (mode === 'upcoming') {
+    appendEventText(content, '参加方法', event.participation_note);
+    appendEventText(content, '概要', event.summary);
+  } else {
+    appendEventText(content, '概要', event.summary);
+    appendEventText(content, 'よかった点', event.highlights);
+    appendEventText(content, '次回メモ', event.learnings);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'event-actions';
+  if (event.discord_permalink) {
+    const link = document.createElement('a');
+    link.className = 'event-primary-link';
+    link.href = event.discord_permalink;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'Discordで見る →';
+    actions.appendChild(link);
+  }
+  if (actions.children.length) content.appendChild(actions);
+
+  main.appendChild(content);
+  card.appendChild(main);
+  return card;
+}
+
+function renderEventsHeader(counts) {
+  const header = document.getElementById('events-header');
+  header.innerHTML = '';
+  const switcher = document.createElement('div');
+  switcher.id = 'events-switcher';
+  [
+    { value: 'upcoming', label: `これから開催 ${counts.upcoming}` },
+    { value: 'past', label: `開催済み ${counts.past}` },
+  ].forEach(item => {
+    const tab = document.createElement('button');
+    tab.className = 'events-switch-tab' + (activeEventsSection === item.value ? ' active' : '');
+    tab.textContent = item.label;
+    tab.addEventListener('click', () => {
+      activeEventsSection = item.value;
+      renderEventsView();
+    });
+    switcher.appendChild(tab);
+  });
+  header.appendChild(switcher);
+}
+
+function renderEventsView() {
+  const header = document.getElementById('events-header');
+  const body = document.getElementById('events-body');
+  header.innerHTML = '';
+  body.innerHTML = '';
+  if (communityEventsUnavailable) {
+    const empty = document.createElement('div');
+    empty.id = 'events-empty';
+    empty.textContent = 'イベントデータの準備がまだ完了していません';
+    body.appendChild(empty);
+    return;
+  }
+  const now = new Date();
+  const upcoming = communityEvents
+    .filter(event => isUpcomingEvent(event, now))
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  const past = communityEvents
+    .filter(event => !isUpcomingEvent(event, now))
+    .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+
+  renderEventsHeader({ upcoming: upcoming.length, past: past.length });
+  const visibleEvents = activeEventsSection === 'upcoming' ? upcoming : past;
+  visibleEvents.forEach(event => body.appendChild(buildEventCard(event, activeEventsSection)));
+  if (visibleEvents.length === 0) {
+    const empty = document.createElement('div');
+    empty.id = 'events-empty';
+    empty.textContent = activeEventsSection === 'upcoming'
+      ? 'これから開催するイベントはありません'
+      : '開催済みイベントはありません';
+    body.appendChild(empty);
+  }
 }
 
 // ================================================================
