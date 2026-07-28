@@ -539,6 +539,74 @@
       min-height: 16px;
       margin-top: 8px;
     }
+    .external-intro-editor {
+      display: block;
+    }
+    .external-intro-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .external-intro-copy {
+      min-width: 0;
+    }
+    .external-intro-title {
+      font-size: 13px; font-weight: bold; color: #374151;
+    }
+    .external-intro-note {
+      font-size: 11px; color: #6b7280; line-height: 1.5;
+      margin-top: 4px;
+    }
+    .external-intro-open-btn {
+      width: auto;
+      min-width: min(100%, 320px);
+      max-width: 100%;
+      margin-top: 10px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      color: #374151;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .external-intro-open-btn:hover {
+      background: #f3f4f6;
+    }
+    .external-intro-arrow {
+      font-size: 14px;
+      color: #64748b;
+    }
+    .external-intro-preview {
+      width: 100%;
+      margin-top: 12px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .external-intro-preview-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .external-intro-text {
+      white-space: pre-wrap;
+      font-size: 12px; line-height: 1.6; color: #374151;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .external-intro-textarea {
+      width: 100%; min-height: 180px; font-size: 13px; line-height: 1.6;
+      font-family: inherit; padding: 10px 12px; border: 1px solid #d1d5db;
+      border-radius: 8px; resize: vertical;
+    }
   </style>
 </head>
 <body>
@@ -1055,7 +1123,7 @@ function ensureDirectoryLoaded() {
 
 async function fetchDirectoryProfiles() {
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
-  const fullSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
+  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
   const baseSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text';
   const fullRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${fullSelect}&order=nickname`, { headers });
   if (fullRes.ok) return fullRes.json();
@@ -1066,6 +1134,7 @@ async function fetchDirectoryProfiles() {
   const profiles = await baseRes.json();
   return profiles.map(p => ({
     ...p,
+    external_self_intro_text: p.self_intro_text,
     nickname_public: false,
     avatar_public: false,
     self_intro_public: false,
@@ -1414,6 +1483,34 @@ async function saveLocation(nickname, text) {
   openMemberDetail(nickname, { updateHash: false });
 }
 
+async function saveExternalIntro(nickname, text) {
+  const trimmed = text.trim();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ external_self_intro_text: trimmed || null }),
+  });
+  if (!res.ok) {
+    window.alert('外部向け自己紹介文を保存できませんでした。Supabaseにexternal_self_intro_textカラムが反映されているか確認してください。');
+    throw new Error(`external intro save failed: HTTP ${res.status}`);
+  }
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (member) member.external_self_intro_text = trimmed || null;
+  await refreshDirectory();
+  openMemberDetail(nickname, {
+    updateHash: false,
+    publicSettingsOpen: true,
+    externalIntroPreviewOpen: true,
+    preservePublicSettingsStatus: '保存しました',
+    scrollToTop: false,
+  });
+}
+
 const PUBLIC_FIELD_CONFIG = [
   {
     field: 'nickname_public',
@@ -1426,11 +1523,6 @@ const PUBLIC_FIELD_CONFIG = [
     description: 'OFFにすると外部公開ページでは汎用アイコンを表示します。',
   },
   {
-    field: 'self_intro_public',
-    label: '自己紹介文',
-    description: 'ONのときだけ外部公開ページに自己紹介文を表示します。',
-  },
-  {
     field: 'location_public',
     label: '居住地',
     description: 'ONのときだけ外部公開ページに居住地を表示します。',
@@ -1441,6 +1533,32 @@ const PUBLIC_FIELD_CONFIG = [
     description: 'note、YouTube、ブログ、出版物などを公開します。個人メモは常に内部専用です。',
   },
 ];
+
+function buildPublicToggle({ member, field, label, status, className = 'public-toggle' }) {
+  const isOn = Boolean(member[field]);
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = `${className}${isOn ? ' is-on' : ''}`;
+  toggle.setAttribute('aria-pressed', String(isOn));
+  toggle.setAttribute('aria-label', `${label}を外部公開${isOn ? 'しない' : 'する'}`);
+  const state = document.createElement('span');
+  state.textContent = isOn ? 'ON' : 'OFF';
+  toggle.appendChild(state);
+  toggle.addEventListener('click', () => {
+    const nextValue = !isOn;
+    if (field === 'self_intro_public' && nextValue) {
+      const externalIntro = (member.external_self_intro_text ?? '').trim();
+      if (!externalIntro) {
+        status.textContent = '外部向け自己紹介文を入力してからONにしてください。';
+        return;
+      }
+      const confirmed = window.confirm('外部向け自己紹介文の内容を確認しましたか？ONにすると公開ページに表示されます。');
+      if (!confirmed) return;
+    }
+    savePublicSetting(member.nickname, field, nextValue, toggle, status);
+  });
+  return toggle;
+}
 
 async function savePublicSetting(nickname, field, value, button, status) {
   button.disabled = true;
@@ -1462,10 +1580,20 @@ async function savePublicSetting(nickname, field, value, button, status) {
   }
   await refreshDirectory();
   status.textContent = '保存しました';
-  openMemberDetail(nickname, { updateHash: false, publicSettingsOpen: true, scrollToTop: false });
+  openMemberDetail(nickname, {
+    updateHash: false,
+    publicSettingsOpen: true,
+    externalIntroPreviewOpen: field === 'self_intro_public',
+    preservePublicSettingsStatus: '保存しました',
+    scrollToTop: false,
+  });
 }
 
-function buildPublicSettingsSection(member, { open = false } = {}) {
+function buildPublicSettingsSection(member, {
+  open = false,
+  externalIntroPreviewOpen = false,
+  preservePublicSettingsStatus = '',
+} = {}) {
   const section = document.createElement('details');
   section.className = 'detail-section public-settings';
   section.open = open;
@@ -1494,12 +1622,15 @@ function buildPublicSettingsSection(member, { open = false } = {}) {
   hint.textContent = '外部公開ページや埋め込みで表示してよい項目だけONにしてください。内部の個別ページではOFFの項目もこれまで通り表示されます。';
   body.appendChild(hint);
 
+  const status = document.createElement('div');
+  status.className = 'public-toggle-status';
+  status.textContent = preservePublicSettingsStatus;
+
   const list = document.createElement('div');
   list.className = 'public-toggle-list';
   body.appendChild(list);
 
-  const status = document.createElement('div');
-  status.className = 'public-toggle-status';
+  list.appendChild(buildExternalIntroEditor(member, { open: externalIntroPreviewOpen, status }));
 
   PUBLIC_FIELD_CONFIG.forEach(({ field, label, description }) => {
     const row = document.createElement('div');
@@ -1516,16 +1647,7 @@ function buildPublicSettingsSection(member, { open = false } = {}) {
     copy.appendChild(labelEl);
     copy.appendChild(descriptionEl);
 
-    const isOn = Boolean(member[field]);
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = `public-toggle${isOn ? ' is-on' : ''}`;
-    toggle.setAttribute('aria-pressed', String(isOn));
-    toggle.setAttribute('aria-label', `${label}を外部公開${isOn ? 'しない' : 'する'}`);
-    const state = document.createElement('span');
-    state.textContent = isOn ? 'ON' : 'OFF';
-    toggle.appendChild(state);
-    toggle.addEventListener('click', () => savePublicSetting(member.nickname, field, !isOn, toggle, status));
+    const toggle = buildPublicToggle({ member, field, label, status });
 
     row.appendChild(copy);
     row.appendChild(toggle);
@@ -1534,6 +1656,126 @@ function buildPublicSettingsSection(member, { open = false } = {}) {
 
   body.appendChild(status);
   return section;
+}
+
+function buildExternalIntroEditor(member, { open = false, status } = {}) {
+  const box = document.createElement('div');
+  box.className = 'public-toggle-row external-intro-editor';
+
+  const header = document.createElement('div');
+  header.className = 'external-intro-header';
+  box.appendChild(header);
+
+  const copy = document.createElement('div');
+  copy.className = 'external-intro-copy';
+  header.appendChild(copy);
+
+  const title = document.createElement('div');
+  title.className = 'external-intro-title';
+  title.textContent = '外部向け自己紹介文';
+  copy.appendChild(title);
+
+  const note = document.createElement('div');
+  note.className = 'external-intro-note';
+  note.textContent = '公開ページに出すための本文です。公開するまでは表示されません。';
+  copy.appendChild(note);
+
+  const toggle = buildPublicToggle({
+    member,
+    field: 'self_intro_public',
+    label: '外部向け自己紹介文',
+    status,
+  });
+  header.appendChild(toggle);
+
+  const openBtn = document.createElement('button');
+  openBtn.type = 'button';
+  openBtn.className = 'external-intro-open-btn';
+  box.appendChild(openBtn);
+
+  const preview = document.createElement('div');
+  preview.className = 'external-intro-preview';
+  box.appendChild(preview);
+
+  let editMode = false;
+  let previewOpen = open;
+  const value = member.external_self_intro_text ?? member.self_intro_text ?? '';
+
+  function renderPreview() {
+    openBtn.innerHTML = '';
+    const label = document.createElement('span');
+    label.textContent = previewOpen ? '外部向け自己紹介文を閉じる' : '外部向け自己紹介文を見る';
+    const arrow = document.createElement('span');
+    arrow.className = 'external-intro-arrow';
+    arrow.textContent = previewOpen ? '←' : '→';
+    openBtn.appendChild(label);
+    openBtn.appendChild(arrow);
+    openBtn.onclick = () => {
+      previewOpen = !previewOpen;
+      editMode = false;
+      renderPreview();
+    };
+
+    preview.innerHTML = '';
+    preview.style.display = previewOpen ? 'block' : 'none';
+    if (!previewOpen) return;
+
+    const head = document.createElement('div');
+    head.className = 'external-intro-preview-head';
+    const previewTitle = document.createElement('div');
+    previewTitle.className = 'external-intro-title';
+    previewTitle.textContent = 'プレビュー';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'intro-icon-btn';
+    editBtn.style.display = editMode ? 'none' : 'inline-flex';
+    editBtn.textContent = value ? '編集' : '＋追加';
+    editBtn.title = value ? '外部向け自己紹介を編集' : '外部向け自己紹介を追加';
+    editBtn.onclick = () => { editMode = true; renderPreview(); };
+    head.appendChild(previewTitle);
+    head.appendChild(editBtn);
+    preview.appendChild(head);
+
+    if (editMode) {
+      const textarea = document.createElement('textarea');
+      textarea.className = 'external-intro-textarea';
+      textarea.value = value;
+      textarea.placeholder = '外部公開してよい自己紹介を入力してください…';
+      preview.appendChild(textarea);
+      requestAnimationFrame(() => autoGrowTextarea(textarea, 180));
+      textarea.addEventListener('input', () => autoGrowTextarea(textarea, 180));
+
+      const actions = document.createElement('div');
+      actions.className = 'intro-edit-actions';
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'intro-save-btn';
+      saveBtn.textContent = '保存';
+      saveBtn.addEventListener('click', () => saveExternalIntro(member.nickname, textarea.value));
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'intro-cancel-btn';
+      cancelBtn.textContent = 'キャンセル';
+      cancelBtn.addEventListener('click', () => { editMode = false; renderPreview(); });
+      actions.appendChild(saveBtn);
+      actions.appendChild(cancelBtn);
+      preview.appendChild(actions);
+      return;
+    }
+
+    if (!value) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'intro-placeholder';
+      placeholder.textContent = '外部向け自己紹介はまだ登録されていません。';
+      preview.appendChild(placeholder);
+      return;
+    }
+
+    const text = document.createElement('div');
+    text.className = 'external-intro-text';
+    text.textContent = value;
+    preview.appendChild(text);
+  }
+
+  renderPreview();
+  return box;
 }
 
 function buildLocationSection(member) {
@@ -1693,7 +1935,12 @@ function buildIntroSection(member) {
   return section;
 }
 
-function openMemberDetail(nickname, { updateHash = true, publicSettingsOpen = false, scrollToTop = true } = {}) {
+function openMemberDetail(nickname, {
+  updateHash = true,
+  publicSettingsOpen = false,
+  externalIntroPreviewOpen = false,
+  scrollToTop = true,
+} = {}) {
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (!member) return;
 
@@ -1736,7 +1983,10 @@ function openMemberDetail(nickname, { updateHash = true, publicSettingsOpen = fa
   head.appendChild(nameEl);
   head.appendChild(copyLinkBtn);
   content.appendChild(head);
-  content.appendChild(buildPublicSettingsSection(member, { open: publicSettingsOpen }));
+  content.appendChild(buildPublicSettingsSection(member, {
+    open: publicSettingsOpen,
+    externalIntroPreviewOpen,
+  }));
 
   CATEGORY_ORDER.forEach(cat => {
     const meta = CATEGORY_META[cat];
