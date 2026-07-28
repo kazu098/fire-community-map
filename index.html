@@ -206,6 +206,109 @@
     #map { top: 90px; }
     @media (max-width: 600px) { #map { top: 118px; } }
 
+    /* ---- Community posts view (書籍・旅行・相談などのストック型コンテンツ) ---- */
+    #community-view {
+      position: fixed;
+      top: 38px; left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
+      background: #dde1e6;
+      display: none;
+    }
+    #community-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 10px 16px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #community-search-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+    }
+    #community-search {
+      width: 100%;
+      padding: 8px 34px 8px 14px;
+      border: 2px solid #d1d5db;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+      display: block;
+      box-sizing: border-box;
+    }
+    #community-search:focus { border-color: #3b82f6; }
+    #community-search-clear {
+      position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 15px; display: none; line-height: 1;
+    }
+    #community-search-clear:hover { color: #4b5563; }
+    #community-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .community-type-pill {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 2px solid #d1d5db;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+    .community-type-pill.active {
+      background: #3b82f6; border-color: #3b82f6; color: white;
+    }
+    #community-body { max-width: 720px; margin: 0 auto; padding: 16px; }
+    .community-section-title {
+      font-size: 13px; font-weight: bold; color: #374151;
+      margin: 18px 0 10px;
+    }
+    .community-section-title:first-child { margin-top: 0; }
+    .community-post-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .community-post-remove {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: none; cursor: pointer;
+      font-size: 13px; color: #9ca3af; padding: 4px; line-height: 1;
+    }
+    .community-post-remove:hover { color: #374151; }
+    .community-post-title { font-size: 14px; font-weight: bold; color: #1f2937; margin-right: 24px; }
+    .community-post-summary { font-size: 13px; color: #374151; line-height: 1.6; margin-top: 6px; white-space: pre-wrap; }
+    .community-post-meta {
+      display: flex; align-items: center; gap: 8px; margin-top: 8px;
+      font-size: 11px; color: #9ca3af;
+    }
+    .community-post-author { color: #6b7280; }
+    .community-post-permalink { color: #3b82f6; text-decoration: none; }
+    .community-post-permalink:hover { text-decoration: underline; }
+    #community-empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+
+    /* ---- Member detail: community posts mini-sections ---- */
+    .detail-community-list { display: flex; flex-direction: column; gap: 8px; }
+    .detail-community-item {
+      background: #f9fafb; border-radius: 8px; padding: 10px 12px; position: relative;
+    }
+    .detail-community-item .detail-community-remove {
+      position: absolute; top: 8px; right: 10px;
+      background: none; border: none; cursor: pointer;
+      font-size: 12px; color: #9ca3af; padding: 2px; line-height: 1;
+    }
+    .detail-community-item .detail-community-remove:hover { color: #374151; }
+    .detail-community-title { font-size: 13px; font-weight: bold; color: #1f2937; margin-right: 20px; }
+    .detail-community-summary { font-size: 12px; color: #374151; line-height: 1.5; margin-top: 4px; }
+    .detail-community-link { font-size: 11px; color: #3b82f6; text-decoration: none; display: inline-block; margin-top: 6px; }
+    .detail-community-link:hover { text-decoration: underline; }
+
     /* ---- Directory view ---- */
     #directory-view {
       position: fixed;
@@ -628,6 +731,7 @@
 <div id="view-tabs">
   <button class="view-tab" id="tab-directory" onclick="goToMemberGrid()">メンバー</button>
   <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
+  <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
 </div>
 
 <div id="header">
@@ -660,6 +764,11 @@
     <button id="detail-back" onclick="closeMemberDetail()">← 一覧に戻る</button>
     <div class="detail-card" id="detail-content"></div>
   </div>
+</div>
+
+<div id="community-view">
+  <div id="community-header"></div>
+  <div id="community-body"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1122,13 +1231,24 @@ function goToMemberGrid() {
 function selectView(view) {
   if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
   const isMap = view === 'map';
+  const isCommunity = view === 'community';
+  const isDirectory = !isMap && !isCommunity;
+
   document.getElementById('tab-map').classList.toggle('active', isMap);
-  document.getElementById('tab-directory').classList.toggle('active', !isMap);
+  document.getElementById('tab-directory').classList.toggle('active', isDirectory);
+  document.getElementById('tab-community').classList.toggle('active', isCommunity);
+
   document.getElementById('header').style.display = isMap ? 'flex' : 'none';
   document.getElementById('map').style.display = isMap ? 'block' : 'none';
-  document.getElementById('directory-view').style.display = isMap ? 'none' : 'block';
+  document.getElementById('directory-view').style.display = isDirectory ? 'block' : 'none';
+  document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
+
   if (isMap) {
     if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
+    return;
+  }
+  if (isCommunity) {
+    renderCommunityView();
     return;
   }
   ensureDirectoryLoaded().then(() => {
@@ -1167,8 +1287,24 @@ async function fetchDirectoryProfiles() {
   }));
 }
 
+async function fetchCommunityPosts() {
+  const select = 'id,member_nickname,content_type,title,summary,discord_author_display_name,discord_permalink,posted_at';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?select=${select}&order=posted_at.desc`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) {
+      console.warn('community_posts fetch failed (table may not exist yet). Community tab will be empty.', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('community_posts fetch failed. Community tab will be empty.', err);
+    return [];
+  }
+}
+
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes] = await Promise.all([
+  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData] = await Promise.all([
     fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -1176,10 +1312,12 @@ async function loadDirectory() {
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetchCommunityPosts(),
   ]);
   const tags = await tagsRes.json();
   const links = await linksRes.json();
   const locations = await locationsRes.json();
+  communityPosts = communityPostsData;
 
   const tagsByNickname = {};
   tags.forEach(t => {
@@ -2200,6 +2338,241 @@ function openMemberDetail(nickname, {
   }
 
   content.appendChild(buildIntroSection(member));
+  content.appendChild(buildCommunityPostsSection(member));
+}
+
+// ================================================================
+// コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療)
+// community_posts テーブルから読み込み、✕は member_tags/member_links と
+// 同じくSupabase REST DELETE(anon key)で削除する(open-delete パターン)。
+// テーブル未作成の環境では fetchCommunityPosts() が空配列にフォールバックする。
+// ================================================================
+
+const CONTENT_TYPE_META = {
+  book: { label: '読んだ本', icon: '📚' },
+  travel: { label: '旅行', icon: '✈️' },
+  money_consultation: { label: 'お金の相談', icon: '💰' },
+  care_medical: { label: '介護・医療', icon: '🏥' },
+};
+// 'travel' is intentionally excluded here: travel posts are consolidated into
+// the existing #map travel-post layer (with location) instead of this tab.
+// Kept in CONTENT_TYPE_META for when/if that changes.
+const CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical'];
+
+let communityPosts = [];
+
+function buildCommunityPostCard(post, { onRemove }) {
+  const card = document.createElement('div');
+  card.className = 'community-post-card';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'community-post-remove';
+  removeBtn.textContent = '✕';
+  removeBtn.title = 'この投稿を非表示にする';
+  removeBtn.addEventListener('click', () => onRemove(post));
+  card.appendChild(removeBtn);
+
+  if (post.title) {
+    const title = document.createElement('div');
+    title.className = 'community-post-title';
+    title.textContent = post.title;
+    card.appendChild(title);
+  }
+
+  const summary = document.createElement('div');
+  summary.className = 'community-post-summary';
+  summary.textContent = post.summary;
+  card.appendChild(summary);
+
+  const meta = document.createElement('div');
+  meta.className = 'community-post-meta';
+  // お金の相談・介護医療は複数人の議論スレッドであることが多く、また
+  // プライバシー配慮のため、投稿者名は「読んだ本」に限定して表示する。
+  const authorName = post.content_type === 'book' ? (post.member_nickname || post.discord_author_display_name) : null;
+  if (authorName) {
+    const author = document.createElement('span');
+    author.className = 'community-post-author';
+    author.textContent = authorName;
+    meta.appendChild(author);
+  }
+  const link = document.createElement('a');
+  link.className = 'community-post-permalink';
+  link.href = post.discord_permalink;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.textContent = 'Discordで見る →';
+  meta.appendChild(link);
+  card.appendChild(meta);
+
+  return card;
+}
+
+async function deleteCommunityPost(post) {
+  const params = new URLSearchParams({ id: `eq.${post.id}` });
+  await fetch(`${SUPABASE_URL}/rest/v1/community_posts?${params.toString()}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  communityPosts = communityPosts.filter(p => p.id !== post.id);
+  renderCommunityView();
+  if (document.getElementById('member-detail-view').style.display === 'block') {
+    const match = location.hash.match(/^#member\/(.+)$/);
+    if (match) openMemberDetail(decodeURIComponent(match[1]), { updateHash: false });
+  }
+}
+
+let activeCommunityType = null; // null = すべて
+let communityQuery = '';
+
+function matchesCommunityQuery(post, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const authorFields = post.content_type === 'book' ? [post.member_nickname, post.discord_author_display_name] : [];
+  const haystack = [post.title, post.summary, ...authorFields]
+    .filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(q);
+}
+
+function renderCommunityView() {
+  const header = document.getElementById('community-header');
+  header.innerHTML = '';
+
+  const searchWrap = document.createElement('div');
+  searchWrap.id = 'community-search-wrap';
+  const searchInput = document.createElement('input');
+  searchInput.id = 'community-search';
+  searchInput.type = 'text';
+  searchInput.placeholder = 'タイトル・本文・投稿者で検索…';
+  searchInput.autocomplete = 'off';
+  searchInput.value = communityQuery;
+  const searchClear = document.createElement('button');
+  searchClear.id = 'community-search-clear';
+  searchClear.textContent = '✕';
+  searchClear.style.display = communityQuery ? 'block' : 'none';
+  searchInput.addEventListener('input', () => {
+    communityQuery = searchInput.value;
+    searchClear.style.display = communityQuery ? 'block' : 'none';
+    renderCommunityBody();
+  });
+  searchClear.addEventListener('click', () => {
+    communityQuery = '';
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    searchInput.focus();
+    renderCommunityBody();
+  });
+  searchWrap.appendChild(searchInput);
+  searchWrap.appendChild(searchClear);
+  header.appendChild(searchWrap);
+
+  const pillRow = document.createElement('div');
+  pillRow.id = 'community-pill-row';
+  const allPill = document.createElement('button');
+  allPill.className = 'community-type-pill' + (activeCommunityType === null ? ' active' : '');
+  allPill.textContent = 'すべて';
+  allPill.addEventListener('click', () => { activeCommunityType = null; renderCommunityView(); });
+  pillRow.appendChild(allPill);
+  CONTENT_TYPE_ORDER.forEach(type => {
+    const meta = CONTENT_TYPE_META[type];
+    const pill = document.createElement('button');
+    pill.className = 'community-type-pill' + (activeCommunityType === type ? ' active' : '');
+    pill.textContent = `${meta.icon} ${meta.label}`;
+    pill.addEventListener('click', () => { activeCommunityType = type; renderCommunityView(); });
+    pillRow.appendChild(pill);
+  });
+  header.appendChild(pillRow);
+
+  renderCommunityBody();
+}
+
+function renderCommunityBody() {
+  const body = document.getElementById('community-body');
+  body.innerHTML = '';
+
+  const typesToShow = activeCommunityType ? [activeCommunityType] : CONTENT_TYPE_ORDER;
+  let totalShown = 0;
+
+  typesToShow.forEach(type => {
+    const posts = communityPosts
+      .filter(p => p.content_type === type && matchesCommunityQuery(p, communityQuery))
+      .sort((a, b) => (a.posted_at < b.posted_at ? 1 : -1));
+    if (!posts.length) return;
+    totalShown += posts.length;
+
+    const title = document.createElement('div');
+    title.className = 'community-section-title';
+    title.textContent = `${CONTENT_TYPE_META[type].icon} ${CONTENT_TYPE_META[type].label}`;
+    body.appendChild(title);
+
+    posts.forEach(post => {
+      body.appendChild(buildCommunityPostCard(post, { onRemove: deleteCommunityPost }));
+    });
+  });
+
+  if (totalShown === 0) {
+    const empty = document.createElement('div');
+    empty.id = 'community-empty';
+    empty.textContent = '表示できる投稿がありません';
+    body.appendChild(empty);
+  }
+}
+
+function buildCommunityPostsSection(member) {
+  const wrap = document.createElement('div');
+  const memberPosts = communityPosts.filter(p => p.member_nickname === member.nickname);
+  if (!memberPosts.length) return wrap;
+
+  CONTENT_TYPE_ORDER.forEach(type => {
+    const posts = memberPosts.filter(p => p.content_type === type);
+    if (!posts.length) return;
+
+    const section = document.createElement('div');
+    section.className = 'detail-section';
+    const title = document.createElement('div');
+    title.className = 'detail-section-title';
+    title.textContent = `${CONTENT_TYPE_META[type].icon} ${CONTENT_TYPE_META[type].label}`;
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'detail-community-list';
+    posts.forEach(post => {
+      const item = document.createElement('div');
+      item.className = 'detail-community-item';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'detail-community-remove';
+      removeBtn.textContent = '✕';
+      removeBtn.title = '非表示にする';
+      removeBtn.addEventListener('click', () => deleteCommunityPost(post));
+      item.appendChild(removeBtn);
+
+      if (post.title) {
+        const itemTitle = document.createElement('div');
+        itemTitle.className = 'detail-community-title';
+        itemTitle.textContent = post.title;
+        item.appendChild(itemTitle);
+      }
+
+      const summary = document.createElement('div');
+      summary.className = 'detail-community-summary';
+      summary.textContent = post.summary;
+      item.appendChild(summary);
+
+      const link = document.createElement('a');
+      link.className = 'detail-community-link';
+      link.href = post.discord_permalink;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = 'Discordで見る →';
+      item.appendChild(link);
+
+      list.appendChild(item);
+    });
+    section.appendChild(list);
+    wrap.appendChild(section);
+  });
+
+  return wrap;
 }
 </script>
 </body>
