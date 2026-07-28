@@ -252,3 +252,20 @@ python3 scripts/load_community_events.py
 ```
 
 画面では `starts_at` / `ends_at` を見て「これから開催」「開催済み」に自動で分けます。イベント種別はタブではなく、カード内の小さなタグとして表示します。
+
+### イベント同期の定期実行
+
+`.github/workflows/sync-community-events.yml` で毎日 05:30 JST に同期します。
+
+- Discordの「イベント作成」機能で作られたサーバーイベントは、自動で `community_events` にupsertします。
+- チャンネル投稿由来のイベント候補は自動投入せず、直近3日分から告知・募集らしい投稿だけを抽出します。
+- 人手確認が必要な候補がある場合は、GitHub Issue `イベント候補の確認が必要です - YYYY-MM-DD` を作成します。
+
+通知はGitHub Issue経由です。リポジトリをWatchしていればGitHub通知/メールで届き、Slack連携している場合はSlackにも流せます。
+
+GitHub Actionsには以下のRepository secretsが必要です。
+
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_GUILD_ID`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`

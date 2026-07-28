@@ -1,0 +1,69 @@
+name: Sync community events
+
+on:
+  schedule:
+    # 20:30 UTC = 05:30 JST
+    - cron: "30 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync-events:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch Discord event candidates
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+        run: |
+          python3 scripts/fetch_community_events.py \
+            --since 2026-01-01T00:00:00+09:00 \
+            --output tmp/community_events_raw.json \
+            --state-file tmp/community_events_sync_state.json
+
+      - name: Sync Discord scheduled events
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/sync_scheduled_events.py
+
+      - name: Build review-needed report
+        run: |
+          python3 scripts/build_event_review_report.py \
+            --raw tmp/community_events_raw.json \
+            --curated data/community_events_curated.json \
+            --output tmp/community_events_review_needed.md \
+            --count-output tmp/community_events_review_count.txt \
+            --lookback-days 3 \
+            --min-score 3
+
+      - name: Create review issue
+        if: ${{ hashFiles('tmp/community_events_review_count.txt') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count="$(cat tmp/community_events_review_count.txt)"
+          if [ "$count" = "0" ]; then
+            echo "No review-needed event candidates."
+            exit 0
+          fi
+          title="イベント候補の確認が必要です - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file tmp/community_events_review_needed.md
+          else
+            gh issue create \
+              --title "$title" \
+              --body-file tmp/community_events_review_needed.md
+          fi
