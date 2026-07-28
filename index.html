@@ -2353,10 +2353,15 @@ function buildCommunityPostCard(post, { onRemove }) {
 
   const meta = document.createElement('div');
   meta.className = 'community-post-meta';
-  const author = document.createElement('span');
-  author.className = 'community-post-author';
-  author.textContent = post.member_nickname || post.discord_author_display_name || '';
-  meta.appendChild(author);
+  // お金の相談・介護医療は複数人の議論スレッドであることが多く、また
+  // プライバシー配慮のため、投稿者名は「読んだ本」に限定して表示する。
+  const authorName = post.content_type === 'book' ? (post.member_nickname || post.discord_author_display_name) : null;
+  if (authorName) {
+    const author = document.createElement('span');
+    author.className = 'community-post-author';
+    author.textContent = authorName;
+    meta.appendChild(author);
+  }
   const link = document.createElement('a');
   link.className = 'community-post-permalink';
   link.href = post.discord_permalink;
@@ -2389,7 +2394,8 @@ let communityQuery = '';
 function matchesCommunityQuery(post, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const haystack = [post.title, post.summary, post.member_nickname, post.discord_author_display_name]
+  const authorFields = post.content_type === 'book' ? [post.member_nickname, post.discord_author_display_name] : [];
+  const haystack = [post.title, post.summary, ...authorFields]
     .filter(Boolean).join(' ').toLowerCase();
   return haystack.includes(q);
 }

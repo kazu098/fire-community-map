@@ -129,13 +129,19 @@ def main() -> int:
         if message_id in deleted_ids:
             skipped_deleted += 1
             continue
+        is_single_author = entry["content_type"] in SINGLE_AUTHOR_CONTENT_TYPES
         member_nickname = entry.get("member_nickname")
-        if member_nickname and entry["content_type"] not in SINGLE_AUTHOR_CONTENT_TYPES:
+        if member_nickname and not is_single_author:
             member_nickname = None
         if known_nicknames is not None and member_nickname and member_nickname not in known_nicknames:
             print(f"Unmatched member_nickname {member_nickname!r} for {message_id} -- storing as unattributed.")
             member_nickname = None
             unmatched_nicknames += 1
+        # Money/care-medical threads are usually multi-person discussions, and
+        # the poster didn't necessarily intend their name attached to what
+        # became a curated, permanently-listed topic -- don't store the
+        # author's display name at all for these, not just hide it in the UI.
+        author_display_name = entry.get("discord_author_display_name") if is_single_author else None
         rows.append(
             {
                 "member_nickname": member_nickname,
@@ -144,7 +150,7 @@ def main() -> int:
                 "summary": entry["summary"],
                 "discord_channel_name": entry["channel_name"],
                 "discord_message_id": message_id,
-                "discord_author_display_name": entry.get("discord_author_display_name"),
+                "discord_author_display_name": author_display_name,
                 "discord_permalink": entry["discord_permalink"],
                 "posted_at": entry["posted_at"],
             }
