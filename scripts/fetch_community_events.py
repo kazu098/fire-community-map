@@ -12,6 +12,7 @@ import csv
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -75,6 +76,13 @@ def discord_get(path: str, token: str, query: dict[str, str] | None = None) -> A
             return json.loads(res.read().decode("utf-8"))
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 429:
+            try:
+                retry_after = float(json.loads(body).get("retry_after", 5))
+            except (ValueError, json.JSONDecodeError, TypeError):
+                retry_after = 5
+            time.sleep(retry_after + 0.5)
+            return discord_get(path, token, query)
         raise RuntimeError(f"Discord API error {exc.code} for {path}: {body}") from exc
     except URLError as exc:
         raise RuntimeError(f"Discord API request failed for {path}: {exc}") from exc
