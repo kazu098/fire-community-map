@@ -2321,7 +2321,10 @@ const CONTENT_TYPE_META = {
   money_consultation: { label: 'お金の相談', icon: '💰' },
   care_medical: { label: '介護・医療', icon: '🏥' },
 };
-const CONTENT_TYPE_ORDER = ['book', 'travel', 'money_consultation', 'care_medical'];
+// 'travel' is intentionally excluded here: travel posts are consolidated into
+// the existing #map travel-post layer (with location) instead of this tab.
+// Kept in CONTENT_TYPE_META for when/if that changes.
+const CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical'];
 
 let communityPosts = [];
 
