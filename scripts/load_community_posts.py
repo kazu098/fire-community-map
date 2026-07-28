@@ -24,6 +24,12 @@ from urllib.request import Request, urlopen
 
 REQUIRED_FIELDS = ("discord_message_id", "channel_name", "content_type", "summary", "posted_at", "discord_permalink")
 
+# Only book recommendations are a single person's post. money_consultation and
+# care_medical are usually multi-person discussion threads, so attributing the
+# whole thread to whoever posted the first message would misrepresent it as
+# solo content and would be misleading on that member's profile page.
+SINGLE_AUTHOR_CONTENT_TYPES = {"book"}
+
 
 def load_dotenv(path: Path) -> None:
     if not path.exists():
@@ -124,6 +130,8 @@ def main() -> int:
             skipped_deleted += 1
             continue
         member_nickname = entry.get("member_nickname")
+        if member_nickname and entry["content_type"] not in SINGLE_AUTHOR_CONTENT_TYPES:
+            member_nickname = None
         if known_nicknames is not None and member_nickname and member_nickname not in known_nicknames:
             print(f"Unmatched member_nickname {member_nickname!r} for {message_id} -- storing as unattributed.")
             member_nickname = None
