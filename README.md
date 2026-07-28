@@ -178,3 +178,29 @@ python3 scripts/sync_travel_posts.py
 ```
 
 `--dry-run` で新規件数を確認し、問題なければ `--dry-run` を外して実行します。既存の投稿は `discord_message_id` で重複排除されます。
+
+## コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療)の収集
+
+対象は4チャンネル(`お金の話・相談` `こんな本読みました` `旅行` `介護・医療`)。詳細はGitHub issue #59を参照。収集→要約→反映の3段階で、要約はAPI課金なし(Claude Codeとの対話セッションで実施、Anthropic APIキーなどは使わない)。
+
+対象チャンネルへの「View Channel」「Read Message History」権限をF研Botに付与してもらう必要があります(管理者に依頼)。
+
+1. 生データの収集(要約なし):
+
+```bash
+python3 scripts/fetch_community_posts.py --since 2026-01-01T00:00:00+09:00  # 初回のみ --since が必要
+python3 scripts/fetch_community_posts.py  # 2回目以降は data/community_posts_sync_state.json の続きから
+```
+
+`tmp/community_posts_raw.json` に生メッセージが書き出されます。
+
+2. Claude Codeとの対話で `tmp/community_posts_raw.json` を確認しながら、一覧に載せる価値がある投稿を選び、タイトル・要約を付けて `tmp/community_posts_curated.json` を作成します(`load_member_profiles.py` の `MEMBER_TAGS` と同じく人手レビュー済みの確定データという位置付け)。
+
+3. Supabaseへ反映:
+
+```bash
+python3 scripts/load_community_posts.py --dry-run
+python3 scripts/load_community_posts.py
+```
+
+✕ボタンで非表示にされた投稿(`community_posts_history` に `action=delete` が記録されたもの)は自動的にスキップされ、再クロールしても復活しません。

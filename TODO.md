@@ -165,6 +165,18 @@
   - [ ] ブラウザからDiscord APIへ直接アクセスしないことを確認する
 - [ ] 会員は今まで通りDiscordに投稿するだけでよい（新しいフォームは作らない）
 
+## ステップ4: コミュニティ投稿（読んだ本・旅行・お金の相談・介護医療）を連携する
+
+詳細設計はGitHub issue #59を参照。`scripts/fetch_community_posts.py` / `scripts/load_community_posts.py` / `supabase/community_posts.sql` は実装済み。
+
+- [ ] サーバー管理者にF研Botへの対象4チャンネル（`お金の話・相談` `こんな本読みました` `旅行` `介護・医療`）の閲覧権限付与を依頼する（`View Channel` / `Read Message History`）
+- [ ] `supabase/community_posts.sql` をSupabaseに適用する（本番DBへの変更のため、適用前に内容をレビューする）
+- [ ] `scripts/fetch_community_posts.py --since ...` を初回実行し、`tmp/community_posts_raw.json` が生成されることを確認する
+- [ ] Claude Codeとの対話セッションで生データを選別・要約し、`tmp/community_posts_curated.json` を作成する（外部LLM APIキーは使わない）
+- [ ] `scripts/load_community_posts.py --dry-run` で反映内容を確認し、問題なければ本実行する
+- [ ] ✕ボタンで消した投稿が `community_posts_history` に記録され、再クロールしても復活しないことを確認する
+- [ ] シェアタブの検索・カテゴリフィルタ、メンバー詳細ページのミニセクションが実データで正しく表示されることを確認する
+
 ## コスト・注意点
 
 - [ ] Leaflet.js・OpenStreetMap・Geolonia/国土地理院APIの利用規約とクレジット表記要件を確認する
