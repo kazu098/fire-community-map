@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upsert curated community posts (books/travel/money+care consultations) into Supabase.
+"""Upsert curated community posts (books, money/care-medical consultations) into Supabase.
 
 Reads tmp/community_posts_curated.json -- a human-reviewed selection produced
 from tmp/community_posts_raw.json (see scripts/fetch_community_posts.py) with
@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
