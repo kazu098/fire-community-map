@@ -383,6 +383,8 @@ create table if not exists public.member_profile_edits (
   member_nickname text not null,
   old_self_intro_text text,
   new_self_intro_text text,
+  old_external_self_intro_text text,
+  new_external_self_intro_text text,
   edited_at timestamptz not null default now()
 );
 
@@ -408,6 +410,10 @@ begin
   if new.self_intro_text is distinct from old.self_intro_text then
     insert into public.member_profile_edits (member_nickname, old_self_intro_text, new_self_intro_text)
     values (new.nickname, old.self_intro_text, new.self_intro_text);
+  end if;
+  if new.external_self_intro_text is distinct from old.external_self_intro_text then
+    insert into public.member_profile_edits (member_nickname, old_external_self_intro_text, new_external_self_intro_text)
+    values (new.nickname, old.external_self_intro_text, new.external_self_intro_text);
   end if;
   if new.location_text is distinct from old.location_text then
     insert into public.member_profile_edits (member_nickname, old_location_text, new_location_text)
@@ -450,16 +456,24 @@ grant update (location_text) on public.member_profiles to anon, authenticated;
 
 alter table public.member_profiles add column if not exists nickname_public boolean not null default false;
 alter table public.member_profiles add column if not exists avatar_public boolean not null default false;
+alter table public.member_profiles add column if not exists external_self_intro_text text;
 alter table public.member_profiles add column if not exists self_intro_public boolean not null default false;
 alter table public.member_profiles add column if not exists location_public boolean not null default false;
 alter table public.member_profiles add column if not exists links_public boolean not null default false;
+
+update public.member_profiles
+set external_self_intro_text = self_intro_text
+where external_self_intro_text is null
+  and self_intro_text is not null;
 
 comment on column public.member_profiles.nickname_public is
   'When true, nickname may be shown on the external public profile directory.';
 comment on column public.member_profiles.avatar_public is
   'When true, avatar_url may be shown on the external public profile directory.';
+comment on column public.member_profiles.external_self_intro_text is
+  'External-facing self-introduction text. Seeded from self_intro_text but edited separately from the internal member profile text.';
 comment on column public.member_profiles.self_intro_public is
-  'When true, self_intro_text may be shown on the external public profile directory.';
+  'When true, external_self_intro_text may be shown on the external public profile directory.';
 comment on column public.member_profiles.location_public is
   'When true, location_text may be shown on the external public profile directory.';
 comment on column public.member_profiles.links_public is
@@ -468,6 +482,7 @@ comment on column public.member_profiles.links_public is
 grant update (
   nickname_public,
   avatar_public,
+  external_self_intro_text,
   self_intro_public,
   location_public,
   links_public
@@ -539,7 +554,7 @@ select
   p.id as member_id,
   case when p.nickname_public then p.nickname else null end as display_nickname,
   case when p.avatar_public then p.avatar_url else null end as display_avatar_url,
-  case when p.self_intro_public then p.self_intro_text else null end as display_self_intro_text,
+  case when p.self_intro_public then p.external_self_intro_text else null end as display_self_intro_text,
   case when p.location_public then p.location_text else null end as display_location_text,
   coalesce(
     (
