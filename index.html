@@ -571,6 +571,20 @@
       font-size: 12px; line-height: 1.6; color: #64748b;
       margin-bottom: 10px;
     }
+    .public-preview-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      margin: 0 0 12px;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .public-preview-link:hover {
+      text-decoration: underline;
+    }
     .public-toggle-list {
       display: grid;
       gap: 8px;
@@ -783,6 +797,15 @@ function memberColor(nickname) {
 
 function memberLocationLabel(m) {
   return m.location_text || [m.prefecture, m.municipality_optional].filter(Boolean).join(' ');
+}
+
+function updateMapMemberLocationLabel(nickname, locationText) {
+  const mapMember = allMembers.find(m => m.nickname === nickname);
+  if (!mapMember) return;
+  mapMember.location_text = locationText || mapMember.location_text;
+  if (mapMember._marker) {
+    mapMember._marker.setPopupContent(makeMemberPopup(mapMember));
+  }
 }
 
 // メンバー一覧カード用: 区・駅名などは詳細すぎるので市区町村の「市」「郡~町/村」までに丸める
@@ -1178,6 +1201,7 @@ let directoryLoadPromise = null;
 // GitHub Pagesは静的ホスティングでBasic認証がかけられないため、
 // より踏み込んだ個人情報を含むメンバー一覧の動線自体を出さない。
 const MEMBER_DIRECTORY_ENABLED = !/(^|\.)github\.io$/.test(location.hostname);
+const PUBLIC_MEMBER_PAGE_URL = 'https://firekenkyujo.com/member/';
 
 if (!MEMBER_DIRECTORY_ENABLED) {
   document.getElementById('view-tabs').style.display = 'none';
@@ -1617,6 +1641,7 @@ async function saveLocation(nickname, text) {
     body: JSON.stringify({ location_text: trimmed || null }),
   });
   if (!res.ok) throw new Error(`location save failed: HTTP ${res.status}`);
+  updateMapMemberLocationLabel(nickname, trimmed);
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
 }
@@ -1759,6 +1784,14 @@ function buildPublicSettingsSection(member, {
   hint.className = 'public-settings-hint';
   hint.textContent = '外部公開ページや埋め込みで表示してよい項目だけONにしてください。内部の個別ページではOFFの項目もこれまで通り表示されます。';
   body.appendChild(hint);
+
+  const previewLink = document.createElement('a');
+  previewLink.className = 'public-preview-link';
+  previewLink.href = PUBLIC_MEMBER_PAGE_URL;
+  previewLink.target = '_blank';
+  previewLink.rel = 'noopener noreferrer';
+  previewLink.textContent = '公開ページでの見え方を開く ↗';
+  body.appendChild(previewLink);
 
   const status = document.createElement('div');
   status.className = 'public-toggle-status';
