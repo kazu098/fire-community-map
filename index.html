@@ -2883,7 +2883,7 @@ function renderEventsView() {
 }
 
 // ================================================================
-// コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療)
+// コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療・子育て・不動産)
 // community_posts テーブルから読み込み、✕は member_tags/member_links と
 // 同じくSupabase REST DELETE(anon key)で削除する(open-delete パターン)。
 // テーブル未作成の環境では fetchCommunityPosts() が空配列にフォールバックする。
@@ -2894,11 +2894,13 @@ const CONTENT_TYPE_META = {
   travel: { label: '旅行', icon: '✈️' },
   money_consultation: { label: 'お金の相談', icon: '💰' },
   care_medical: { label: '介護・医療', icon: '🏥' },
+  parenting: { label: '子育て', icon: '👶' },
+  real_estate: { label: '不動産', icon: '🏠' },
 };
 // 'travel' is intentionally excluded here: travel posts are consolidated into
 // the existing #map travel-post layer (with location) instead of this tab.
 // Kept in CONTENT_TYPE_META for when/if that changes.
-const CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical'];
+const CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical', 'parenting', 'real_estate'];
 
 let communityPosts = [];
 

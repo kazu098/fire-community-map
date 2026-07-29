@@ -169,7 +169,7 @@
 
 詳細設計はGitHub issue #59を参照。旅行は既存の旅行投稿マップ（場所付き）に集約する方針のため、この機能のスコープからは外している。
 
-- [x] サーバー管理者にF研Botへの対象4チャンネル（`お金の話・相談` `こんな本読みました` `旅行` `介護・医療`）の閲覧権限付与を依頼する（`View Channel` / `Read Message History`）→ 確認したところ付与済みだった
+- [x] サーバー管理者にF研Botへの対象6チャンネル（`お金の話・相談` `こんな本読みました` `旅行` `介護・医療` `子育て` `不動産`）の閲覧権限付与を依頼する（`View Channel` / `Read Message History`）→ 既存4チャンネルは付与済み。`子育て` と `不動産` は追加対象
 - [x] `supabase/community_posts.sql` をSupabaseに適用する
 - [x] `scripts/fetch_community_posts.py --since ...` を初回実行し、`tmp/community_posts_raw.json` が生成されることを確認する
 - [x] Claude Codeとの対話セッションで生データを選別・要約し、`tmp/community_posts_curated.json` を作成する（外部LLM APIキーは使わない）

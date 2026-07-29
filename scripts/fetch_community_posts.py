@@ -34,6 +34,8 @@ CHANNEL_CONTENT_TYPES = {
     "こんな本読みました": "book",
     "旅行": "travel",
     "介護・医療": "care_medical",
+    "子育て": "parenting",
+    "不動産": "real_estate",
 }
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upsert curated community posts (books, money/care-medical consultations) into Supabase.
+"""Upsert curated community posts (books and consultation topics) into Supabase.
 
 Reads tmp/community_posts_curated.json -- a human-reviewed selection produced
 from tmp/community_posts_raw.json (see scripts/fetch_community_posts.py) with
@@ -24,10 +24,10 @@ from urllib.request import Request, urlopen
 
 REQUIRED_FIELDS = ("discord_message_id", "channel_name", "content_type", "summary", "posted_at", "discord_permalink")
 
-# Only book recommendations are a single person's post. money_consultation and
-# care_medical are usually multi-person discussion threads, so attributing the
-# whole thread to whoever posted the first message would misrepresent it as
-# solo content and would be misleading on that member's profile page.
+# Only book recommendations are a single person's post. Consultation channels
+# are usually multi-person discussion threads, so attributing the whole thread
+# to whoever posted the first message would misrepresent it as solo content and
+# would be misleading on that member's profile page.
 SINGLE_AUTHOR_CONTENT_TYPES = {"book"}
 
 
@@ -137,7 +137,7 @@ def main() -> int:
             print(f"Unmatched member_nickname {member_nickname!r} for {message_id} -- storing as unattributed.")
             member_nickname = None
             unmatched_nicknames += 1
-        # Money/care-medical threads are usually multi-person discussions, and
+        # Consultation threads are usually multi-person discussions, and
         # the poster didn't necessarily intend their name attached to what
         # became a curated, permanently-listed topic -- don't store the
         # author's display name at all for these, not just hide it in the UI.

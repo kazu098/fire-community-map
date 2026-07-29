@@ -179,9 +179,9 @@ python3 scripts/sync_travel_posts.py
 
 `--dry-run` で新規件数を確認し、問題なければ `--dry-run` を外して実行します。既存の投稿は `discord_message_id` で重複排除されます。
 
-## コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療)の収集
+## コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療・子育て・不動産)の収集
 
-対象は4チャンネル(`お金の話・相談` `こんな本読みました` `旅行` `介護・医療`)。詳細はGitHub issue #59を参照。収集→要約→反映の3段階で、要約はAPI課金なし(Claude Codeとの対話セッションで実施、Anthropic APIキーなどは使わない)。
+対象は6チャンネル(`お金の話・相談` `こんな本読みました` `旅行` `介護・医療` `子育て` `不動産`)。詳細はGitHub issue #59を参照。収集→要約→反映の3段階で、要約はAPI課金なし(Claude Codeとの対話セッションで実施、Anthropic APIキーなどは使わない)。
 
 対象チャンネルへの「View Channel」「Read Message History」権限をF研Botに付与してもらう必要があります(管理者に依頼)。
 
@@ -190,6 +190,12 @@ python3 scripts/sync_travel_posts.py
 ```bash
 python3 scripts/fetch_community_posts.py --since 2026-01-01T00:00:00+09:00  # 初回のみ --since が必要
 python3 scripts/fetch_community_posts.py  # 2回目以降は data/community_posts_sync_state.json の続きから
+```
+
+2026年以降の全チャンネルを取り直す場合は、既存の同期状態を使わずに次を実行します。
+
+```bash
+python3 scripts/fetch_community_posts.py --reset-state --since 2026-01-01T00:00:00+09:00
 ```
 
 `tmp/community_posts_raw.json` に生メッセージが書き出されます。
