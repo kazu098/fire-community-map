@@ -275,3 +275,40 @@ GitHub Actionsには以下のRepository secretsが必要です。
 - `DISCORD_GUILD_ID`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+
+## note用のF研通信下書き生成
+
+F研通信のような月次・隔週の活動報告は、Discordから収集済みのJSONを元にMarkdown下書きを生成できます。noteへの投稿やAI API呼び出しは行わず、編集者が確認して貼り付けるための素材を作ります。本文は募集・告知ではなく、開催済みの活動記録として過去形でまとめます。
+
+先にイベント系・投稿系のDiscord同期を実行します。
+
+```bash
+python3 scripts/fetch_community_events.py
+python3 scripts/fetch_community_posts.py
+```
+
+月次のnote貼り付け用下書き:
+
+```bash
+python3 scripts/generate_note_activity_draft.py \
+  --month 2026-07 \
+  --output tmp/note_drafts/fken-tsushin-2026-07-paste.md
+```
+
+上記は `--template editorial --delivery paste` がデフォルトです。noteに貼る最終成果物では、編集メモやDiscord参照リンクを出さないため `--include-source-links` は付けません。
+
+作成ルールは `prompts/fken_tsushin_note_draft.md` に固定しています。
+
+直近14日分の下書き:
+
+```bash
+python3 scripts/generate_note_activity_draft.py \
+  --last-days 14 \
+  --output tmp/note_drafts/fken-tsushin-latest-paste.md
+```
+
+出力先はデフォルトで `tmp/note_drafts/fken-tsushin-開始日_終了日.md` です。`--output tmp/note_drafts/custom.md` で変更できます。
+
+生成される範囲は、Discordから拾える開催済み活動と画像候補が中心です。宣伝セクションは既存note記事の固定文をコピーして追記する想定です。
+
+画像はDiscord添付画像のURLを「画像候補」として出します。Discord CDNのURLは期限切れになることがあるため、noteに載せる写真は下書き確認時に早めに保存・アップロードしてください。
