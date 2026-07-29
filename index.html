@@ -296,9 +296,43 @@
       font-size: 11px; color: #9ca3af;
     }
     .community-post-author { color: #6b7280; }
+    .community-post-date { color: #9ca3af; }
     .community-post-permalink { color: #3b82f6; text-decoration: none; }
     .community-post-permalink:hover { text-decoration: underline; }
     #community-empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 0 4px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .pagination-button {
+      border: 1px solid #d1d5db;
+      background: white;
+      color: #374151;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      min-width: 72px;
+      padding: 7px 10px;
+    }
+    .pagination-button:hover:not(:disabled) {
+      border-color: #9ca3af;
+      color: #1f2937;
+    }
+    .pagination-button:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+    .pagination-status {
+      min-width: 92px;
+      text-align: center;
+      white-space: nowrap;
+    }
 
     /* ---- Events view ---- */
     #events-header {
@@ -448,6 +482,8 @@
       .event-date-side,
       .event-date-block { width: 68px; min-width: 68px; }
       .event-date-day { font-size: 19px; }
+      .pagination { gap: 8px; }
+      .pagination-button { min-width: 64px; }
     }
 
     /* ---- Member detail: community posts mini-sections ---- */
@@ -2554,6 +2590,8 @@ function openMemberDetail(nickname, {
 let communityEvents = [];
 let communityEventsUnavailable = false;
 let activeEventsSection = 'upcoming';
+const EVENT_PAGE_SIZE = 10;
+const eventPages = { upcoming: 1, past: 1 };
 
 const EVENT_FORMAT_LABELS = {
   online: 'オンライン',
@@ -2735,6 +2773,47 @@ function buildEventCard(event, mode) {
   return card;
 }
 
+function buildPagination({ page, totalItems, pageSize, onPageChange }) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  if (totalPages <= 1) return null;
+
+  const nav = document.createElement('div');
+  nav.className = 'pagination';
+
+  const prev = document.createElement('button');
+  prev.className = 'pagination-button';
+  prev.type = 'button';
+  prev.textContent = '前へ';
+  prev.disabled = page <= 1;
+  prev.addEventListener('click', () => onPageChange(page - 1));
+  nav.appendChild(prev);
+
+  const status = document.createElement('span');
+  status.className = 'pagination-status';
+  status.textContent = `${page} / ${totalPages}ページ`;
+  nav.appendChild(status);
+
+  const next = document.createElement('button');
+  next.className = 'pagination-button';
+  next.type = 'button';
+  next.textContent = '次へ';
+  next.disabled = page >= totalPages;
+  next.addEventListener('click', () => onPageChange(page + 1));
+  nav.appendChild(next);
+
+  return nav;
+}
+
+function paginateItems(items, page, pageSize) {
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+  return {
+    page: safePage,
+    items: items.slice(start, start + pageSize),
+  };
+}
+
 function renderEventsHeader(counts) {
   const header = document.getElementById('events-header');
   header.innerHTML = '';
@@ -2749,6 +2828,7 @@ function renderEventsHeader(counts) {
     tab.textContent = item.label;
     tab.addEventListener('click', () => {
       activeEventsSection = item.value;
+      eventPages[activeEventsSection] = 1;
       renderEventsView();
     });
     switcher.appendChild(tab);
@@ -2778,7 +2858,20 @@ function renderEventsView() {
 
   renderEventsHeader({ upcoming: upcoming.length, past: past.length });
   const visibleEvents = activeEventsSection === 'upcoming' ? upcoming : past;
-  visibleEvents.forEach(event => body.appendChild(buildEventCard(event, activeEventsSection)));
+  const paginated = paginateItems(visibleEvents, eventPages[activeEventsSection], EVENT_PAGE_SIZE);
+  eventPages[activeEventsSection] = paginated.page;
+  paginated.items.forEach(event => body.appendChild(buildEventCard(event, activeEventsSection)));
+  const pagination = buildPagination({
+    page: paginated.page,
+    totalItems: visibleEvents.length,
+    pageSize: EVENT_PAGE_SIZE,
+    onPageChange: nextPage => {
+      eventPages[activeEventsSection] = nextPage;
+      renderEventsView();
+      document.getElementById('events-view').scrollTop = 0;
+    },
+  });
+  if (pagination) body.appendChild(pagination);
   if (visibleEvents.length === 0) {
     const empty = document.createElement('div');
     empty.id = 'events-empty';
@@ -2808,6 +2901,35 @@ const CONTENT_TYPE_META = {
 const CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical'];
 
 let communityPosts = [];
+
+function formatCommunityPostMonth(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+  }).format(date);
+}
+
+function communityPostMonthSearchTerms(value) {
+  if (!value) return [];
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return [];
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const paddedMonth = String(month).padStart(2, '0');
+  return [
+    `${year}年${month}月`,
+    `${year}/${month}`,
+    `${year}/${paddedMonth}`,
+    `${year}-${month}`,
+    `${year}-${paddedMonth}`,
+    `${year} ${month}`,
+    `${year} ${paddedMonth}`,
+    `${month}月`,
+  ];
+}
 
 function buildCommunityPostCard(post, { onRemove }) {
   const card = document.createElement('div');
@@ -2843,6 +2965,13 @@ function buildCommunityPostCard(post, { onRemove }) {
     author.textContent = authorName;
     meta.appendChild(author);
   }
+  const postedMonth = formatCommunityPostMonth(post.posted_at);
+  if (postedMonth) {
+    const date = document.createElement('span');
+    date.className = 'community-post-date';
+    date.textContent = postedMonth;
+    meta.appendChild(date);
+  }
   const link = document.createElement('a');
   link.className = 'community-post-permalink';
   link.href = post.discord_permalink;
@@ -2871,14 +3000,25 @@ async function deleteCommunityPost(post) {
 
 let activeCommunityType = null; // null = すべて
 let communityQuery = '';
+const COMMUNITY_PAGE_SIZE = 10;
+let communityPage = 1;
 
 function matchesCommunityQuery(post, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const authorFields = post.content_type === 'book' ? [post.member_nickname, post.discord_author_display_name] : [];
-  const haystack = [post.title, post.summary, ...authorFields]
+  const haystack = [post.title, post.summary, ...authorFields, ...communityPostMonthSearchTerms(post.posted_at)]
     .filter(Boolean).join(' ').toLowerCase();
   return haystack.includes(q);
+}
+
+function filteredCommunityPosts() {
+  const typesToShow = activeCommunityType ? [activeCommunityType] : CONTENT_TYPE_ORDER;
+  return typesToShow.flatMap(type => (
+    communityPosts
+      .filter(p => p.content_type === type && matchesCommunityQuery(p, communityQuery))
+      .sort((a, b) => (a.posted_at < b.posted_at ? 1 : -1))
+  ));
 }
 
 function renderCommunityView() {
@@ -2890,7 +3030,7 @@ function renderCommunityView() {
   const searchInput = document.createElement('input');
   searchInput.id = 'community-search';
   searchInput.type = 'text';
-  searchInput.placeholder = 'タイトル・本文・投稿者で検索…';
+  searchInput.placeholder = 'タイトル・本文・投稿者・年月で検索…';
   searchInput.autocomplete = 'off';
   searchInput.value = communityQuery;
   const searchClear = document.createElement('button');
@@ -2899,11 +3039,13 @@ function renderCommunityView() {
   searchClear.style.display = communityQuery ? 'block' : 'none';
   searchInput.addEventListener('input', () => {
     communityQuery = searchInput.value;
+    communityPage = 1;
     searchClear.style.display = communityQuery ? 'block' : 'none';
     renderCommunityBody();
   });
   searchClear.addEventListener('click', () => {
     communityQuery = '';
+    communityPage = 1;
     searchInput.value = '';
     searchClear.style.display = 'none';
     searchInput.focus();
@@ -2918,14 +3060,14 @@ function renderCommunityView() {
   const allPill = document.createElement('button');
   allPill.className = 'community-type-pill' + (activeCommunityType === null ? ' active' : '');
   allPill.textContent = 'すべて';
-  allPill.addEventListener('click', () => { activeCommunityType = null; renderCommunityView(); });
+  allPill.addEventListener('click', () => { activeCommunityType = null; communityPage = 1; renderCommunityView(); });
   pillRow.appendChild(allPill);
   CONTENT_TYPE_ORDER.forEach(type => {
     const meta = CONTENT_TYPE_META[type];
     const pill = document.createElement('button');
     pill.className = 'community-type-pill' + (activeCommunityType === type ? ' active' : '');
     pill.textContent = `${meta.icon} ${meta.label}`;
-    pill.addEventListener('click', () => { activeCommunityType = type; renderCommunityView(); });
+    pill.addEventListener('click', () => { activeCommunityType = type; communityPage = 1; renderCommunityView(); });
     pillRow.appendChild(pill);
   });
   header.appendChild(pillRow);
@@ -2937,27 +3079,35 @@ function renderCommunityBody() {
   const body = document.getElementById('community-body');
   body.innerHTML = '';
 
-  const typesToShow = activeCommunityType ? [activeCommunityType] : CONTENT_TYPE_ORDER;
-  let totalShown = 0;
+  const posts = filteredCommunityPosts();
+  const paginated = paginateItems(posts, communityPage, COMMUNITY_PAGE_SIZE);
+  communityPage = paginated.page;
+  let lastType = null;
 
-  typesToShow.forEach(type => {
-    const posts = communityPosts
-      .filter(p => p.content_type === type && matchesCommunityQuery(p, communityQuery))
-      .sort((a, b) => (a.posted_at < b.posted_at ? 1 : -1));
-    if (!posts.length) return;
-    totalShown += posts.length;
-
-    const title = document.createElement('div');
-    title.className = 'community-section-title';
-    title.textContent = `${CONTENT_TYPE_META[type].icon} ${CONTENT_TYPE_META[type].label}`;
-    body.appendChild(title);
-
-    posts.forEach(post => {
-      body.appendChild(buildCommunityPostCard(post, { onRemove: deleteCommunityPost }));
-    });
+  paginated.items.forEach(post => {
+    if (post.content_type !== lastType) {
+      const title = document.createElement('div');
+      title.className = 'community-section-title';
+      title.textContent = `${CONTENT_TYPE_META[post.content_type].icon} ${CONTENT_TYPE_META[post.content_type].label}`;
+      body.appendChild(title);
+      lastType = post.content_type;
+    }
+    body.appendChild(buildCommunityPostCard(post, { onRemove: deleteCommunityPost }));
   });
 
-  if (totalShown === 0) {
+  const pagination = buildPagination({
+    page: paginated.page,
+    totalItems: posts.length,
+    pageSize: COMMUNITY_PAGE_SIZE,
+    onPageChange: nextPage => {
+      communityPage = nextPage;
+      renderCommunityBody();
+      document.getElementById('community-view').scrollTop = 0;
+    },
+  });
+  if (pagination) body.appendChild(pagination);
+
+  if (posts.length === 0) {
     const empty = document.createElement('div');
     empty.id = 'community-empty';
     empty.textContent = '表示できる投稿がありません';
