@@ -1,0 +1,119 @@
+name: Generate F研通信 draft
+
+on:
+  schedule:
+    # 07:00 JST on the 16th: create the current month's first-half draft.
+    - cron: "0 22 15 * *"
+    # 00:00 JST on the 1st. UTC date is the previous month-end day.
+    - cron: "0 15 28-31 * *"
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Target month, YYYY-MM. Defaults from the schedule cadence."
+        required: false
+      half:
+        description: "first or second. Defaults from the schedule cadence."
+        required: false
+        type: choice
+        options:
+          - first
+          - second
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Determine target period
+        id: period
+        env:
+          INPUT_MONTH: ${{ github.event.inputs.month }}
+          INPUT_HALF: ${{ github.event.inputs.half }}
+        run: |
+          set -euo pipefail
+          jst_today="$(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          jst_day="$(TZ=Asia/Tokyo date +%d)"
+
+          if [ -n "${INPUT_MONTH:-}" ] && [ -n "${INPUT_HALF:-}" ]; then
+            month="$INPUT_MONTH"
+            half="$INPUT_HALF"
+          elif [ "$jst_day" = "16" ]; then
+            month="$(TZ=Asia/Tokyo date +%Y-%m)"
+            half="first"
+          elif [ "$jst_day" = "01" ]; then
+            month="$(TZ=Asia/Tokyo date -d 'yesterday' +%Y-%m)"
+            half="second"
+          else
+            echo "No scheduled F研通信 draft for $jst_today."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          case "$half" in
+            first) label="前半"; suffix="first-half" ;;
+            second) label="後半"; suffix="second-half" ;;
+            *) echo "half must be first or second"; exit 1 ;;
+          esac
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "month=$month" >> "$GITHUB_OUTPUT"
+          echo "half=$half" >> "$GITHUB_OUTPUT"
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+          echo "output=tmp/note_drafts/fken-tsushin-$month-$suffix-paste.md" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch Discord event candidates
+        if: steps.period.outputs.skip != 'true'
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+        run: |
+          python3 scripts/fetch_community_events.py \
+            --reset-state \
+            --since "${{ steps.period.outputs.month }}-01T00:00:00+09:00" \
+            --output tmp/community_events_raw.json \
+            --state-file tmp/community_events_sync_state.json
+
+      - name: Fetch Discord topic candidates
+        if: steps.period.outputs.skip != 'true'
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+        run: |
+          python3 scripts/fetch_community_posts.py \
+            --reset-state \
+            --since "${{ steps.period.outputs.month }}-01T00:00:00+09:00" \
+            --output tmp/community_posts_raw.json \
+            --state-file tmp/community_posts_sync_state.json
+
+      - name: Generate note draft
+        if: steps.period.outputs.skip != 'true'
+        run: |
+          python3 scripts/generate_note_activity_draft.py \
+            --month "${{ steps.period.outputs.month }}" \
+            --half "${{ steps.period.outputs.half }}" \
+            --events-raw tmp/community_events_raw.json \
+            --posts-raw tmp/community_posts_raw.json \
+            --output "${{ steps.period.outputs.output }}"
+
+      - name: Create review issue
+        if: steps.period.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="F研通信下書き ${{ steps.period.outputs.month }} ${{ steps.period.outputs.label }}"
+          body_file="${{ steps.period.outputs.output }}"
+          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file "$body_file"
+          else
+            gh issue create --title "$title" --body-file "$body_file"
+          fi

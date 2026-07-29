@@ -166,6 +166,14 @@ def build_raw_entry(
         "discord_author_display_name": author_name,
         "member_nickname": name_map.get(author_name, author_name),
         "content": content,
+        "attachments": [
+            {
+                "filename": item.get("filename"),
+                "content_type": item.get("content_type"),
+                "url": item.get("url"),
+            }
+            for item in (message.get("attachments") or [])
+        ],
         "posted_at": posted_at.isoformat(),
         "discord_permalink": f"https://discord.com/channels/{guild_id}/{channel_id}/{message['id']}",
     }

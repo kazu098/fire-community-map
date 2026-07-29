@@ -15,6 +15,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+import calendar
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -36,8 +37,8 @@ SECTION_RULES = (
 )
 
 POST_TYPE_LABELS = {
-    "book": "読書・本の共有",
-    "travel": "旅行・グルメ",
+    "book": "本の話",
+    "travel": "旅行",
     "money_consultation": "お金の話・相談",
     "care_medical": "介護・医療",
     "parenting": "子育て",
@@ -70,6 +71,71 @@ EDITORIAL_TITLE_BY_SECTION = {
     "出版・制作プロジェクト": "制作プロジェクトが進みました！",
     "YouTube・収録": "YouTube収録も行われました！",
 }
+
+HALF_LABELS = {
+    "first": "前半",
+    "second": "後半",
+}
+
+HALF_OUTPUT_SUFFIX = {
+    "first": "first-half",
+    "second": "second-half",
+}
+
+BANNED_READER_PHRASES = (
+    "今回は、",
+    "まとめます",
+    "振り返ります",
+    "投稿されていました",
+    "共有されていました",
+    "投稿もありました",
+    "投稿では、",
+    "Discord上で開催された活動です。",
+)
+
+TRAVEL_KEYWORDS = (
+    "北海道",
+    "青森",
+    "奄美",
+    "加計呂麻島",
+    "イビザ",
+    "スペイン",
+    "天売島",
+    "焼尻島",
+    "神居古潭",
+    "丸瀬布",
+    "タウシュベツ",
+    "三内丸山遺跡",
+    "八甲田丸",
+    "ワラッセ",
+    "ダナン",
+    "ホイアン",
+)
+
+MONEY_KEYWORDS = (
+    "円安",
+    "外貨",
+    "外貨建",
+    "MMF",
+    "債券",
+    "個人向け国債",
+    "リバランス",
+    "暴落",
+    "FIRE",
+    "働き方",
+    "社会貢献",
+    "ボランティア",
+)
+
+CARE_KEYWORDS = (
+    "介護",
+    "認知症",
+    "在宅介護",
+    "介護ベッド",
+    "医療",
+    "体調",
+    "家族",
+)
 
 
 @dataclass(frozen=True)
@@ -124,6 +190,22 @@ def month_range(value: str) -> tuple[datetime, datetime]:
     return start, next_month - timedelta(seconds=1)
 
 
+def month_half_range(value: str, half: str) -> tuple[datetime, datetime]:
+    if not re.fullmatch(r"\d{4}-\d{2}", value):
+        raise argparse.ArgumentTypeError("--month must be YYYY-MM")
+    year, month = (int(part) for part in value.split("-"))
+    if half == "first":
+        return (
+            datetime(year, month, 1, tzinfo=JST),
+            datetime(year, month, 15, 23, 59, 59, tzinfo=JST),
+        )
+    last_day = calendar.monthrange(year, month)[1]
+    return (
+        datetime(year, month, 16, tzinfo=JST),
+        datetime(year, month, last_day, 23, 59, 59, tzinfo=JST),
+    )
+
+
 def clean_text(value: str | None, limit: int = 180) -> str:
     text = re.sub(r"<@!?\d+>|@everyone|@here", "", value or "")
     text = re.sub(r"https?://\S+", "", text)
@@ -131,6 +213,40 @@ def clean_text(value: str | None, limit: int = 180) -> str:
     if len(text) > limit:
         return text[: limit - 1] + "..."
     return text
+
+
+def example_text(value: str, limit: int = 100) -> str:
+    text = clean_text(value, limit)
+    text = re.sub(r"[\wぁ-んァ-ヶ一-龠々ー]+さん[、,\s]", "", text)
+    text = re.sub(r"^[\wぁ-んァ-ヶ一-龠々ー]+です[。,.、\s]*", "", text)
+    return text.strip()
+
+
+def unique_preserve_order(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def keyword_hits(texts: list[str], keywords: tuple[str, ...], limit: int = 6) -> list[str]:
+    joined = "\n".join(texts)
+    return [keyword for keyword in keywords if keyword in joined][:limit]
+
+
+def book_titles(texts: list[str], limit: int = 6) -> list[str]:
+    titles: list[str] = []
+    for text in texts:
+        titles.extend(re.findall(r"『([^』]+)』", text))
+    return unique_preserve_order(titles)[:limit]
+
+
+def final_reader_cleanup(text: str) -> str:
+    cleaned = text
+    for phrase in BANNED_READER_PHRASES:
+        cleaned = cleaned.replace(phrase, "")
+    cleaned = cleaned.replace("共有された", "広がった")
+    cleaned = cleaned.replace("投稿が続きました", "話が続きました")
+    cleaned = cleaned.replace("共有があり", "話もあり")
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.rstrip() + "\n"
 
 
 def image_urls(item: dict[str, Any], max_count: int) -> tuple[str, ...]:
@@ -288,7 +404,12 @@ def collect_events(
         is_structured_event = item.get("source_type") == "scheduled_event"
         inferred_title = inferred_activity_title(text)
         has_review_image = bool(EVENT_REVIEW_RE.search(text) and image_urls(item, 1))
+        is_announcement_only = bool(EVENT_ANNOUNCEMENT_RE.search(text) and not has_review_image)
         if not is_structured_event and not (inferred_title or has_review_image):
+            continue
+        if not is_structured_event and is_announcement_only:
+            continue
+        if not is_structured_event and not image_urls(item, 1) and re.search(r"(ありがとう|ありがとうございます|レポート)", text):
             continue
         if not is_structured_event and len(clean_text(str(item.get("content") or ""), 80)) < 20:
             continue
@@ -305,7 +426,17 @@ def collect_events(
                 channel_name=item.get("discord_channel_name") or item.get("channel_name"),
             )
         )
-    return sorted(activities, key=lambda item: item.happened_at)
+    deduped: list[Activity] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for activity in sorted(activities, key=lambda item: item.happened_at):
+        key = (activity.title, activity.happened_at.strftime("%Y-%m-%d"))
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        if "【メモ】" in activity.title:
+            continue
+        deduped.append(activity)
+    return deduped
 
 
 def collect_section_images(
@@ -353,13 +484,37 @@ def collect_post_topics(
     return dict(grouped)
 
 
+def collect_topic_images(
+    posts: list[dict[str, Any]],
+    start: datetime,
+    end: datetime,
+    max_per_type: int,
+) -> dict[str, list[str]]:
+    grouped: dict[str, list[str]] = defaultdict(list)
+    seen: set[str] = set()
+    for item in posts:
+        dt = parse_dt(item.get("posted_at"))
+        if dt is None or not (start <= dt <= end):
+            continue
+        content_type = str(item.get("content_type") or "other")
+        for url in image_urls(item, max_per_type):
+            if url in seen:
+                continue
+            seen.add(url)
+            if len(grouped[content_type]) < max_per_type:
+                grouped[content_type].append(url)
+    return dict(grouped)
+
+
 def date_label(dt: datetime) -> str:
     return f"{dt.month}月{dt.day}日"
 
 
 def period_label(start: datetime, end: datetime) -> str:
-    if start.year == end.year and start.month == end.month:
+    if start.year == end.year and start.month == end.month and start.day == 1 and end.day >= 28:
         return f"{start.year}年{start.month}月"
+    if start.year == end.year and start.month == end.month:
+        return f"{start.year}年{start.month}月{start.day}日〜{end.day}日"
     return f"{start.year}年{start.month}月{start.day}日〜{end.month}月{end.day}日"
 
 
@@ -380,6 +535,100 @@ def render_activity(activity: Activity, include_source_links: bool) -> list[str]
     return lines
 
 
+def render_topic_section(
+    content_type: str,
+    items: list[dict[str, Any]],
+    topic_images: dict[str, list[str]],
+) -> list[str]:
+    label = POST_TYPE_LABELS.get(content_type, content_type)
+    texts = [str(item.get("clean_content") or "") for item in items]
+    if not texts:
+        return []
+
+    lines = [f"## {label}", ""]
+    if content_type == "book":
+        titles = book_titles(texts)
+        if titles:
+            lines.append(f"{label}では、" + "、".join(f"『{title}』" for title in titles) + "など、幅広い本の話がありました。")
+        else:
+            lines.append("本の話では、読んだ本の感想から次に試してみたいことまで、知的好奇心が広がる会話がありました。")
+        if any("裁判" in text or "傍聴" in text for text in texts):
+            lines.append("本の話から裁判傍聴の話題にも広がり、実際に行く時の注意点や楽しみ方まで具体的な会話になっていました。")
+        lines.append("読んで終わりではなく、そこから自分の暮らしや次の行動に結びついていくのがF研らしいところです。")
+    elif content_type == "travel":
+        hits = keyword_hits(texts, TRAVEL_KEYWORDS)
+        if hits:
+            lines.append("旅行チャンネルでは、" + "、".join(hits) + "など、旅先の話題が続きました。")
+        else:
+            lines.append("旅行チャンネルでは、国内外の旅先や現地で見つけたものの話で盛り上がりました。")
+        lines.append("実際に行った人の感想やおすすめが出てくるので、次に行きたい場所の候補が自然に増えていくような時間でした。")
+        lines.append("観光地の名前だけでなく、食べもの、移動、季節感まで話が広がるので、旅の空気が伝わってくるチャンネルになっています。")
+    elif content_type == "money_consultation":
+        hits = keyword_hits(texts, MONEY_KEYWORDS)
+        if hits:
+            lines.append("お金の話・相談では、" + "、".join(hits) + "など、F研らしい実務的な話題がありました。")
+        else:
+            lines.append("お金の話・相談では、資産形成やFIRE後の暮らし方について濃い会話がありました。")
+        lines.append("単に資産を増やす話だけでなく、働き方や社会との関わり方まで話が広がるところが、このチャンネルらしいところです。")
+        lines.append("数字の話と人生観の話が自然につながるので、FIREを目指す人にも、すでに次の暮らし方を考えている人にも読み応えのある会話になっていました。")
+    elif content_type == "care_medical":
+        hits = keyword_hits(texts, CARE_KEYWORDS)
+        if hits:
+            lines.append("介護・医療では、" + "、".join(hits) + "など、生活に近いテーマが話題になりました。")
+        else:
+            lines.append("介護・医療では、家族のケアや自分の体調との向き合い方について真剣な会話がありました。")
+        lines.append("経験した人の言葉があることで、ひとりで抱え込みすぎないためのヒントも生まれていました。")
+        lines.append("資産形成だけでは解決できない現実も、安心して相談できる場所があることはコミュニティの大事な価値だと感じます。")
+    else:
+        lines.append(f"{label}でも、メンバー同士の暮らしや関心が見える会話がありました。")
+        lines.append("日々の小さな話題から交流が広がるのも、F研らしい動きでした。")
+
+    examples = [
+        example_text(text)
+        for text in texts
+        if len(text) >= 35 and not re.search(r"(AI|ChatGPT|さん[:：])", text)
+    ][:3]
+    if examples:
+        lines.extend(["", "話題になっていたこと:"])
+        lines.extend(f"- {clean_text(text, 110)}" for text in examples)
+
+    if topic_images.get(content_type):
+        lines.extend(["", "画像候補:"])
+        lines.extend(f"- {url}" for url in topic_images[content_type])
+
+    lines.append("")
+    return lines
+
+
+def opener_lines(
+    start: datetime,
+    end: datetime,
+    top_sections: list[str],
+    post_topics: dict[str, list[dict[str, Any]]],
+) -> list[str]:
+    if start.year == end.year and start.month == end.month and start.day == 1 and end.day == 15:
+        period_text = f"{start.month}月前半"
+    elif start.year == end.year and start.month == end.month and start.day == 16:
+        period_text = f"{start.month}月後半"
+    else:
+        period_text = period_label(start, end)
+
+    topic_labels = [POST_TYPE_LABELS.get(key, key) for key in post_topics]
+    section_labels = [name.replace("・", "、") for name in top_sections[:3]]
+    highlights = unique_preserve_order(section_labels + topic_labels[:4])
+    if highlights:
+        return [
+            f"{period_text}は、" + "、".join(highlights) + "など、いろいろなチャンネルで会話と交流が広がりました。",
+            "",
+            "大きなイベントだけでなく、ふとした相談や旅先の話、本の感想から話が広がっていくのもF研らしいところです。",
+            "",
+        ]
+    return [
+        f"{period_text}も、F研らしい会話と交流がありました。",
+        "",
+    ]
+
+
 def render_draft(
     activities: list[Activity],
     post_topics: dict[str, list[dict[str, Any]]],
@@ -389,6 +638,7 @@ def render_draft(
     include_source_links: bool,
     max_activities_per_section: int,
     template: str,
+    topic_images: dict[str, list[str]],
 ) -> str:
     label = period_label(start, end)
     sections: dict[str, list[Activity]] = defaultdict(list)
@@ -398,7 +648,12 @@ def render_draft(
     top_sections = [name for name, _ in SECTION_RULES if sections.get(name)]
     top_sections.extend(name for name in ("その他の動き",) if sections.get(name))
     highlighted_section = max(top_sections, key=lambda name: len(sections[name]), default="")
-    title_tail = EDITORIAL_TITLE_BY_SECTION.get(highlighted_section, "7月もF研らしい動きがありました！")
+    if post_topics and start.day == 1 and end.day == 15:
+        title_tail = "暮らしの話題とオンライン企画が広がりました！"
+    elif highlighted_section:
+        title_tail = EDITORIAL_TITLE_BY_SECTION.get(highlighted_section, "F研らしい動きがありました！")
+    else:
+        title_tail = "F研らしい話題が広がりました！"
 
     show_internal_notes = include_source_links
 
@@ -427,9 +682,8 @@ def render_draft(
             "こんにちは！",
             "FIRE研究所です。",
             "",
-            f"今回は、{label}にF研で行われたことをまとめます。",
-            "",
         ]
+        lines.extend(opener_lines(start, end, top_sections, post_topics))
         if show_internal_notes:
             lines.extend(
                 [
@@ -438,9 +692,15 @@ def render_draft(
                 ]
             )
 
-    if top_sections:
+    if top_sections and show_internal_notes:
         overview = "、".join(name.replace("・", "、") for name in top_sections)
         lines.extend([f"この期間も、{overview}など、F研らしくいろいろなことが同時多発的に進みました。", ""])
+
+    if post_topics and template == "editorial":
+        topic_order = ("book", "travel", "money_consultation", "care_medical", "parenting", "real_estate")
+        for content_type in topic_order:
+            if post_topics.get(content_type):
+                lines.extend(render_topic_section(content_type, post_topics[content_type], topic_images))
 
     for section_name in top_sections:
         lines.extend([f"## {section_name}", ""])
@@ -450,7 +710,7 @@ def render_draft(
         omitted = len(section_activities) - max_activities_per_section
         if omitted > 0 and show_internal_notes:
             lines.extend([f"[編集メモ: このセクションには他に{omitted}件の候補があります。必要なら期間を短くするか、出力上限を増やしてください。]", ""])
-        if section_images.get(section_name):
+        if show_internal_notes and section_images.get(section_name):
             lines.extend(["画像候補:", ""])
             for url, permalink in section_images[section_name]:
                 lines.append(f"- {url}")
@@ -493,7 +753,7 @@ def render_draft(
                 "<!-- 宣伝セクションは既存記事の固定文をコピーして、この下に貼れます。不要ならこのコメントごと削除してください。 -->",
             ]
         )
-    return "\n".join(lines).rstrip() + "\n"
+    return final_reader_cleanup("\n".join(lines))
 
 
 def main() -> int:
@@ -503,6 +763,11 @@ def main() -> int:
     period.add_argument("--last-days", type=int, help="Generate a draft for the last N days from now.")
     parser.add_argument("--start", help="Explicit start date/datetime. Requires --end.")
     parser.add_argument("--end", help="Explicit end date/datetime. Requires --start.")
+    parser.add_argument(
+        "--half",
+        choices=("first", "second"),
+        help="With --month, generate 1-15 or 16-end for the monthly twice-a-month F研通信 cadence.",
+    )
     parser.add_argument("--events-raw", default=DEFAULT_EVENT_RAW)
     parser.add_argument("--events-curated", default=DEFAULT_EVENT_CURATED)
     parser.add_argument("--posts-raw", default=DEFAULT_POSTS_RAW)
@@ -510,7 +775,7 @@ def main() -> int:
     parser.add_argument("--max-images-per-item", type=int, default=4)
     parser.add_argument("--max-section-images", type=int, default=8)
     parser.add_argument("--max-activities-per-section", type=int, default=8)
-    parser.add_argument("--post-topic-limit", type=int, default=4)
+    parser.add_argument("--post-topic-limit", type=int, default=8)
     parser.add_argument(
         "--delivery",
         choices=("paste", "review"),
@@ -539,13 +804,17 @@ def main() -> int:
         raise SystemExit("Choose exactly one period mode: --month, --last-days, or --start/--end.")
 
     if args.start or args.end:
+        if args.half:
+            raise SystemExit("--half can only be used with --month.")
         if not (args.start and args.end):
             raise SystemExit("--start and --end must be provided together.")
         start = parse_date(args.start)
         end = parse_date(args.end, end_of_day=True)
     elif args.month:
-        start, end = month_range(args.month)
+        start, end = month_half_range(args.month, args.half) if args.half else month_range(args.month)
     else:
+        if args.half:
+            raise SystemExit("--half can only be used with --month.")
         end = datetime.now(JST)
         start = end - timedelta(days=args.last_days)
 
@@ -560,8 +829,9 @@ def main() -> int:
         raise SystemExit(f"{args.posts_raw} must contain a JSON array.")
 
     activities = collect_events(raw_events, curated_events, start, end, args.max_images_per_item)
-    post_topics = collect_post_topics(posts_raw, start, end, args.post_topic_limit) if args.delivery == "review" else {}
+    post_topics = collect_post_topics(posts_raw, start, end, args.post_topic_limit)
     section_images = collect_section_images(raw_events, start, end, args.max_section_images)
+    topic_images = collect_topic_images(posts_raw, start, end, args.max_section_images)
     draft = render_draft(
         activities,
         post_topics,
@@ -571,9 +841,15 @@ def main() -> int:
         args.include_source_links,
         args.max_activities_per_section,
         args.template,
+        topic_images,
     )
 
-    output = Path(args.output) if args.output else Path(DEFAULT_OUTPUT_DIR) / f"fken-tsushin-{start:%Y-%m-%d}_{end:%Y-%m-%d}.md"
+    if args.output:
+        output = Path(args.output)
+    elif args.month and args.half:
+        output = Path(DEFAULT_OUTPUT_DIR) / f"fken-tsushin-{args.month}-{HALF_OUTPUT_SUFFIX[args.half]}-paste.md"
+    else:
+        output = Path(DEFAULT_OUTPUT_DIR) / f"fken-tsushin-{start:%Y-%m-%d}_{end:%Y-%m-%d}.md"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(draft, encoding="utf-8")
     print(f"Wrote {output} ({len(activities)} activities, {sum(len(v) for v in post_topics.values())} topic candidates).")

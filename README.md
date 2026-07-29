@@ -287,7 +287,28 @@ python3 scripts/fetch_community_events.py
 python3 scripts/fetch_community_posts.py
 ```
 
-月次のnote貼り付け用下書き:
+月2回運用のnote貼り付け用下書き:
+
+```bash
+# 1〜15日分。毎月16日に作成する想定。
+python3 scripts/generate_note_activity_draft.py \
+  --month 2026-08 \
+  --half first
+```
+
+```bash
+# 16日〜月末分。翌月1日に作成する想定。
+python3 scripts/generate_note_activity_draft.py \
+  --month 2026-08 \
+  --half second
+```
+
+出力先はそれぞれ以下になります。
+
+- `tmp/note_drafts/fken-tsushin-2026-08-first-half-paste.md`
+- `tmp/note_drafts/fken-tsushin-2026-08-second-half-paste.md`
+
+月次のnote貼り付け用下書きも必要なら作成できます。
 
 ```bash
 python3 scripts/generate_note_activity_draft.py \
@@ -296,6 +317,8 @@ python3 scripts/generate_note_activity_draft.py \
 ```
 
 上記は `--template editorial --delivery paste` がデフォルトです。noteに貼る最終成果物では、編集メモやDiscord参照リンクを出さないため `--include-source-links` は付けません。
+
+月2回運用では、イベント系だけでなく `tmp/community_posts_raw.json` の旅行・本・お金の話・介護/医療なども本文候補に含めます。Discord添付画像が取れる場合だけ `画像候補:` として残します。
 
 作成ルールは `prompts/fken_tsushin_note_draft.md` に固定しています。
 
@@ -309,6 +332,8 @@ python3 scripts/generate_note_activity_draft.py \
 
 出力先はデフォルトで `tmp/note_drafts/fken-tsushin-開始日_終了日.md` です。`--output tmp/note_drafts/custom.md` で変更できます。
 
-生成される範囲は、Discordから拾える開催済み活動と画像候補が中心です。宣伝セクションは既存note記事の固定文をコピーして追記する想定です。
+生成される範囲は、Discordから拾える開催済み活動、盛り上がった話題、画像候補が中心です。宣伝セクションは既存note記事の固定文をコピーして追記する想定です。
 
 画像はDiscord添付画像のURLを「画像候補」として出します。Discord CDNのURLは期限切れになることがあるため、noteに載せる写真は下書き確認時に早めに保存・アップロードしてください。
+
+自動実行する場合は、毎月16日に `--half first`、翌月1日に前月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
