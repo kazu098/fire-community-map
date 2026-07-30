@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Discord #map travel posts and write a static map JSON file."""
+"""Fetch Discord travel/gourmet posts and write a static map JSON file."""
 
 from __future__ import annotations
 
@@ -24,6 +24,44 @@ GEOLONIA_BASE = "https://geolonia.github.io/japanese-addresses/api/ja"
 DISCORD_EPOCH = 1420070400000
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 USER_AGENT = "fire-community-map-travel-sync/0.1"
+DEFAULT_CHANNEL_NAMES = ["旅行", "グルメ・料理"]
+GOURMET_CHANNEL_NAMES = {"グルメ・料理"}
+GOURMET_INCLUDE_PATTERNS = [
+    r"maps\.app\.goo\.gl",
+    r"google\.com/maps",
+    r"tabelog\.com",
+    r"食べログ",
+    r"外食",
+    r"ランチ",
+    r"カフェ",
+    r"レストラン",
+    r"食堂",
+    r"居酒屋",
+    r"ラーメン",
+    r"うどん",
+    r"蕎麦|そば",
+    r"寿司|鮨",
+    r"ステーキ",
+    r"ひつまぶし",
+    r"かつお",
+    r"マグロ",
+    r"丼",
+    r"駅",
+    r"徒歩",
+    r"遠征",
+    r"旅行",
+    r"来ました",
+    r"帰ってます",
+    r"ホテル",
+    r"オフ会",
+]
+GOURMET_EXCLUDE_PATTERNS = [
+    r"届いた",
+    r"お土産にもらった",
+    r"今日の晩ご飯",
+    r"今日の夕食",
+    r"夕ごはん",
+]
 
 
 @dataclass(frozen=True)
@@ -233,6 +271,18 @@ def image_attachments(message: dict[str, Any]) -> list[dict[str, Any]]:
     return images
 
 
+def is_gourmet_map_candidate(text: str) -> bool:
+    if not any(re.search(pattern, text, re.IGNORECASE) for pattern in GOURMET_INCLUDE_PATTERNS):
+        return False
+    if any(re.search(pattern, text, re.IGNORECASE) for pattern in GOURMET_EXCLUDE_PATTERNS):
+        has_strong_place_link = any(
+            re.search(pattern, text, re.IGNORECASE)
+            for pattern in (r"maps\.app\.goo\.gl", r"google\.com/maps", r"tabelog\.com", r"食べログ")
+        )
+        return has_strong_place_link
+    return True
+
+
 def safe_slug(value: str) -> str:
     digest = hashlib.sha1(value.encode("utf-8")).hexdigest()[:12]
     return digest
@@ -262,6 +312,9 @@ def avatar_url(author: dict[str, Any]) -> str | None:
 
 def build_post(
     message: dict[str, Any],
+    guild_id: str,
+    channel_id: str,
+    channel_name: str,
     location: Location,
     photos: list[str],
     avatar_path: str | None,
@@ -273,6 +326,8 @@ def build_post(
     posted_at = datetime.fromisoformat(str(message["timestamp"]).replace("Z", "+00:00"))
     return {
         "discord_message_id": str(message["id"]),
+        "discord_permalink": f"https://discord.com/channels/{guild_id}/{channel_id}/{message['id']}",
+        "discord_channel_name": channel_name,
         "nickname": display_name(author, member),
         "avatar_path": avatar_path,
         "avatarColor": "#f97316",
@@ -340,9 +395,14 @@ def fetch_messages(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Sync Discord #map travel posts into data/travel_posts.json.")
+    parser = argparse.ArgumentParser(description="Sync Discord travel/gourmet posts into data/travel_posts.json.")
     parser.add_argument("--env-file", default=".env")
-    parser.add_argument("--channel-name", default="旅行")
+    parser.add_argument(
+        "--channel-name",
+        action="append",
+        dest="channel_names",
+        help="Discord channel name to scan. Can be passed multiple times. Defaults to 旅行 and グルメ・料理.",
+    )
     parser.add_argument("--channel-id")
     parser.add_argument(
         "--since",
@@ -367,78 +427,113 @@ def main() -> int:
 
     prefectures = read_prefectures(Path(args.prefectures))
     aliases = read_aliases(Path(args.aliases))
+    channel_names = args.channel_names or DEFAULT_CHANNEL_NAMES
+    if args.channel_id and len(channel_names) != 1:
+        raise SystemExit("--channel-id can only be used with exactly one --channel-name.")
 
-    channel_id = args.channel_id
-    if not channel_id:
-        channels = discord_get(f"/guilds/{guild_id}/channels", token)
-        channel_id = find_channel_id(channels, args.channel_name)
+    channels = None if args.channel_id else discord_get(f"/guilds/{guild_id}/channels", token)
 
     state_path = Path(args.state_file)
     state = {} if args.reset_state else read_json_file(state_path, {})
-    last_scanned_message_id = state.get("last_scanned_message_id")
-    if last_scanned_message_id:
-        after_id = str(last_scanned_message_id)
-        start_source = "state"
-    elif args.since:
-        after_id = snowflake_from_datetime(args.since)
-        start_source = "since"
-    else:
-        raise SystemExit("No sync state found. Pass --since 2026-06-28T22:00:00+09:00 for the first run.")
-
-    messages = fetch_messages(token, channel_id, after_id, args.until)
     photos_dir = Path(args.photos_dir)
     avatar_dir = Path(args.avatar_dir)
     new_posts: list[dict[str, Any]] = []
-    skipped_no_map = 0
-    skipped_no_location = 0
-    skipped_no_images = 0
+    next_channel_states: dict[str, Any] = {}
+    channel_summaries: dict[str, Any] = {}
 
-    for message in messages:
-        content = str(message.get("content") or "")
-        if not re.search(r"(?i)(^|\s)#map(\s|$)", content):
-            skipped_no_map += 1
-            continue
+    for channel_name in channel_names:
+        channel_id = args.channel_id or find_channel_id(channels or [], channel_name)
+        legacy_state = state if state.get("last_scanned_message_id") and len(channel_names) == 1 else {}
+        channel_state = (state.get("channels") or {}).get(channel_name, legacy_state)
+        last_scanned_message_id = channel_state.get("last_scanned_message_id")
+        if last_scanned_message_id:
+            after_id = str(last_scanned_message_id)
+            start_source = "state"
+        elif args.since:
+            after_id = snowflake_from_datetime(args.since)
+            start_source = "since"
+        else:
+            raise SystemExit(
+                f"No sync state found for channel '{channel_name}'. "
+                "Pass --since 2026-01-01T00:00:00+09:00 for the first run."
+            )
 
-        attachments = image_attachments(message)
-        if not attachments:
-            skipped_no_images += 1
-            continue
+        messages = fetch_messages(token, str(channel_id), after_id, args.until)
+        channel_new_posts: list[dict[str, Any]] = []
+        skipped_no_location = 0
+        skipped_no_images = 0
+        skipped_not_gourmet_map = 0
 
-        location = detect_location(content, aliases, prefectures, Path(args.cache_dir))
-        if not location:
-            skipped_no_location += 1
-            continue
+        for message in messages:
+            content = str(message.get("content") or "")
+            attachments = image_attachments(message)
+            if not attachments:
+                skipped_no_images += 1
+                continue
 
-        message_id = str(message["id"])
-        photo_paths: list[str] = []
-        for index, attachment in enumerate(attachments, start=1):
-            filename = str(attachment.get("filename") or f"photo-{index}.jpg")
-            suffix = Path(filename).suffix.lower() or ".jpg"
-            output_path = photos_dir / f"{message_id}-{index}{suffix}"
-            if not args.dry_run:
-                download_file(str(attachment["url"]), output_path)
-            photo_paths.append(map_relative(output_path).as_posix())
+            if channel_name in GOURMET_CHANNEL_NAMES and not is_gourmet_map_candidate(content):
+                skipped_not_gourmet_map += 1
+                continue
 
-        avatar_path = None
-        author_avatar = avatar_url(message.get("author", {}))
-        if author_avatar:
-            output_avatar = avatar_dir / f"{safe_slug(message_id)}.png"
-            if not args.dry_run:
-                download_file(author_avatar, output_avatar)
-            avatar_path = map_relative(output_avatar).as_posix()
+            location = detect_location(content, aliases, prefectures, Path(args.cache_dir))
+            if not location:
+                skipped_no_location += 1
+                continue
 
-        new_posts.append(build_post(message, location, photo_paths, avatar_path))
+            message_id = str(message["id"])
+            photo_paths: list[str] = []
+            for index, attachment in enumerate(attachments, start=1):
+                filename = str(attachment.get("filename") or f"photo-{index}.jpg")
+                suffix = Path(filename).suffix.lower() or ".jpg"
+                output_path = photos_dir / f"{message_id}-{index}{suffix}"
+                if not args.dry_run:
+                    download_file(str(attachment["url"]), output_path)
+                photo_paths.append(map_relative(output_path).as_posix())
 
-    existing_posts = read_json_file(Path(args.output), [])
+            avatar_path = None
+            author_avatar = avatar_url(message.get("author", {}))
+            if author_avatar:
+                output_avatar = avatar_dir / f"{safe_slug(message_id)}.png"
+                if not args.dry_run:
+                    download_file(author_avatar, output_avatar)
+                avatar_path = map_relative(output_avatar).as_posix()
+
+            channel_new_posts.append(
+                build_post(message, guild_id, str(channel_id), channel_name, location, photo_paths, avatar_path)
+            )
+
+        new_posts.extend(channel_new_posts)
+        newest_scanned_id = max((str(message["id"]) for message in messages), key=int, default=str(after_id))
+        newest_imported_id = max(
+            (str(post["discord_message_id"]) for post in channel_new_posts),
+            key=int,
+            default=channel_state.get("last_imported_message_id"),
+        )
+        next_channel_states[channel_name] = {
+            "channel_id": str(channel_id),
+            "last_scanned_message_id": newest_scanned_id,
+            "last_imported_message_id": newest_imported_id,
+            "last_synced_at": datetime.now(timezone.utc).isoformat(),
+        }
+        channel_summaries[channel_name] = {
+            "channel_id": str(channel_id),
+            "start_source": start_source,
+            "after_id": after_id,
+            "messages_scanned": len(messages),
+            "new_posts": len(channel_new_posts),
+            "skipped_no_images": skipped_no_images,
+            "skipped_no_location": skipped_no_location,
+            "skipped_not_gourmet_map": skipped_not_gourmet_map,
+        }
+
+    existing_posts = [] if args.reset_state else read_json_file(Path(args.output), [])
     if not isinstance(existing_posts, list):
         raise SystemExit(f"{args.output} must contain a JSON array.")
     posts = merge_posts(existing_posts, new_posts)
 
-    newest_scanned_id = max((str(message["id"]) for message in messages), key=int, default=str(after_id))
     newest_imported_id = max((str(post["discord_message_id"]) for post in posts), key=int, default=None)
     next_state = {
-        "channel_id": str(channel_id),
-        "last_scanned_message_id": newest_scanned_id,
+        "channels": next_channel_states,
         "last_imported_message_id": newest_imported_id,
         "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -448,15 +543,9 @@ def main() -> int:
         write_json_file(state_path, next_state)
 
     summary = {
-        "channel_id": channel_id,
-        "start_source": start_source,
-        "after_id": after_id,
-        "messages_scanned": len(messages),
+        "channels": channel_summaries,
         "new_posts": len(new_posts),
         "posts_written": len(posts),
-        "skipped_no_map": skipped_no_map,
-        "skipped_no_images": skipped_no_images,
-        "skipped_no_location": skipped_no_location,
         "output": args.output,
         "state_file": args.state_file,
         "next_state": next_state,

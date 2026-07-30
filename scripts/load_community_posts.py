@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upsert curated community posts (books and consultation topics) into Supabase.
+"""Upsert curated community posts into Supabase.
 
 Reads tmp/community_posts_curated.json -- a human-reviewed selection produced
 from tmp/community_posts_raw.json (see scripts/fetch_community_posts.py) with
@@ -24,11 +24,12 @@ from urllib.request import Request, urlopen
 
 REQUIRED_FIELDS = ("discord_message_id", "channel_name", "content_type", "summary", "posted_at", "discord_permalink")
 
-# Only book recommendations are a single person's post. Consultation channels
-# are usually multi-person discussion threads, so attributing the whole thread
-# to whoever posted the first message would misrepresent it as solo content and
-# would be misleading on that member's profile page.
-SINGLE_AUTHOR_CONTENT_TYPES = {"book"}
+# Book recommendations and travel posts are a single person's post.
+# Consultation channels are usually multi-person discussion threads, so
+# attributing the whole thread to whoever posted the first message would
+# misrepresent it as solo content and would be misleading on that member's
+# profile page.
+SINGLE_AUTHOR_CONTENT_TYPES = {"book", "travel"}
 
 
 def load_dotenv(path: Path) -> None:

@@ -129,6 +129,14 @@
       margin-top: 4px;
       white-space: pre-wrap;
     }
+    .popup-travel .t-link {
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 12px;
+      display: inline-block;
+      margin-top: 8px;
+    }
+    .popup-travel .t-link:hover { text-decoration: underline; }
     .photo-grid {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 4px; margin-top: 8px;
@@ -931,7 +939,7 @@
 <div id="header">
   <div class="filter-pills">
     <button class="pill on-member" id="pill-member" onclick="selectLayer('member')">メンバー</button>
-    <button class="pill" id="pill-travel" onclick="selectLayer('travel')">旅行投稿</button>
+    <button class="pill" id="pill-travel" onclick="selectLayer('travel')">旅行グルメ</button>
   </div>
   <div id="search-wrap">
     <input id="search-input" type="text" placeholder="ニックネームで検索…" autocomplete="off">
@@ -1156,6 +1164,7 @@ function makeTravelIcon(p) {
 }
 
 const travelLayer = L.layerGroup();
+const travelMarkersByMessageId = new Map();
 
 function makeTravelPopup(p) {
   const div = document.createElement('div');
@@ -1183,7 +1192,7 @@ function makeTravelPopup(p) {
   name.textContent = p.nickname || 'unknown';
   const meta = document.createElement('div');
   meta.className = 't-meta';
-  meta.textContent = [p.prefecture, p.date].filter(Boolean).join(' · ');
+  meta.textContent = [p.discord_channel_name, p.prefecture, p.date].filter(Boolean).join(' · ');
   info.appendChild(name);
   info.appendChild(meta);
 
@@ -1214,26 +1223,71 @@ function makeTravelPopup(p) {
     div.appendChild(grid);
   }
 
+  if (p.discord_permalink) {
+    const link = document.createElement('a');
+    link.className = 't-link';
+    link.href = p.discord_permalink;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'Discordで見る →';
+    div.appendChild(link);
+  }
+
   return div;
 }
 
 function renderTravelPosts(posts) {
   travelLayer.clearLayers();
+  travelMarkersByMessageId.clear();
   posts
     .filter(p => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
     .forEach(p => {
-      L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
+      const marker = L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
         .bindPopup(makeTravelPopup(p), { maxWidth: 260 })
         .addTo(travelLayer);
+      if (p.discord_message_id) travelMarkersByMessageId.set(String(p.discord_message_id), marker);
     });
+}
+
+function removeTravelPostMarker(post) {
+  const messageId = post.discord_message_id ? String(post.discord_message_id) : '';
+  if (!messageId) return;
+  const marker = travelMarkersByMessageId.get(messageId);
+  if (!marker) return;
+  travelLayer.removeLayer(marker);
+  travelMarkersByMessageId.delete(messageId);
+}
+
+async function fetchDeletedTravelMessageIds() {
+  try {
+    const params = new URLSearchParams({
+      select: 'discord_message_id',
+      action: 'eq.delete',
+      content_type: 'eq.travel',
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_posts_history?${params.toString()}`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) return new Set();
+    const rows = await res.json();
+    return new Set(rows.map(row => String(row.discord_message_id)));
+  } catch (error) {
+    console.warn('旅行投稿の非表示履歴を読み込めませんでした', error);
+    return new Set();
+  }
 }
 
 async function loadTravelPosts() {
   try {
-    const res = await fetch('data/travel_posts.json', { cache: 'no-store' });
+    const [res, deletedMessageIds] = await Promise.all([
+      fetch('data/travel_posts.json', { cache: 'no-store' }),
+      fetchDeletedTravelMessageIds(),
+    ]);
     if (!res.ok) throw new Error(`travel_posts.json: ${res.status}`);
     const posts = await res.json();
-    renderTravelPosts(Array.isArray(posts) ? posts : []);
+    const visiblePosts = Array.isArray(posts)
+      ? posts.filter(post => !deletedMessageIds.has(String(post.discord_message_id)))
+      : [];
+    renderTravelPosts(visiblePosts);
   } catch (error) {
     console.warn('旅行投稿データを読み込めませんでした', error);
     renderTravelPosts([]);
@@ -1494,7 +1548,7 @@ async function fetchDirectoryProfiles() {
 }
 
 async function fetchCommunityPosts() {
-  const select = 'id,member_nickname,content_type,title,summary,discord_author_display_name,discord_permalink,posted_at';
+  const select = 'id,member_nickname,content_type,title,summary,discord_message_id,discord_author_display_name,discord_permalink,posted_at';
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?select=${select}&order=posted_at.desc`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
@@ -2891,16 +2945,14 @@ function renderEventsView() {
 
 const CONTENT_TYPE_META = {
   book: { label: '読んだ本', icon: '📚' },
-  travel: { label: '旅行', icon: '✈️' },
+  travel: { label: '旅行グルメ', icon: '✈️' },
   money_consultation: { label: 'お金の相談', icon: '💰' },
   care_medical: { label: '介護・医療', icon: '🏥' },
   parenting: { label: '子育て', icon: '👶' },
   real_estate: { label: '不動産', icon: '🏠' },
 };
-// 'travel' is intentionally excluded here: travel posts are consolidated into
-// the existing #map travel-post layer (with location) instead of this tab.
-// Kept in CONTENT_TYPE_META for when/if that changes.
-const CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical', 'parenting', 'real_estate'];
+const COMMUNITY_CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical', 'parenting', 'real_estate'];
+const DETAIL_CONTENT_TYPE_ORDER = ['book', 'travel'];
 
 let communityPosts = [];
 
@@ -2958,9 +3010,11 @@ function buildCommunityPostCard(post, { onRemove }) {
 
   const meta = document.createElement('div');
   meta.className = 'community-post-meta';
-  // お金の相談・介護医療は複数人の議論スレッドであることが多く、また
-  // プライバシー配慮のため、投稿者名は「読んだ本」に限定して表示する。
-  const authorName = post.content_type === 'book' ? (post.member_nickname || post.discord_author_display_name) : null;
+  // 相談系は複数人の議論スレッドであることが多く、またプライバシー配慮のため、
+  // 投稿者名は単独投稿として扱う読んだ本・旅行に限定して表示する。
+  const authorName = ['book', 'travel'].includes(post.content_type)
+    ? (post.member_nickname || post.discord_author_display_name)
+    : null;
   if (authorName) {
     const author = document.createElement('span');
     author.className = 'community-post-author';
@@ -2993,6 +3047,7 @@ async function deleteCommunityPost(post) {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
   });
   communityPosts = communityPosts.filter(p => p.id !== post.id);
+  if (post.content_type === 'travel') removeTravelPostMarker(post);
   renderCommunityView();
   if (document.getElementById('member-detail-view').style.display === 'block') {
     const match = location.hash.match(/^#member\/(.+)$/);
@@ -3008,14 +3063,16 @@ let communityPage = 1;
 function matchesCommunityQuery(post, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const authorFields = post.content_type === 'book' ? [post.member_nickname, post.discord_author_display_name] : [];
+  const authorFields = ['book', 'travel'].includes(post.content_type)
+    ? [post.member_nickname, post.discord_author_display_name]
+    : [];
   const haystack = [post.title, post.summary, ...authorFields, ...communityPostMonthSearchTerms(post.posted_at)]
     .filter(Boolean).join(' ').toLowerCase();
   return haystack.includes(q);
 }
 
 function filteredCommunityPosts() {
-  const typesToShow = activeCommunityType ? [activeCommunityType] : CONTENT_TYPE_ORDER;
+  const typesToShow = activeCommunityType ? [activeCommunityType] : COMMUNITY_CONTENT_TYPE_ORDER;
   return typesToShow.flatMap(type => (
     communityPosts
       .filter(p => p.content_type === type && matchesCommunityQuery(p, communityQuery))
@@ -3064,7 +3121,7 @@ function renderCommunityView() {
   allPill.textContent = 'すべて';
   allPill.addEventListener('click', () => { activeCommunityType = null; communityPage = 1; renderCommunityView(); });
   pillRow.appendChild(allPill);
-  CONTENT_TYPE_ORDER.forEach(type => {
+  COMMUNITY_CONTENT_TYPE_ORDER.forEach(type => {
     const meta = CONTENT_TYPE_META[type];
     const pill = document.createElement('button');
     pill.className = 'community-type-pill' + (activeCommunityType === type ? ' active' : '');
@@ -3122,7 +3179,7 @@ function buildCommunityPostsSection(member) {
   const memberPosts = communityPosts.filter(p => p.member_nickname === member.nickname);
   if (!memberPosts.length) return wrap;
 
-  CONTENT_TYPE_ORDER.forEach(type => {
+  DETAIL_CONTENT_TYPE_ORDER.forEach(type => {
     const posts = memberPosts.filter(p => p.content_type === type);
     if (!posts.length) return;
 
