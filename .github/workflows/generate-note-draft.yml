@@ -2,10 +2,10 @@ name: Generate F研通信 draft
 
 on:
   schedule:
-    # 07:00 JST on the 16th: create the current month's first-half draft.
-    - cron: "0 22 15 * *"
-    # 00:00 JST on the 1st. UTC date is the previous month-end day.
-    - cron: "0 15 28-31 * *"
+    # 12:00 JST on the 15th: create the current month's first-half draft.
+    - cron: "0 3 15 * *"
+    # 12:00 JST on the month-end day: create the current month's second-half draft.
+    - cron: "0 3 28-31 * *"
   workflow_dispatch:
     inputs:
       month:
@@ -42,15 +42,16 @@ jobs:
           set -euo pipefail
           jst_today="$(TZ=Asia/Tokyo date +%Y-%m-%d)"
           jst_day="$(TZ=Asia/Tokyo date +%d)"
+          jst_tomorrow_day="$(TZ=Asia/Tokyo date -d 'tomorrow' +%d)"
 
           if [ -n "${INPUT_MONTH:-}" ] && [ -n "${INPUT_HALF:-}" ]; then
             month="$INPUT_MONTH"
             half="$INPUT_HALF"
-          elif [ "$jst_day" = "16" ]; then
+          elif [ "$jst_day" = "15" ]; then
             month="$(TZ=Asia/Tokyo date +%Y-%m)"
             half="first"
-          elif [ "$jst_day" = "01" ]; then
-            month="$(TZ=Asia/Tokyo date -d 'yesterday' +%Y-%m)"
+          elif [ "$jst_tomorrow_day" = "01" ]; then
+            month="$(TZ=Asia/Tokyo date +%Y-%m)"
             half="second"
           else
             echo "No scheduled F研通信 draft for $jst_today."
