@@ -12,7 +12,7 @@ from typing import Any
 
 
 EVENT_HINT_RE = re.compile(
-    r"(開催|参加|募集|オフ会|イベント|オンライン|日時|場所|集合|予約|締切|リマインド|本日|明日|[0-9０-９]{1,2}[月/][0-9０-９]{1,2})",
+    r"(開催|参加|募集|オフ会|イベント|オンライン|読書会|ボドゲ|ボードゲーム|日時|場所|集合|予約|締切|リマインド|本日|明日|[0-9０-９]{1,2}[月/][0-9０-９]{1,2})",
     re.IGNORECASE,
 )
 
@@ -39,7 +39,7 @@ def already_curated_ids(curated: list[dict[str, Any]]) -> set[str]:
 def candidate_score(item: dict[str, Any]) -> int:
     text = f"{item.get('thread_name') or ''}\n{item.get('content') or ''}"
     score = 0
-    for word in ("@everyone", "日時", "場所", "参加", "募集", "締切", "開催", "オフ会", "リマインド"):
+    for word in ("@everyone", "日時", "場所", "参加", "募集", "締切", "開催", "オフ会", "読書会", "ボドゲ", "ボードゲーム", "リマインド"):
         if word in text:
             score += 1
     if re.search(r"[0-9０-９]{1,2}[月/][0-9０-９]{1,2}", text):
