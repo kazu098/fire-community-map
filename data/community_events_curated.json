@@ -85,6 +85,21 @@
     "discord_permalink": "https://discord.com/events/1389921372683112539/1530727287807279125"
   },
   {
+    "title": "ボードゲームオフ会@上野",
+    "tags": ["オフ会", "ゲーム", "交流会"],
+    "starts_at": "2026-08-17T13:00:00+09:00",
+    "ends_at": "2026-08-17T18:00:00+09:00",
+    "format": "offline",
+    "prefecture": "東京都",
+    "location_label": "上野",
+    "participant_count": 4,
+    "participation_note": "Discordのサーバーイベントから参加。参加希望者はべるさんへ連絡。",
+    "summary": "上野で開催予定のボードゲームオフ会。8月入会のメンバーや初めてオフ会に参加するメンバーも歓迎する交流イベント。",
+    "discord_channel_name": "オフ会",
+    "discord_message_id": "scheduled_event:1532207939836710984",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1532207939836710984"
+  },
+  {
     "title": "浅草オフ会",
     "tags": ["オフ会", "交流会", "昼飲み"],
     "starts_at": "2026-09-03T12:00:00+09:00",

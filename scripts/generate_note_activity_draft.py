@@ -197,12 +197,12 @@ def month_half_range(value: str, half: str) -> tuple[datetime, datetime]:
     if half == "first":
         return (
             datetime(year, month, 1, tzinfo=JST),
-            datetime(year, month, 15, 23, 59, 59, tzinfo=JST),
+            datetime(year, month, 15, 12, 0, 0, tzinfo=JST),
         )
     last_day = calendar.monthrange(year, month)[1]
     return (
-        datetime(year, month, 16, tzinfo=JST),
-        datetime(year, month, last_day, 23, 59, 59, tzinfo=JST),
+        datetime(year, month, 15, 12, 0, 1, tzinfo=JST),
+        datetime(year, month, last_day, 12, 0, 0, tzinfo=JST),
     )
 
 
@@ -511,6 +511,10 @@ def date_label(dt: datetime) -> str:
 
 
 def period_label(start: datetime, end: datetime) -> str:
+    if start.year == end.year and start.month == end.month and start.day == 1 and end.day == 15:
+        return f"{start.year}年{start.month}月前半"
+    if start.year == end.year and start.month == end.month and start.day == 15 and start.hour == 12:
+        return f"{start.year}年{start.month}月後半"
     if start.year == end.year and start.month == end.month and start.day == 1 and end.day >= 28:
         return f"{start.year}年{start.month}月"
     if start.year == end.year and start.month == end.month:
@@ -608,7 +612,7 @@ def opener_lines(
 ) -> list[str]:
     if start.year == end.year and start.month == end.month and start.day == 1 and end.day == 15:
         period_text = f"{start.month}月前半"
-    elif start.year == end.year and start.month == end.month and start.day == 16:
+    elif start.year == end.year and start.month == end.month and start.day == 15 and start.hour == 12:
         period_text = f"{start.month}月後半"
     else:
         period_text = period_label(start, end)
@@ -766,7 +770,7 @@ def main() -> int:
     parser.add_argument(
         "--half",
         choices=("first", "second"),
-        help="With --month, generate 1-15 or 16-end for the monthly twice-a-month F研通信 cadence.",
+        help="With --month, generate 1 00:00-15 12:00 or after 15 12:00-month-end 12:00 for the twice-a-month F研通信 cadence.",
     )
     parser.add_argument("--events-raw", default=DEFAULT_EVENT_RAW)
     parser.add_argument("--events-curated", default=DEFAULT_EVENT_CURATED)
