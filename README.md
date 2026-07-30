@@ -159,9 +159,9 @@ python3 scripts/sync_member_location_deltas.py \
 
 Google Sheetが公開CSVとして読めない場合は、フォーム回答をCSVでエクスポートして `--members-csv path/to/form_responses.csv` を渡します。
 
-## Discord旅行投稿の差分同期
+## Discord旅行グルメ投稿の差分同期
 
-旅行チャンネルの `#map` 付き投稿を取得し、`data/travel_posts.json` に追記します。投稿画像と投稿者アイコンは `data/travel-photos/` / `data/travel-avatars/` に保存します。
+旅行チャンネルとグルメ・料理チャンネルの投稿を取得し、場所を推測できた画像付き投稿を `data/travel_posts.json` に追記します。グルメ・料理は外食・店・旅先グルメと判断できる投稿だけを対象にします。投稿画像と投稿者アイコンは `data/travel-photos/` / `data/travel-avatars/` に保存します。場所を推測できない投稿はスキップします。
 
 初回だけ、読み始める日時を指定します。
 
@@ -170,7 +170,7 @@ python3 scripts/sync_travel_posts.py \
   --since 2026-06-28T22:00:00+09:00
 ```
 
-以後は `data/travel_sync_state.json` の `last_scanned_message_id` から先だけを読みます。
+以後は `data/travel_sync_state.json` のチャンネル別 `last_scanned_message_id` から先だけを読みます。
 
 ```bash
 python3 scripts/sync_travel_posts.py --dry-run
@@ -290,14 +290,14 @@ python3 scripts/fetch_community_posts.py
 月2回運用のnote貼り付け用下書き:
 
 ```bash
-# 1〜15日分。毎月16日に作成する想定。
+# 1日0:00〜15日12:00分。毎月15日12:00に作成する想定。
 python3 scripts/generate_note_activity_draft.py \
   --month 2026-08 \
   --half first
 ```
 
 ```bash
-# 16日〜月末分。翌月1日に作成する想定。
+# 15日12:00直後〜月末12:00分。月末12:00に作成する想定。
 python3 scripts/generate_note_activity_draft.py \
   --month 2026-08 \
   --half second
@@ -336,4 +336,4 @@ python3 scripts/generate_note_activity_draft.py \
 
 画像はDiscord添付画像のURLを「画像候補」として出します。Discord CDNのURLは期限切れになることがあるため、noteに載せる写真は下書き確認時に早めに保存・アップロードしてください。
 
-自動実行する場合は、毎月16日に `--half first`、翌月1日に前月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
+自動実行する場合は、毎月15日12:00に `--half first`、月末12:00に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
