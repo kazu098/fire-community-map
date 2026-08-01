@@ -407,6 +407,9 @@
       padding: 9px 6px;
       align-self: flex-start;
     }
+    .event-date-block.tentative {
+      background: #7c2d12;
+    }
     .event-date-side {
       width: 82px;
       min-width: 82px;
@@ -2679,6 +2682,14 @@ function eventTags(event) {
   return tags;
 }
 
+function hasEventTag(event, tag) {
+  return Array.isArray(event.tags) && event.tags.includes(tag);
+}
+
+function isTentativeDateEvent(event) {
+  return hasEventTag(event, '日程調整中');
+}
+
 function isUpcomingEvent(event, now) {
   if (event.cancelled_at) return false;
   const end = event.ends_at ? new Date(event.ends_at) : null;
@@ -2694,6 +2705,7 @@ function formatGoogleCalendarDate(value) {
 }
 
 function googleCalendarUrl(event) {
+  if (isTentativeDateEvent(event)) return null;
   const start = formatGoogleCalendarDate(event.starts_at);
   if (!start) return null;
   const startDate = new Date(event.starts_at);
@@ -2712,6 +2724,13 @@ function googleCalendarUrl(event) {
   const locationText = [event.prefecture, event.location_label].filter(Boolean).join(' / ');
   if (locationText) params.set('location', locationText);
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function eventDateDisplayParts(event) {
+  if (!isTentativeDateEvent(event)) return formatEventDateParts(event.starts_at);
+  const date = new Date(event.starts_at);
+  const month = Number.isNaN(date.getTime()) ? '候補' : `${date.getMonth() + 1}月`;
+  return { day: month, weekday: '候補', time: '日程調整中' };
 }
 
 function appendEventText(card, label, text) {
@@ -2735,9 +2754,9 @@ function buildEventCard(event, mode) {
 
   const dateSide = document.createElement('div');
   dateSide.className = 'event-date-side';
-  const dateParts = formatEventDateParts(event.starts_at);
+  const dateParts = eventDateDisplayParts(event);
   const dateBlock = document.createElement('div');
-  dateBlock.className = 'event-date-block';
+  dateBlock.className = 'event-date-block' + (isTentativeDateEvent(event) ? ' tentative' : '');
   const day = document.createElement('div');
   day.className = 'event-date-day';
   day.textContent = dateParts.day;
