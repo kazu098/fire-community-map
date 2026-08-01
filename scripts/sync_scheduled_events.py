@@ -47,6 +47,12 @@ PRIVATE_EVENT_MARKERS = (
     "収録",
 )
 
+DISCORD_LOCATION_PREFIXES = (
+    "https://discord.com/",
+    "https://ptb.discord.com/",
+    "https://canary.discord.com/",
+)
+
 
 def load_dotenv(path: Path) -> None:
     if not path.exists():
@@ -154,6 +160,19 @@ def is_public_event(event: dict[str, Any], channel_name: str | None) -> bool:
     return not any(marker in text for marker in PRIVATE_EVENT_MARKERS)
 
 
+def infer_offline_location(
+    title: str,
+    description: str,
+    external_location: str | None,
+) -> tuple[str | None, str | None]:
+    if external_location and not external_location.startswith(DISCORD_LOCATION_PREFIXES):
+        return None, external_location
+    text = f"{title}\n{description}"
+    if "上野" in text:
+        return "東京都", "上野"
+    return None, external_location
+
+
 def event_row(event: dict[str, Any], guild_id: str, channel_names_by_id: dict[str, str]) -> dict[str, Any]:
     event_id = str(event["id"])
     channel_id = str(event.get("channel_id") or "")
@@ -162,16 +181,18 @@ def event_row(event: dict[str, Any], guild_id: str, channel_names_by_id: dict[st
     metadata = event.get("entity_metadata") or {}
     external_location = metadata.get("location")
     is_online = entity_type in {"voice", "stage_instance"}
-    location_label = external_location or (f"Discord / {channel_name}" if channel_name else "Discord")
+    title = str(event.get("name") or "無題のDiscordイベント")
     description = str(event.get("description") or "").strip()
+    offline_prefecture, offline_location = infer_offline_location(title, description, external_location)
+    location_label = offline_location or (f"Discord / {channel_name}" if channel_name else "Discord")
     status = STATUS_LABELS.get(event.get("status"), str(event.get("status")))
     return {
-        "title": str(event.get("name") or "無題のDiscordイベント"),
+        "title": title,
         "tags": infer_tags(event, channel_name),
         "starts_at": event.get("scheduled_start_time"),
         "ends_at": event.get("scheduled_end_time"),
         "format": "online" if is_online else "offline",
-        "prefecture": "オンライン" if is_online else None,
+        "prefecture": "オンライン" if is_online else offline_prefecture,
         "location_label": location_label,
         "participant_count": event.get("user_count"),
         "participation_note": "Discordのサーバーイベントから参加。",
@@ -198,6 +219,29 @@ def delete_events(supabase_url: str, service_role_key: str, discord_message_ids:
     )
 
 
+def existing_scheduled_event_ids(supabase_url: str, service_role_key: str) -> set[str]:
+    query = urlencode(
+        {
+            "select": "discord_message_id",
+            "discord_message_id": "like.scheduled_event:*",
+        },
+        safe=",:*",
+    )
+    rows = request_json(
+        "GET",
+        f"{supabase_url}/rest/v1/community_events?{query}",
+        {
+            "apikey": service_role_key,
+            "Authorization": f"Bearer {service_role_key}",
+        },
+    )
+    return {
+        str(row["discord_message_id"])
+        for row in (rows or [])
+        if row.get("discord_message_id")
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync Discord scheduled events into Supabase.")
     parser.add_argument("--env-file", default=os.environ.get("ENV_FILE", ".env"))
@@ -222,11 +266,15 @@ def main() -> int:
         for event in events
         if event.get("scheduled_start_time") and is_public_event(event, names.get(str(event.get("channel_id") or "")))
     ]
+    current_public_ids = {str(row["discord_message_id"]) for row in rows}
+    stale_ids = sorted(existing_scheduled_event_ids(supabase_url, service_role_key) - current_public_ids)
+    delete_ids = sorted(set(private_ids) | set(stale_ids))
     print(f"Prepared {len(rows)} Discord scheduled events.")
     print(f"Private scheduled events to delete: {len(private_ids)}")
+    print(f"Stale scheduled events to delete: {len(stale_ids)}")
     if args.dry_run:
-        if private_ids:
-            print(json.dumps({"delete_discord_message_ids": private_ids}, ensure_ascii=False, indent=2))
+        if delete_ids:
+            print(json.dumps({"delete_discord_message_ids": delete_ids}, ensure_ascii=False, indent=2))
         print(json.dumps(rows, ensure_ascii=False, indent=2))
         return 0
     if rows:
@@ -237,9 +285,9 @@ def main() -> int:
             rows,
         )
         print("Upserted Discord scheduled events into community_events.")
-    if private_ids:
-        delete_events(supabase_url, service_role_key, private_ids)
-        print("Deleted private scheduled events from community_events.")
+    if delete_ids:
+        delete_events(supabase_url, service_role_key, delete_ids)
+        print("Deleted private/stale scheduled events from community_events.")
     return 0
 
 
