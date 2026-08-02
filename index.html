@@ -542,6 +542,60 @@
       line-height: 1.9;
       margin: 0 0 22px;
     }
+    .usage-video-block {
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-radius: 14px;
+      padding: 18px;
+      margin: 0 0 28px;
+    }
+    .usage-video-hint {
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: bold;
+      margin: 0 0 12px;
+    }
+    .usage-video {
+      display: block;
+      width: 100%;
+      max-width: 640px;
+      border-radius: 10px;
+      background: #000;
+      margin: 0 auto 14px;
+    }
+    .usage-video-chapters {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .usage-video-chapter {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: white;
+      border: 1px solid #dbeafe;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .usage-video-chapter:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .usage-video-chapter-time {
+      font-variant-numeric: tabular-nums;
+      color: #3b82f6;
+      font-weight: bold;
+    }
     .usage-callout {
       border-left: 4px solid #3b82f6;
       background: #eff6ff;
@@ -2036,6 +2090,54 @@ function usageFigure(src, title, caption) {
   `;
 }
 
+const USAGE_GUIDE_VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/usage-guide-media/register-guide.mp4`;
+const USAGE_GUIDE_CHAPTERS = [
+  { t: 0, label: '全体像' },
+  { t: 27, label: 'メンバー登録申請' },
+  { t: 60, label: 'メンバーを探す' },
+  { t: 82, label: '情報を修正する' },
+  { t: 137, label: '外部公開設定' },
+  { t: 177, label: '地図を見る' },
+  { t: 192, label: 'イベントを見る' },
+  { t: 211, label: '暮らしの知恵を探す' },
+  { t: 240, label: 'まとめ' },
+];
+
+function formatUsageVideoTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = String(seconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function seekUsageVideo(seconds) {
+  const video = document.getElementById('usage-guide-video');
+  if (!video) return;
+  video.currentTime = seconds;
+  video.play();
+}
+
+function usageVideoBlock() {
+  const chapterItems = USAGE_GUIDE_CHAPTERS.map(c => `
+    <li>
+      <button type="button" class="usage-video-chapter" onclick="seekUsageVideo(${c.t})">
+        <span class="usage-video-chapter-time">${formatUsageVideoTime(c.t)}</span>
+        <span class="usage-video-chapter-label">${c.label}</span>
+      </button>
+    </li>
+  `).join('');
+  return `
+    <div class="usage-video-block">
+      <p class="usage-video-hint">動画で見たい方はこちら（音声解説つき、約4分）</p>
+      <video id="usage-guide-video" class="usage-video" controls preload="metadata">
+        <source src="${USAGE_GUIDE_VIDEO_URL}" type="video/mp4">
+      </video>
+      <ol class="usage-video-chapters">
+        ${chapterItems}
+      </ol>
+    </div>
+  `;
+}
+
 function renderUsageView() {
   const body = document.getElementById('usage-body');
   body.innerHTML = `
@@ -2115,6 +2217,7 @@ function renderUsageView() {
             FIREコミュニティマップは、FIRE研究所コミュニティのメンバー、地域、イベント、Discordで共有された知見を探しやすくするためのページです。
             このガイドでは、メンバー登録申請からメンバー表示、情報修正、外部公開、地図、イベント、暮らしの知恵までを順番に説明します。
           </p>
+          ${usageVideoBlock()}
           <section class="usage-doc-section" id="usage-overview">
             <h2>全体像</h2>
             <p>上部タブから、メンバー一覧、イベント、地図、暮らしの知恵へ移動できます。右端の「使い方」は、通常コンテンツではなくこのガイドへの入口です。</p>
