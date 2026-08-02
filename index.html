@@ -212,9 +212,31 @@
       border-bottom: 3px solid transparent;
     }
     .view-tab.active { color: white; border-bottom-color: #3b82f6; }
+    .view-tab-help {
+      margin-left: auto;
+      color: #dbeafe;
+      border-left: 1px solid rgba(255,255,255,0.16);
+      padding-left: 18px;
+    }
+    .view-tab-help::before {
+      content: '?';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: rgba(147,197,253,0.18);
+      color: #bfdbfe;
+      font-size: 11px;
+      line-height: 1;
+    }
+    .view-tab-help.active { border-bottom-color: #93c5fd; }
     @media (max-width: 600px) {
       #view-tabs { padding: 0 8px; }
       .view-tab { padding: 10px 12px; font-size: 12px; }
+      .view-tab-help { margin-left: 8px; padding-left: 12px; }
     }
     #header { top: 38px; }
     #map { top: 90px; }
@@ -222,7 +244,8 @@
 
     /* ---- Community posts view (書籍・旅行・相談などのストック型コンテンツ) ---- */
     #community-view,
-    #events-view {
+    #events-view,
+    #usage-view {
       position: fixed;
       top: 38px; left: 0; right: 0; bottom: 0;
       overflow-y: auto;
@@ -379,6 +402,258 @@
     .events-section-title {
       font-size: 13px; font-weight: bold; color: #374151;
       margin: 18px 0 10px;
+    }
+    /* ---- Usage guide view ---- */
+    #usage-view {
+      background: #ffffff;
+    }
+    #usage-body {
+      min-height: 100%;
+    }
+    .usage-doc-shell {
+      display: grid;
+      grid-template-columns: 272px minmax(0, 1fr);
+      min-height: 100%;
+    }
+    .usage-sidebar {
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 38px);
+      overflow-y: auto;
+      background: #f7f7f7;
+      border-right: 1px solid #e5e7eb;
+      padding: 18px 18px 28px;
+    }
+    .usage-brand {
+      color: #111827;
+      font-size: 16px;
+      font-weight: bold;
+      line-height: 1.45;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 16px;
+    }
+    .usage-search {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      color: #374151;
+      font-size: 13px;
+      padding: 9px 10px;
+      margin-bottom: 16px;
+    }
+    .usage-sidebar-title {
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 18px 0 8px;
+    }
+    .usage-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .usage-nav details {
+      border-radius: 6px;
+    }
+    .usage-nav summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: #374151;
+      font-size: 13px;
+      line-height: 1.45;
+      border-radius: 6px;
+      padding: 7px 8px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .usage-nav summary::-webkit-details-marker {
+      display: none;
+    }
+    .usage-nav summary:hover {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .usage-nav summary::after {
+      content: '›';
+      color: #9ca3af;
+      font-size: 15px;
+      transition: transform 0.15s;
+    }
+    .usage-nav details[open] summary::after {
+      transform: rotate(90deg);
+    }
+    .usage-nav a,
+    .usage-nav .usage-nav-main {
+      color: #374151;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.45;
+      border-radius: 6px;
+      padding: 7px 8px;
+    }
+    .usage-nav a:hover,
+    .usage-nav .usage-nav-main:hover {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .usage-nav-main {
+      display: block;
+    }
+    .usage-nav-sub-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 1px 0 4px;
+    }
+    .usage-nav .usage-nav-sub {
+      color: #6b7280;
+      font-size: 12px;
+      padding: 4px 8px 4px 20px;
+    }
+    .usage-nav .usage-nav-sub::before {
+      content: '└ ';
+      color: #9ca3af;
+    }
+    .usage-main {
+      background: #fff;
+      min-width: 0;
+    }
+    .usage-content {
+      max-width: 860px;
+      padding: 38px 42px 80px;
+    }
+    .usage-title {
+      color: #111827;
+      font-size: 34px;
+      line-height: 1.28;
+      font-weight: 800;
+      margin: 0 0 14px;
+    }
+    .usage-lead {
+      color: #374151;
+      font-size: 15px;
+      line-height: 1.9;
+      margin: 0 0 22px;
+    }
+    .usage-callout {
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 13px;
+      line-height: 1.8;
+      padding: 12px 14px;
+      margin: 18px 0 28px;
+    }
+    .usage-doc-section {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 30px;
+      margin-top: 34px;
+      scroll-margin-top: 58px;
+    }
+    .usage-doc-section:first-of-type {
+      border-top: none;
+      margin-top: 0;
+      padding-top: 0;
+    }
+    .usage-doc-section h2 {
+      color: #111827;
+      font-size: 25px;
+      line-height: 1.35;
+      margin: 0 0 10px;
+    }
+    .usage-doc-section h3 {
+      color: #1f2937;
+      font-size: 17px;
+      line-height: 1.45;
+      margin: 28px 0 8px;
+    }
+    .usage-doc-section p,
+    .usage-doc-section li {
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.85;
+    }
+    .usage-doc-section ul,
+    .usage-doc-section ol {
+      padding-left: 22px;
+      margin: 8px 0 14px;
+    }
+    .usage-step-block {
+      margin: 22px 0 30px;
+      scroll-margin-top: 58px;
+    }
+    .usage-figure {
+      margin: 12px 0 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f9fafb;
+    }
+    .usage-figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #f3f4f6;
+    }
+    .usage-figure figcaption {
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1.65;
+      border-top: 1px solid #e5e7eb;
+      padding: 9px 11px;
+      background: #fff;
+    }
+    .usage-note {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.8;
+      padding: 11px 13px;
+      margin: 12px 0 16px;
+    }
+    .usage-warning {
+      border-color: #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+    .usage-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .usage-step {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      color: #334155;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 6px 10px;
+    }
+    @media (max-width: 760px) {
+      .usage-doc-shell {
+        display: block;
+      }
+      .usage-sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .usage-content {
+        padding: 24px 18px 56px;
+      }
+      .usage-title { font-size: 26px; }
     }
     .events-section-title:first-child { margin-top: 0; }
     .event-card {
@@ -682,6 +957,9 @@
     #detail-intro-link { font-size: 12px; color: #3b82f6; text-decoration: none; display: inline-block; margin-top: 8px; }
     #detail-intro-link:hover { text-decoration: underline; }
     .detail-location-text { font-size: 13px; color: #374151; }
+    .detail-field-hint {
+      flex-basis: 100%; font-size: 11px; color: #6b7280; margin-top: -2px;
+    }
     .detail-section-header-row {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 8px;
@@ -937,6 +1215,7 @@
   <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
   <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
+  <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
 </div>
 
 <div id="header">
@@ -959,7 +1238,7 @@
         <input id="directory-search" type="text" placeholder="ニックネーム・タグで検索…" autocomplete="off">
         <button id="directory-search-clear">✕</button>
       </div>
-      <a id="directory-register-link" href="https://forms.gle/YQzyWn93B54QNoB99" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
+      <a id="directory-register-link" href="https://docs.google.com/forms/d/e/1FAIpQLSflsiIc1Gj4hcapIqiAgnMeEdTvyw20-kKkFSvrrqdGANmleQ/viewform" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
     </div>
     <div id="member-grid"></div>
     <div id="no-results" style="display:none;">該当するメンバーが見つかりません</div>
@@ -979,6 +1258,10 @@
 <div id="events-view">
   <div id="events-header"></div>
   <div id="events-body"></div>
+</div>
+
+<div id="usage-view">
+  <div id="usage-body"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1012,9 +1295,222 @@ function memberLocationLabel(m) {
 function updateMapMemberLocationLabel(nickname, locationText) {
   const mapMember = allMembers.find(m => m.nickname === nickname);
   if (!mapMember) return;
-  mapMember.location_text = locationText || mapMember.location_text;
+  mapMember.location_text = locationText || '';
   if (mapMember._marker) {
     mapMember._marker.setPopupContent(makeMemberPopup(mapMember));
+  }
+}
+
+function updateMapMemberLocation(nickname, location) {
+  const mapMember = allMembers.find(m => m.nickname === nickname);
+  if (!mapMember || !location) return;
+  Object.assign(mapMember, {
+    location_text: location.location_text,
+    prefecture: location.prefecture,
+    municipality_optional: location.municipality_optional,
+    map_lat: location.map_lat,
+    map_lng: location.map_lng,
+  });
+  if (mapMember._marker && location.map_lat != null && location.map_lng != null) {
+    mapMember._marker.setLatLng([location.map_lat, location.map_lng]);
+    mapMember._marker.setPopupContent(makeMemberPopup(mapMember));
+  }
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+    if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (char === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (char !== '\r') {
+      cell += char;
+    }
+  }
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows.filter(r => r.some(v => v.trim() !== ''));
+}
+
+function csvToObjects(text) {
+  const [headers, ...rows] = parseCsv(text);
+  if (!headers) return [];
+  return rows.map(row => Object.fromEntries(headers.map((header, index) => [header, row[index] || ''])));
+}
+
+function normalizeLocationKey(value) {
+  return String(value || '').trim().replace(/\u3000/g, ' ').replace(/\s+/g, '');
+}
+
+let locationGeocodeDataPromise = null;
+
+async function loadLocationGeocodeData() {
+  if (!locationGeocodeDataPromise) {
+    locationGeocodeDataPromise = Promise.all([
+      fetch('config/prefecture_centroids.csv').then(res => {
+        if (!res.ok) throw new Error(`prefecture centroids load failed: HTTP ${res.status}`);
+        return res.text();
+      }),
+      fetch('config/location_aliases.csv').then(res => {
+        if (!res.ok) throw new Error(`location aliases load failed: HTTP ${res.status}`);
+        return res.text();
+      }),
+    ]).then(([prefText, aliasText]) => {
+      const prefectures = new Map();
+      for (const row of csvToObjects(prefText)) {
+        prefectures.set(row.prefecture, {
+          prefecture: row.prefecture,
+          lat: Number(row.lat),
+          lng: Number(row.lng),
+        });
+      }
+      const aliases = new Map();
+      for (const row of csvToObjects(aliasText)) {
+        aliases.set(normalizeLocationKey(row.input), {
+          location_text: row.input,
+          prefecture: row.prefecture || null,
+          municipality_optional: row.municipality_optional || null,
+          location_level: row.location_level || 'unknown',
+          lat: Number(row.lat),
+          lng: Number(row.lng),
+          map_lat: Number(row.lat),
+          map_lng: Number(row.lng),
+          geocode_source: row.geocode_source || 'manual_alias',
+        });
+      }
+      return { prefectures, aliases };
+    });
+  }
+  return locationGeocodeDataPromise;
+}
+
+function extractMunicipality(rest) {
+  const normalized = rest.replace(/^[\s、,，・-]+/, '');
+  if (!normalized) return '';
+  const countyMatch = normalized.match(/^(.+?郡.+?[町村])/);
+  if (countyMatch) return countyMatch[1];
+  const cityWardMatch = normalized.match(/^(.+?市.+?区)/);
+  if (cityWardMatch) return cityWardMatch[1];
+  const municipalityMatch = normalized.match(/^(.+?[市区町村])/);
+  return municipalityMatch ? municipalityMatch[1] : '';
+}
+
+async function geocodeMunicipality(prefecture, municipality) {
+  const url = `https://geolonia.github.io/japanese-addresses/api/ja/${encodeURIComponent(prefecture)}/${encodeURIComponent(municipality)}.json`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const rows = await res.json();
+  const points = rows
+    .map(row => [Number(row.lat), Number(row.lng)])
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+  if (!points.length) return null;
+  const total = points.reduce((acc, [lat, lng]) => [acc[0] + lat, acc[1] + lng], [0, 0]);
+  return {
+    lat: total[0] / points.length,
+    lng: total[1] / points.length,
+  };
+}
+
+async function normalizeEditableLocation(rawText) {
+  const locationText = rawText.trim();
+  if (!locationText) return null;
+
+  const { prefectures, aliases } = await loadLocationGeocodeData();
+  const alias = aliases.get(normalizeLocationKey(locationText));
+  if (alias && Number.isFinite(alias.lat) && Number.isFinite(alias.lng)) {
+    return { ...alias, location_text: locationText };
+  }
+
+  const normalized = normalizeLocationKey(locationText);
+  const prefecture = [...prefectures.keys()].find(pref => normalized.startsWith(pref));
+  if (!prefecture) {
+    throw new Error('居住地は「東京都」「神奈川県川崎市」のように、都道府県名から入力してください。');
+  }
+
+  const centroid = prefectures.get(prefecture);
+  const rest = normalized.slice(prefecture.length);
+  const municipality = extractMunicipality(rest);
+  if (municipality) {
+    const point = await geocodeMunicipality(prefecture, municipality);
+    if (point) {
+      return {
+        location_text: locationText,
+        prefecture,
+        municipality_optional: municipality,
+        location_level: 'municipality',
+        lat: point.lat,
+        lng: point.lng,
+        map_lat: point.lat,
+        map_lng: point.lng,
+        geocode_source: 'geolonia',
+      };
+    }
+  }
+
+  return {
+    location_text: locationText,
+    prefecture,
+    municipality_optional: municipality || null,
+    location_level: municipality ? 'municipality' : 'prefecture',
+    lat: centroid.lat,
+    lng: centroid.lng,
+    map_lat: centroid.lat,
+    map_lng: centroid.lng,
+    geocode_source: municipality ? 'prefecture_static_fallback' : 'prefecture_static',
+  };
+}
+
+async function updateMemberLocationMap(nickname, location) {
+  if (!location) return;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_member_location_map`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({
+      p_nickname: nickname,
+      p_location_text: location.location_text,
+      p_prefecture: location.prefecture,
+      p_municipality_optional: location.municipality_optional,
+      p_location_level: location.location_level,
+      p_lat: location.lat,
+      p_lng: location.lng,
+      p_map_lat: location.map_lat,
+      p_map_lng: location.map_lng,
+      p_geocode_source: location.geocode_source,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`location map update failed: HTTP ${res.status} ${detail}`);
   }
 }
 
@@ -1489,25 +1985,32 @@ function selectView(view) {
   const isMap = view === 'map';
   const isCommunity = view === 'community';
   const isEvents = view === 'events';
-  const isDirectory = !isMap && !isCommunity && !isEvents;
+  const isUsage = view === 'usage';
+  const isDirectory = !isMap && !isCommunity && !isEvents && !isUsage;
 
   document.getElementById('tab-map').classList.toggle('active', isMap);
   document.getElementById('tab-directory').classList.toggle('active', isDirectory);
   document.getElementById('tab-community').classList.toggle('active', isCommunity);
   document.getElementById('tab-events').classList.toggle('active', isEvents);
+  document.getElementById('tab-usage').classList.toggle('active', isUsage);
 
   document.getElementById('header').style.display = isMap ? 'flex' : 'none';
   document.getElementById('map').style.display = isMap ? 'block' : 'none';
   document.getElementById('directory-view').style.display = isDirectory ? 'block' : 'none';
   document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
   document.getElementById('events-view').style.display = isEvents ? 'block' : 'none';
+  document.getElementById('usage-view').style.display = isUsage ? 'block' : 'none';
 
   if (isMap) {
     if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
     return;
   }
+  if (isUsage) {
+    renderUsageView();
+    return;
+  }
   if (isCommunity) {
-    renderCommunityView();
+    ensureDirectoryLoaded().then(renderCommunityView);
     return;
   }
   if (isEvents) {
@@ -1521,7 +2024,232 @@ function selectView(view) {
   });
 }
 
-selectView('directory');
+const INITIAL_VIEW = new URLSearchParams(location.search).get('view');
+selectView(['directory', 'map', 'events', 'community', 'usage'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
+
+function usageFigure(src, title, caption) {
+  return `
+    <figure class="usage-figure">
+      <img src="${src}" alt="${title}" loading="lazy">
+      <figcaption>${caption}</figcaption>
+    </figure>
+  `;
+}
+
+function renderUsageView() {
+  const body = document.getElementById('usage-body');
+  body.innerHTML = `
+    <div class="usage-doc-shell">
+      <aside class="usage-sidebar">
+        <a class="usage-brand" href="#usage-top">FIREコミュニティマップ使い方</a>
+        <input class="usage-search" type="search" placeholder="このガイド内を検索..." disabled>
+        <nav class="usage-nav" aria-label="使い方の目次">
+          <a class="usage-nav-main" href="#usage-overview">全体像</a>
+          <details>
+            <summary>メンバー登録申請</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-register">概要</a>
+              <a class="usage-nav-sub" href="#usage-register-tab">メンバータブを開く</a>
+              <a class="usage-nav-sub" href="#usage-register-form">ニックネームを入力する</a>
+            </div>
+          </details>
+          <details>
+            <summary>メンバーを探す</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-member">概要</a>
+              <a class="usage-nav-sub" href="#usage-member-list">一覧から探す</a>
+              <a class="usage-nav-sub" href="#usage-member-search">検索で絞り込む</a>
+            </div>
+          </details>
+          <details>
+            <summary>情報を修正する</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-edit">概要</a>
+              <a class="usage-nav-sub" href="#usage-edit-detail">メンバー詳細を開く</a>
+              <a class="usage-nav-sub" href="#usage-edit-tags">タグを追加・削除する</a>
+              <a class="usage-nav-sub" href="#usage-edit-location">居住地を修正する</a>
+              <a class="usage-nav-sub" href="#usage-edit-links">リンクを追加・削除する</a>
+              <a class="usage-nav-sub" href="#usage-edit-posts">紐づいた投稿を外す</a>
+            </div>
+          </details>
+          <details>
+            <summary>外部公開設定</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-public">概要</a>
+              <a class="usage-nav-sub" href="#usage-public-settings">外部公開設定を開く</a>
+              <a class="usage-nav-sub" href="#usage-public-intro">外部向け自己紹介文</a>
+              <a class="usage-nav-sub" href="#usage-public-page">公開ページで確認する</a>
+            </div>
+          </details>
+          <details>
+            <summary>地図を見る</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-map">概要</a>
+              <a class="usage-nav-sub" href="#usage-map-member">メンバーの地域を見る</a>
+              <a class="usage-nav-sub" href="#usage-map-travel">旅行グルメ投稿に切り替える</a>
+            </div>
+          </details>
+          <details>
+            <summary>イベントを見る</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-events">概要</a>
+              <a class="usage-nav-sub" href="#usage-events-upcoming">開催予定を見る</a>
+              <a class="usage-nav-sub" href="#usage-events-past">開催済みに切り替える</a>
+            </div>
+          </details>
+          <details>
+            <summary>暮らしの知恵を探す</summary>
+            <div class="usage-nav-sub-list">
+              <a class="usage-nav-sub" href="#usage-community">概要</a>
+              <a class="usage-nav-sub" href="#usage-community-list">一覧を見る</a>
+              <a class="usage-nav-sub" href="#usage-community-category">カテゴリで絞り込む</a>
+              <a class="usage-nav-sub" href="#usage-community-search">キーワードで検索する</a>
+            </div>
+          </details>
+        </nav>
+      </aside>
+      <main class="usage-main">
+        <article class="usage-content" id="usage-top">
+          <h1 class="usage-title">FIREコミュニティマップの使い方</h1>
+          <p class="usage-lead">
+            FIREコミュニティマップは、FIRE研究所コミュニティのメンバー、地域、イベント、Discordで共有された知見を探しやすくするためのページです。
+            このガイドでは、メンバー登録申請からメンバー表示、情報修正、外部公開、地図、イベント、暮らしの知恵までを順番に説明します。
+          </p>
+          <section class="usage-doc-section" id="usage-overview">
+            <h2>全体像</h2>
+            <p>上部タブから、メンバー一覧、イベント、地図、暮らしの知恵へ移動できます。右端の「使い方」は、通常コンテンツではなくこのガイドへの入口です。</p>
+            ${usageFigure('docs/usage-screenshots/guide-01-overview.png', 'FIREコミュニティマップの全体画面', 'メンバー、イベント、地図、暮らしの知恵が通常タブです。使い方は右端に分離しています。')}
+            <ul>
+              <li>メンバー: 登録メンバーのプロフィール、タグ、リンク、自己紹介を確認します。</li>
+              <li>イベント: 開催予定、募集中、日程調整中、開催済みイベントを確認します。</li>
+              <li>地図: メンバーの地域と旅行グルメ投稿を地図上で確認します。</li>
+              <li>暮らしの知恵: 本、旅行、お金の相談などの投稿要約を検索します。</li>
+            </ul>
+          </section>
+
+          <section class="usage-doc-section" id="usage-register">
+            <h2>メンバー登録申請</h2>
+            <p>メンバータグ表示の登録申請は、メンバータブ右上の「登録はこちらから」、または<a href="https://docs.google.com/forms/d/e/1FAIpQLSflsiIc1Gj4hcapIqiAgnMeEdTvyw20-kKkFSvrrqdGANmleQ/viewform" target="_blank" rel="noopener noreferrer">Googleフォーム</a>から行います。</p>
+            <div class="usage-step-block" id="usage-register-tab">
+              <h3>1. メンバータブを開く</h3>
+              ${usageFigure('docs/usage-screenshots/guide-02-register-link.png', 'メンバータブの登録リンク', '画面右上の赤枠部分に「登録はこちらから」があります。ここからGoogleフォームへ進みます。')}
+            </div>
+            <div class="usage-step-block" id="usage-register-form">
+              <h3>2. 申請ニックネームを入力して送信する</h3>
+              <p>フォームでは、赤枠の入力欄に申請ニックネームを記入してください。</p>
+              ${usageFigure('docs/usage-screenshots/guide-02b-register-form.png', 'メンバータグ表示フォームのニックネーム入力欄', 'フォーム内の赤枠部分にニックネームを入力して送信します。')}
+              <p>送信後、担当者が確認して反映します。</p>
+              <div class="usage-note usage-warning">反映には少し時間がかかります。送信直後に表示されなくても、同じフォームを何度も送る必要はありません。</div>
+            </div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-member">
+            <h2>メンバーを探す</h2>
+            <p>申請が反映されると、メンバー一覧にカードとして表示されます。ニックネームやタグで検索できます。</p>
+            <div class="usage-step-block" id="usage-member-list">
+              <h3>1. 一覧から探す</h3>
+              ${usageFigure('docs/usage-screenshots/guide-01-overview.png', 'メンバー一覧', 'メンバーはカード形式で表示されます。カードにはニックネーム、地域、タグ、外部リンクのアイコンが表示されます。')}
+            </div>
+            <div class="usage-step-block" id="usage-member-search">
+              <h3>2. 検索で絞り込む</h3>
+              ${usageFigure('docs/usage-screenshots/guide-03-member-search.png', 'メンバー検索', '検索欄にニックネームやタグを入力すると、該当メンバーだけに絞り込まれます。')}
+            </div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-edit">
+            <h2>情報を修正する</h2>
+            <p>メンバーカードを開くと詳細画面に移動します。ここでタグ、居住地、リンク、自己紹介などを修正できます。</p>
+            <div class="usage-step-block" id="usage-edit-detail">
+              <h3>1. メンバー詳細を開く</h3>
+              ${usageFigure('docs/usage-screenshots/guide-04-member-detail-tags.png', 'メンバー詳細とタグ編集', 'タグはカテゴリごとに表示されます。入力欄に追加したいタグを入れて「＋追加」を押します。')}
+            </div>
+            <div class="usage-step-block" id="usage-edit-tags">
+              <h3>2. タグを追加・削除する</h3>
+              <p>既存タグの「✕」で削除できます。複数タグがあるカテゴリでは、矢印で表示順も調整できます。</p>
+            </div>
+            <div class="usage-step-block" id="usage-edit-location">
+              <h3>3. 居住地を修正する</h3>
+              <p>居住地の「編集」から都道府県名を含めて入力し、「保存」を押します。例として「東京都」「神奈川県川崎市」のように入力すると、メンバー一覧の表示だけでなく地図タブのメンバーピンにも反映されます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-07c-location-map.png', '居住地編集と地図への反映', '居住地を都道府県から入力すると、メンバー地図の表示位置も更新されます。')}
+            </div>
+            <div class="usage-step-block" id="usage-edit-links">
+              <h3>4. リンクを追加・削除する</h3>
+              ${usageFigure('docs/usage-screenshots/guide-07-links.png', 'リンク編集', 'note、YouTube、ブログ、Xなどのリンクを追加できます。リンク横の「✕」で削除します。')}
+            </div>
+            <div class="usage-step-block" id="usage-edit-posts">
+              <h3>5. 紐づいた投稿を一覧から外す</h3>
+              <p>読んだ本や旅行投稿など、そのメンバーに紐づく投稿が詳細画面に表示されます。暮らしの知恵の一覧に出したくない投稿がある場合は、メンバー詳細内の投稿カード右上にある「✕」から一覧に出さないようにできます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-07b-member-posts-remove.png', 'メンバー詳細に紐づく投稿の非表示操作', 'メンバー詳細に紐づく読んだ本・旅行投稿は、カード右上の「✕」から一覧に出さないようにできます。')}
+            </div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-public">
+            <h2>外部公開設定</h2>
+            <p>外部公開ページに出してよい情報だけをONにします。内部向けの詳細情報と、外部に見せる情報は分けて扱います。</p>
+            <div class="usage-step-block" id="usage-public-settings">
+              <h3>1. 外部公開設定を開く</h3>
+              ${usageFigure('docs/usage-screenshots/guide-05-public-settings.png', '外部公開設定', 'ニックネーム、アバター、居住地、リンク、自己紹介など、公開してよい項目だけONにします。')}
+            </div>
+            <div class="usage-step-block" id="usage-public-intro">
+              <h3>2. 外部向け自己紹介文を確認する</h3>
+              ${usageFigure('docs/usage-screenshots/guide-06-external-intro.png', '外部向け自己紹介文', '自己紹介を公開する場合は、外部に出してよい本文を入力してからONにしてください。')}
+            </div>
+            <div class="usage-step-block" id="usage-public-page">
+              <h3>3. 公開ページで見え方を確認する</h3>
+              ${usageFigure('docs/usage-screenshots/guide-06b-public-page.png', 'FIRE研究所ホームページの会員紹介ページ', '外部公開ONにした内容は、FIRE研究所ホームページの会員紹介ページに反映されます。')}
+              <p><a href="https://firekenkyujo.com/member/" target="_blank" rel="noopener noreferrer">FIRE研究所ホームページの会員紹介ページを開く</a></p>
+            </div>
+            <div class="usage-note">内部の個別ページではOFFの項目も管理用として見えます。外部公開ページではONの項目だけが表示されます。</div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-map">
+            <h2>地図を見る</h2>
+            <p>地図タブでは、メンバーの地域と旅行グルメ投稿を切り替えて確認できます。</p>
+            <div class="usage-step-block" id="usage-map-member">
+              <h3>1. メンバーの地域を見る</h3>
+              ${usageFigure('docs/usage-screenshots/guide-08-map-member.png', 'メンバー地図', '「メンバー」レイヤーでは、メンバーの地域がピンで表示されます。')}
+            </div>
+            <div class="usage-step-block" id="usage-map-travel">
+              <h3>2. 旅行グルメ投稿に切り替える</h3>
+              ${usageFigure('docs/usage-screenshots/guide-09-map-travel.png', '旅行グルメ地図', '「旅行グルメ」を押すと、Discordの旅行・グルメ投稿由来のピンに切り替わります。')}
+            </div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-events">
+            <h2>イベントを見る</h2>
+            <p>イベントタブでは、開催予定と開催済みを切り替えて確認できます。日程未確定の募集は「日程調整中」として扱います。</p>
+            <div class="usage-step-block" id="usage-events-upcoming">
+              <h3>1. 開催予定を見る</h3>
+              ${usageFigure('docs/usage-screenshots/guide-10-events-upcoming.png', '開催予定イベント', 'これから開催されるイベント、募集中イベント、日程調整中イベントを確認できます。')}
+            </div>
+            <div class="usage-step-block" id="usage-events-past">
+              <h3>2. 開催済みに切り替える</h3>
+              ${usageFigure('docs/usage-screenshots/guide-11-events-past.png', '開催済みイベント', '開催済みタブでは、過去イベントの概要、よかった点、次回メモなどを確認できます。')}
+            </div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-community">
+            <h2>暮らしの知恵を探す</h2>
+            <p>暮らしの知恵タブでは、Discordで共有された本、旅行、お金の相談などを後から探せます。</p>
+            <div class="usage-step-block" id="usage-community-list">
+              <h3>1. 一覧を見る</h3>
+              ${usageFigure('docs/usage-screenshots/guide-12-community-all.png', '暮らしの知恵一覧', '初期表示では、カテゴリ横断で投稿要約が表示されます。')}
+            </div>
+            <div class="usage-step-block" id="usage-community-category">
+              <h3>2. カテゴリで絞り込む</h3>
+              ${usageFigure('docs/usage-screenshots/guide-13-community-category.png', 'カテゴリ切り替え', '「お金の相談」などのカテゴリボタンで表示内容を切り替えます。')}
+            </div>
+            <div class="usage-step-block" id="usage-community-search">
+              <h3>3. キーワードで検索する</h3>
+              ${usageFigure('docs/usage-screenshots/guide-14-community-search.png', '暮らしの知恵検索', '検索欄ではタイトル、本文、投稿者、年月を対象に検索できます。')}
+            </div>
+          </section>
+        </article>
+      </main>
+    </div>
+  `;
+  document.getElementById('usage-view').scrollTop = 0;
+}
 
 function ensureDirectoryLoaded() {
   if (!directoryLoadPromise) directoryLoadPromise = loadDirectory();
@@ -1927,20 +2655,31 @@ function autoGrowTextarea(textarea, minHeight) {
 
 async function saveLocation(nickname, text) {
   const trimmed = text.trim();
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
-    method: 'PATCH',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=minimal',
-    },
-    body: JSON.stringify({ location_text: trimmed || null }),
-  });
-  if (!res.ok) throw new Error(`location save failed: HTTP ${res.status}`);
-  updateMapMemberLocationLabel(nickname, trimmed);
-  await refreshDirectory();
-  openMemberDetail(nickname, { updateHash: false });
+  try {
+    const normalizedLocation = await normalizeEditableLocation(trimmed);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ location_text: trimmed || null }),
+    });
+    if (!res.ok) throw new Error(`location save failed: HTTP ${res.status}`);
+    if (normalizedLocation) {
+      await updateMemberLocationMap(nickname, normalizedLocation);
+      updateMapMemberLocation(nickname, normalizedLocation);
+    } else {
+      updateMapMemberLocationLabel(nickname, trimmed);
+    }
+    await refreshDirectory();
+    openMemberDetail(nickname, { updateHash: false });
+  } catch (error) {
+    console.error(error);
+    window.alert(error.message || '居住地を保存できませんでした。');
+  }
 }
 
 async function saveExternalIntro(nickname, text) {
@@ -2259,8 +2998,7 @@ function buildLocationSection(member) {
   section.appendChild(body);
 
   // 自己申告欄が未入力なら、地図に登録済みの居住地を初期値として提案する。
-  // 保存先はmember_profiles.location_textのみで、member_locations（地図側）は
-  // 別途スクリプトでの反映待ちとする。
+  // 都道府県から始まる入力は保存時に地図側の代表点も更新する。
   const currentValue = member.location_text || cardLocationLabel(member.location);
   let editMode = false;
 
@@ -2274,6 +3012,9 @@ function buildLocationSection(member) {
       input.placeholder = '例: 神奈川県川崎市';
       input.style.width = '200px';
       input.setAttribute('autocomplete', 'off');
+      const hint = document.createElement('div');
+      hint.className = 'detail-field-hint';
+      hint.textContent = '都道府県から入力すると、メンバー地図のピンにも反映されます。';
       const saveBtn = document.createElement('button');
       saveBtn.className = 'intro-save-btn';
       saveBtn.textContent = '保存';
@@ -2281,6 +3022,7 @@ function buildLocationSection(member) {
       input.addEventListener('keydown', e => { if (e.key === 'Enter') saveLocation(member.nickname, input.value); });
       body.appendChild(input);
       body.appendChild(saveBtn);
+      body.appendChild(hint);
       requestAnimationFrame(() => input.focus());
       return;
     }
@@ -3004,16 +3746,22 @@ function communityPostMonthSearchTerms(value) {
   ];
 }
 
+function canRemoveCommunityPost(post) {
+  return post.content_type === 'book' || Boolean(post.member_nickname);
+}
+
 function buildCommunityPostCard(post, { onRemove }) {
   const card = document.createElement('div');
   card.className = 'community-post-card';
 
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'community-post-remove';
-  removeBtn.textContent = '✕';
-  removeBtn.title = 'この投稿を非表示にする';
-  removeBtn.addEventListener('click', () => onRemove(post));
-  card.appendChild(removeBtn);
+  if (canRemoveCommunityPost(post)) {
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'community-post-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'この投稿を非表示にする';
+    removeBtn.addEventListener('click', () => onRemove(post));
+    card.appendChild(removeBtn);
+  }
 
   if (post.title) {
     const title = document.createElement('div');
