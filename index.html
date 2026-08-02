@@ -2138,6 +2138,47 @@ function usageVideoBlock() {
   `;
 }
 
+const DISCORD_GUIDE_VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/usage-guide-media/discord-guide.mp4`;
+const DISCORD_GUIDE_CHAPTERS = [
+  { t: 0, label: '全体像' },
+  { t: 32, label: '自己紹介を投稿する' },
+  { t: 59, label: 'チャンネルの見方' },
+  { t: 99, label: 'メッセージを送る' },
+  { t: 116, label: '通知設定' },
+  { t: 139, label: 'ボイスチャンネルを使う' },
+  { t: 180, label: 'イベントに参加する' },
+  { t: 233, label: 'おさらい' },
+];
+
+function seekDiscordVideo(seconds) {
+  const video = document.getElementById('discord-guide-video');
+  if (!video) return;
+  video.currentTime = seconds;
+  video.play();
+}
+
+function usageDiscordVideoBlock() {
+  const chapterItems = DISCORD_GUIDE_CHAPTERS.map(c => `
+    <li>
+      <button type="button" class="usage-video-chapter" onclick="seekDiscordVideo(${c.t})">
+        <span class="usage-video-chapter-time">${formatUsageVideoTime(c.t)}</span>
+        <span class="usage-video-chapter-label">${c.label}</span>
+      </button>
+    </li>
+  `).join('');
+  return `
+    <div class="usage-video-block">
+      <p class="usage-video-hint">動画で見たい方はこちら（音声解説つき、約4分半）</p>
+      <video id="discord-guide-video" class="usage-video" controls preload="metadata">
+        <source src="${DISCORD_GUIDE_VIDEO_URL}" type="video/mp4">
+      </video>
+      <ol class="usage-video-chapters">
+        ${chapterItems}
+      </ol>
+    </div>
+  `;
+}
+
 function renderUsageView() {
   const body = document.getElementById('usage-body');
   body.innerHTML = `
@@ -2208,6 +2249,7 @@ function renderUsageView() {
               <a class="usage-nav-sub" href="#usage-community-search">キーワードで検索する</a>
             </div>
           </details>
+          <a class="usage-nav-main" href="#usage-discord">Discordの使い方</a>
         </nav>
       </aside>
       <main class="usage-main">
@@ -2346,6 +2388,15 @@ function renderUsageView() {
               <h3>3. キーワードで検索する</h3>
               ${usageFigure('docs/usage-screenshots/guide-14-community-search.png', '暮らしの知恵検索', '検索欄ではタイトル、本文、投稿者、年月を対象に検索できます。')}
             </div>
+          </section>
+
+          <section class="usage-doc-section" id="usage-discord">
+            <h2>Discordの使い方</h2>
+            <p>
+              FIRE研究所ではDiscordを使って自己紹介や情報交換、イベントの案内などを行っています。
+              初めて参加する方が最初に使うことの多い機能を中心に、動画で順番に解説します。
+            </p>
+            ${usageDiscordVideoBlock()}
           </section>
         </article>
       </main>
