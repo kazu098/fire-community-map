@@ -124,6 +124,22 @@
       background: #f1f5f9;
       color: #475569;
     }
+    .tag-more {
+      font-size: 11px;
+      line-height: 1.35;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: none;
+      font-family: inherit;
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .tag-more:hover { filter: brightness(0.95); }
+    .card-more-row {
+      margin-top: 4px;
+    }
     .link-list {
       display: flex;
       flex-wrap: wrap;
@@ -321,7 +337,7 @@ function buildMemberHead(member) {
 function buildTags(tags) {
   const tagList = document.createElement('div');
   tagList.className = 'tag-list';
-  publicTags(tags).forEach(tag => {
+  tags.forEach(tag => {
     const item = document.createElement('span');
     const meta = CATEGORY_META[tag.category] || { label: tag.category, bg: '#f1f5f9', text: '#475569' };
     item.className = 'tag';
@@ -336,7 +352,7 @@ function buildTags(tags) {
 function buildLinks(links) {
   const linkList = document.createElement('div');
   linkList.className = 'link-list';
-  normalizeList(links).forEach(({ label, url }) => {
+  links.forEach(({ label, url }) => {
     const a = document.createElement('a');
     a.className = 'link';
     a.href = url;
@@ -347,6 +363,28 @@ function buildLinks(links) {
     linkList.appendChild(a);
   });
   return linkList;
+}
+
+// カード内のタグ・リンクの合計文字数がCARD_CONTENT_CHAR_LIMITを超えない範囲で表示する項目を選ぶ
+// (件数ではなく文字数で絞ることで、文字数が多い項目に引っ張られてカードの高さがばらつくのを防ぐ)
+const CARD_CONTENT_CHAR_LIMIT = 90;
+const expandedCards = new Set();
+
+function cardContentItems(member) {
+  const tagItems = publicTags(member.tags).map(tag => ({ kind: 'tag', tag, length: tag.value.length }));
+  const linkItems = normalizeList(member.links).map(link => ({ kind: 'link', link, length: linkLabel(link.label).length }));
+  return [...tagItems, ...linkItems];
+}
+
+function takeItemsByCharLimit(items, limit) {
+  const result = [];
+  let total = 0;
+  for (const item of items) {
+    if (result.length > 0 && total + item.length > limit) break;
+    result.push(item);
+    total += item.length;
+  }
+  return result;
 }
 
 function buildCard(member) {
@@ -361,11 +399,46 @@ function buildCard(member) {
     card.appendChild(intro);
   }
 
-  const tags = publicTags(member.tags);
-  if (tags.length) card.appendChild(buildTags(tags));
+  const allItems = cardContentItems(member);
+  const isExpanded = expandedCards.has(member.member_id);
+  const collapsedItems = takeItemsByCharLimit(allItems, CARD_CONTENT_CHAR_LIMIT);
+  const visibleItems = isExpanded ? allItems : collapsedItems;
 
-  const links = normalizeList(member.links);
-  if (links.length) card.appendChild(buildLinks(links));
+  const visibleTags = visibleItems.filter(item => item.kind === 'tag').map(item => item.tag);
+  if (visibleTags.length) card.appendChild(buildTags(visibleTags));
+
+  const visibleLinks = visibleItems.filter(item => item.kind === 'link').map(item => item.link);
+  if (visibleLinks.length) card.appendChild(buildLinks(visibleLinks));
+
+  if (allItems.length > visibleItems.length) {
+    const moreRow = document.createElement('div');
+    moreRow.className = 'card-more-row';
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'tag-more';
+    more.textContent = `+${allItems.length - visibleItems.length} もっと見る`;
+    more.addEventListener('click', e => {
+      e.stopPropagation();
+      expandedCards.add(member.member_id);
+      renderGrid();
+    });
+    moreRow.appendChild(more);
+    card.appendChild(moreRow);
+  } else if (isExpanded && allItems.length > collapsedItems.length) {
+    const lessRow = document.createElement('div');
+    lessRow.className = 'card-more-row';
+    const less = document.createElement('button');
+    less.type = 'button';
+    less.className = 'tag-more';
+    less.textContent = '閉じる';
+    less.addEventListener('click', e => {
+      e.stopPropagation();
+      expandedCards.delete(member.member_id);
+      renderGrid();
+    });
+    lessRow.appendChild(less);
+    card.appendChild(lessRow);
+  }
 
   card.addEventListener('click', () => openDetail(member.member_id));
   return card;
