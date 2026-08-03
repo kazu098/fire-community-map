@@ -3598,6 +3598,10 @@ function isTentativeDateEvent(event) {
   return hasEventTag(event, '日程調整中');
 }
 
+function isTentativeTimeEvent(event) {
+  return hasEventTag(event, '時間調整中');
+}
+
 function isUpcomingEvent(event, now) {
   if (event.cancelled_at) return false;
   const end = event.ends_at ? new Date(event.ends_at) : null;
@@ -3613,7 +3617,7 @@ function formatGoogleCalendarDate(value) {
 }
 
 function googleCalendarUrl(event) {
-  if (isTentativeDateEvent(event)) return null;
+  if (isTentativeDateEvent(event) || isTentativeTimeEvent(event)) return null;
   const start = formatGoogleCalendarDate(event.starts_at);
   if (!start) return null;
   const startDate = new Date(event.starts_at);
@@ -3635,7 +3639,11 @@ function googleCalendarUrl(event) {
 }
 
 function eventDateDisplayParts(event) {
-  if (!isTentativeDateEvent(event)) return formatEventDateParts(event.starts_at);
+  if (!isTentativeDateEvent(event)) {
+    const parts = formatEventDateParts(event.starts_at);
+    if (isTentativeTimeEvent(event)) return { ...parts, time: '時間調整中' };
+    return parts;
+  }
   const date = new Date(event.starts_at);
   const month = Number.isNaN(date.getTime()) ? '候補' : `${date.getMonth() + 1}月`;
   return { day: month, weekday: '候補', time: '日程調整中' };
@@ -3664,7 +3672,7 @@ function buildEventCard(event, mode) {
   dateSide.className = 'event-date-side';
   const dateParts = eventDateDisplayParts(event);
   const dateBlock = document.createElement('div');
-  dateBlock.className = 'event-date-block' + (isTentativeDateEvent(event) ? ' tentative' : '');
+  dateBlock.className = 'event-date-block' + ((isTentativeDateEvent(event) || isTentativeTimeEvent(event)) ? ' tentative' : '');
   const day = document.createElement('div');
   day.className = 'event-date-day';
   day.textContent = dateParts.day;
