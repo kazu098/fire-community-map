@@ -9,6 +9,8 @@ alter table public.community_posts
     content_type in (
       'book',
       'travel',
+      'question_consultation',
+      'note',
       'money_consultation',
       'care_medical',
       'parenting',

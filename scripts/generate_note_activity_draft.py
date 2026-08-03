@@ -39,6 +39,8 @@ SECTION_RULES = (
 POST_TYPE_LABELS = {
     "book": "本の話",
     "travel": "旅行",
+    "question_consultation": "質問・相談",
+    "note": "note",
     "money_consultation": "お金の話・相談",
     "care_medical": "介護・医療",
     "parenting": "子育て",
@@ -567,6 +569,12 @@ def render_topic_section(
             lines.append("旅行チャンネルでは、国内外の旅先や現地で見つけたものの話で盛り上がりました。")
         lines.append("実際に行った人の感想やおすすめが出てくるので、次に行きたい場所の候補が自然に増えていくような時間でした。")
         lines.append("観光地の名前だけでなく、食べもの、移動、季節感まで話が広がるので、旅の空気が伝わってくるチャンネルになっています。")
+    elif content_type == "question_consultation":
+        lines.append("質問・相談では、メンバー同士の経験や視点が行き交う実用的な会話がありました。")
+        lines.append("気軽な問いかけから具体的な選択肢が集まっていくところに、コミュニティで相談できる価値が出ていました。")
+    elif content_type == "note":
+        lines.append("noteに関する話題では、記事づくりや発信の工夫について具体的な会話がありました。")
+        lines.append("書いたものを共有しながら、読み手に届きやすい形を一緒に考えられるのもF研らしい動きでした。")
     elif content_type == "money_consultation":
         hits = keyword_hits(texts, MONEY_KEYWORDS)
         if hits:
@@ -701,7 +709,7 @@ def render_draft(
         lines.extend([f"この期間も、{overview}など、F研らしくいろいろなことが同時多発的に進みました。", ""])
 
     if post_topics and template == "editorial":
-        topic_order = ("book", "travel", "money_consultation", "care_medical", "parenting", "real_estate")
+        topic_order = ("book", "travel", "question_consultation", "note", "money_consultation", "care_medical", "parenting", "real_estate")
         for content_type in topic_order:
             if post_topics.get(content_type):
                 lines.extend(render_topic_section(content_type, post_topics[content_type], topic_images))

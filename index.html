@@ -2387,14 +2387,14 @@ function renderUsageView() {
 
           <section class="usage-doc-section" id="usage-community">
             <h2>暮らしの知恵を探す</h2>
-            <p>暮らしの知恵タブでは、Discordで共有された本、旅行、お金の相談などを後から探せます。</p>
+            <p>暮らしの知恵タブでは、Discordで共有された本、旅行、質問・相談、お金の相談などを後から探せます。</p>
             <div class="usage-step-block" id="usage-community-list">
               <h3>1. 一覧を見る</h3>
               ${usageFigure('docs/usage-screenshots/guide-12-community-all.png', '暮らしの知恵一覧', '初期表示では、カテゴリ横断で投稿要約が表示されます。')}
             </div>
             <div class="usage-step-block" id="usage-community-category">
               <h3>2. カテゴリで絞り込む</h3>
-              ${usageFigure('docs/usage-screenshots/guide-13-community-category.png', 'カテゴリ切り替え', '「お金の相談」などのカテゴリボタンで表示内容を切り替えます。')}
+              ${usageFigure('docs/usage-screenshots/guide-13-community-category.png', 'カテゴリ切り替え', '「質問・相談」などのカテゴリボタンで表示内容を切り替えます。')}
             </div>
             <div class="usage-step-block" id="usage-community-search">
               <h3>3. キーワードで検索する</h3>
@@ -3864,7 +3864,7 @@ function renderEventsView() {
 }
 
 // ================================================================
-// コミュニティ投稿(読んだ本・旅行・お金の相談・介護医療・子育て・不動産)
+// コミュニティ投稿(読んだ本・旅行・質問相談・note・お金の相談・介護医療・子育て・不動産)
 // community_posts テーブルから読み込み、✕は member_tags/member_links と
 // 同じくSupabase REST DELETE(anon key)で削除する(open-delete パターン)。
 // テーブル未作成の環境では fetchCommunityPosts() が空配列にフォールバックする。
@@ -3873,12 +3873,14 @@ function renderEventsView() {
 const CONTENT_TYPE_META = {
   book: { label: '読んだ本', icon: '📚' },
   travel: { label: '旅行グルメ', icon: '✈️' },
+  question_consultation: { label: '質問・相談', icon: '💬' },
+  note: { label: 'note', icon: '📝' },
   money_consultation: { label: 'お金の相談', icon: '💰' },
   care_medical: { label: '介護・医療', icon: '🏥' },
   parenting: { label: '子育て', icon: '👶' },
   real_estate: { label: '不動産', icon: '🏠' },
 };
-const COMMUNITY_CONTENT_TYPE_ORDER = ['book', 'money_consultation', 'care_medical', 'parenting', 'real_estate'];
+const COMMUNITY_CONTENT_TYPE_ORDER = ['book', 'question_consultation', 'note', 'money_consultation', 'care_medical', 'parenting', 'real_estate'];
 const DETAIL_CONTENT_TYPE_ORDER = ['book', 'travel'];
 
 let communityPosts = [];
@@ -4102,7 +4104,9 @@ function renderCommunityBody() {
   if (posts.length === 0) {
     const empty = document.createElement('div');
     empty.id = 'community-empty';
-    empty.textContent = '表示できる投稿がありません';
+    empty.textContent = activeCommunityType
+      ? 'このカテゴリの投稿はまだ登録されていません'
+      : '表示できる投稿がありません';
     body.appendChild(empty);
   }
 }
