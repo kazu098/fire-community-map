@@ -30,6 +30,8 @@ USER_AGENT = "fire-community-map-community-posts-sync/0.1"
 
 # Channel name -> content_type. Edit here to add more channels later.
 CHANNEL_CONTENT_TYPES = {
+    "雑談": "question_consultation",
+    "質問・相談コーナー": "question_consultation",
     "お金の話・相談": "money_consultation",
     "こんな本読みました": "book",
     "旅行": "travel",

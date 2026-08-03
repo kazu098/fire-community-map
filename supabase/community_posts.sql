@@ -1,4 +1,4 @@
--- Community posts: stock-style content (books, travel, money/care/parenting/real estate consultations)
+-- Community posts: stock-style content (books, travel, question/note/money/care/parenting/real estate consultations)
 -- curated from specific Discord channels. See design discussion in GitHub issue #59.
 -- Applied as a standalone migration, like member_tags_consultation_category.sql,
 -- rather than editing schema.sql directly.
@@ -7,7 +7,7 @@ create table if not exists public.community_posts (
   id uuid primary key default gen_random_uuid(),
   member_nickname text references public.member_profiles (nickname) on delete set null,
   content_type text not null check (
-    content_type in ('book', 'travel', 'money_consultation', 'care_medical', 'parenting', 'real_estate')
+    content_type in ('book', 'travel', 'question_consultation', 'note', 'money_consultation', 'care_medical', 'parenting', 'real_estate')
   ),
   title text,
   summary text not null,
@@ -20,7 +20,7 @@ create table if not exists public.community_posts (
 );
 
 comment on table public.community_posts is
-  'Stock-style content curated from specific Discord channels (books read, travel, money/care/parenting/real estate consultations). Rows are written only via the service role by scripts/load_community_posts.py; anon can only read/delete (the X button). Does not store Discord user IDs.';
+  'Stock-style content curated from specific Discord channels (books read, travel, question/note/money/care/parenting/real estate consultations). Rows are written only via the service role by scripts/load_community_posts.py; anon can only read/delete (the X button). Does not store Discord user IDs.';
 
 comment on column public.community_posts.discord_message_id is
   'Used to dedupe on re-crawl and to key community_posts_history lookups so deleted posts are not re-added.';
