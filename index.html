@@ -399,6 +399,109 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
     #events-body { max-width: 760px; margin: 0 auto; padding: 16px; }
+    .events-calendar {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .events-calendar-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .events-calendar-title {
+      color: #111827;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .events-calendar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .events-calendar-button {
+      min-width: 34px;
+      height: 30px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      color: #374151;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .events-calendar-button:hover { background: #f9fafb; }
+    .events-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    .events-calendar-weekday {
+      padding: 8px 6px;
+      border-bottom: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: bold;
+      text-align: center;
+      background: #f9fafb;
+    }
+    .events-calendar-day {
+      min-height: 88px;
+      border-right: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 6px;
+      background: white;
+      overflow: hidden;
+    }
+    .events-calendar-day:nth-child(7n) { border-right: none; }
+    .events-calendar-day.outside { background: #f9fafb; }
+    .events-calendar-date {
+      color: #374151;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .events-calendar-day.outside .events-calendar-date { color: #9ca3af; }
+    .events-calendar-date.today {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #1f2937;
+      color: white;
+    }
+    .events-calendar-event {
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      background: #dbeafe;
+      color: #1e3a8a;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1.25;
+      margin-top: 4px;
+      padding: 3px 5px;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .events-calendar-event.offline {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .events-calendar-more {
+      color: #6b7280;
+      font-size: 11px;
+      margin-top: 4px;
+      padding-left: 2px;
+    }
     .events-section-title {
       font-size: 13px; font-weight: bold; color: #374151;
       margin: 18px 0 10px;
@@ -818,6 +921,10 @@
       #events-header { padding: 8px 12px; }
       #events-switcher { display: flex; width: 100%; }
       .events-switch-tab { flex: 1; padding: 8px 10px; }
+      .events-calendar-toolbar { padding: 10px 12px; }
+      .events-calendar-day { min-height: 72px; padding: 5px; }
+      .events-calendar-weekday { padding: 7px 4px; }
+      .events-calendar-event { font-size: 10px; padding: 3px 4px; }
       .event-card-main { gap: 10px; }
       .event-date-side,
       .event-date-block { width: 68px; min-width: 68px; }
@@ -2461,7 +2568,7 @@ async function fetchCommunityPosts() {
 }
 
 async function fetchCommunityEvents() {
-  const select = 'id,title,tags,starts_at,ends_at,format,prefecture,location_label,participant_count,participation_note,summary,highlights,learnings,discord_permalink,cancelled_at';
+  const select = 'id,title,tags,starts_at,ends_at,format,prefecture,location_label,participant_count,participation_note,summary,highlights,learnings,discord_channel_name,discord_message_id,discord_permalink,cancelled_at';
   const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/community_events?select=${select}&order=starts_at.desc`,
@@ -3554,9 +3661,11 @@ function openMemberDetail(nickname, {
 
 let communityEvents = [];
 let communityEventsUnavailable = false;
-let activeEventsSection = 'upcoming';
+let activeEventsSection = 'calendar';
 const EVENT_PAGE_SIZE = 10;
-const eventPages = { upcoming: 1, past: 1 };
+const eventPages = { calendar: 1, upcoming: 1, past: 1 };
+const eventCalendarMonths = { calendar: null, upcoming: null, past: null };
+let pendingEventScrollId = null;
 
 const EVENT_FORMAT_LABELS = {
   online: 'オンライン',
@@ -3610,6 +3719,60 @@ function isUpcomingEvent(event, now) {
   return !Number.isNaN(boundary.getTime()) && boundary >= now;
 }
 
+function isScheduledEventRow(event) {
+  return String(event.discord_message_id || '').startsWith('scheduled_event:');
+}
+
+function normalizeEventTitle(value) {
+  return String(value || '')
+    .replace(/[!！\s　]/g, '')
+    .replace(/第[0-9０-９]+弾/g, '')
+    .trim();
+}
+
+function isLikelyDuplicateEvent(a, b) {
+  if (!isScheduledEventRow(a) && !isScheduledEventRow(b)) return false;
+  if (a.format !== b.format) return false;
+  const aStart = new Date(a.starts_at);
+  const bStart = new Date(b.starts_at);
+  if (Number.isNaN(aStart.getTime()) || Number.isNaN(bStart.getTime())) return false;
+  if (Math.abs(aStart.getTime() - bStart.getTime()) > 60 * 1000) return false;
+  const aTitle = normalizeEventTitle(a.title);
+  const bTitle = normalizeEventTitle(b.title);
+  return Boolean(aTitle && bTitle && (aTitle.includes(bTitle) || bTitle.includes(aTitle)));
+}
+
+function mergeDuplicateEvent(preferred, duplicate) {
+  const preferredTitle = String(preferred.title || '');
+  const duplicateTitle = String(duplicate.title || '');
+  const title = isScheduledEventRow(duplicate)
+    && normalizeEventTitle(duplicateTitle).includes(normalizeEventTitle(preferredTitle))
+    && duplicateTitle.length > preferredTitle.length
+      ? duplicateTitle.replace(/[!！]+$/g, '')
+      : preferred.title;
+  return {
+    ...preferred,
+    title,
+    participant_count: preferred.participant_count ?? duplicate.participant_count,
+    participation_note: preferred.participation_note || duplicate.participation_note,
+    summary: preferred.summary || duplicate.summary,
+    discord_channel_name: preferred.discord_channel_name || duplicate.discord_channel_name,
+  };
+}
+
+function dedupeEvents(events) {
+  return events.reduce((deduped, event) => {
+    const duplicateIndex = deduped.findIndex(existing => isLikelyDuplicateEvent(existing, event));
+    if (duplicateIndex < 0) return [...deduped, event];
+    const existing = deduped[duplicateIndex];
+    const preferred = isScheduledEventRow(existing) && !isScheduledEventRow(event) ? event : existing;
+    const duplicate = preferred === existing ? event : existing;
+    const next = deduped.slice();
+    next[duplicateIndex] = mergeDuplicateEvent(preferred, duplicate);
+    return next;
+  }, []);
+}
+
 function formatGoogleCalendarDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -3661,9 +3824,14 @@ function appendEventText(card, label, text) {
   card.appendChild(row);
 }
 
+function eventDomId(event) {
+  return `event-${String(event.discord_message_id || event.title || '').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+}
+
 function buildEventCard(event, mode) {
   const card = document.createElement('div');
   card.className = 'event-card' + (event.cancelled_at ? ' cancelled' : '');
+  card.id = eventDomId(event);
 
   const main = document.createElement('div');
   main.className = 'event-card-main';
@@ -3762,6 +3930,144 @@ function buildEventCard(event, mode) {
   return card;
 }
 
+function monthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date, delta) {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+}
+
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function eventDateKey(event) {
+  const date = new Date(event.starts_at);
+  if (Number.isNaN(date.getTime())) return '';
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function defaultCalendarMonth(events, mode) {
+  if (events.length) {
+    const event = mode === 'past' ? events[0] : events.find(item => !isTentativeDateEvent(item)) || events[0];
+    const date = new Date(event.starts_at);
+    if (!Number.isNaN(date.getTime())) return monthStart(date);
+  }
+  return monthStart(new Date());
+}
+
+function renderEventCalendar(events, mode) {
+  if (!events.length) return null;
+  if (!eventCalendarMonths[mode]) eventCalendarMonths[mode] = defaultCalendarMonth(events, mode);
+
+  const activeMonth = eventCalendarMonths[mode];
+  const monthEvents = events.filter(event => {
+    const date = new Date(event.starts_at);
+    return !Number.isNaN(date.getTime()) && monthKey(date) === monthKey(activeMonth);
+  });
+  const eventsByDate = monthEvents.reduce((acc, event) => {
+    const key = eventDateKey(event);
+    if (!key) return acc;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(event);
+    return acc;
+  }, {});
+  Object.values(eventsByDate).forEach(dayEvents => {
+    dayEvents.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  });
+
+  const shell = document.createElement('div');
+  shell.className = 'events-calendar';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'events-calendar-toolbar';
+
+  const title = document.createElement('div');
+  title.className = 'events-calendar-title';
+  title.textContent = new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'long' }).format(activeMonth);
+  toolbar.appendChild(title);
+
+  const actions = document.createElement('div');
+  actions.className = 'events-calendar-actions';
+  [
+    { label: '‹', delta: -1 },
+    { label: '今日', delta: 0 },
+    { label: '›', delta: 1 },
+  ].forEach(item => {
+    const button = document.createElement('button');
+    button.className = 'events-calendar-button';
+    button.type = 'button';
+    button.textContent = item.label;
+    button.addEventListener('click', () => {
+      eventCalendarMonths[mode] = item.delta === 0 ? monthStart(new Date()) : addMonths(activeMonth, item.delta);
+      renderEventsView();
+    });
+    actions.appendChild(button);
+  });
+  toolbar.appendChild(actions);
+  shell.appendChild(toolbar);
+
+  const grid = document.createElement('div');
+  grid.className = 'events-calendar-grid';
+  ['日', '月', '火', '水', '木', '金', '土'].forEach(label => {
+    const weekday = document.createElement('div');
+    weekday.className = 'events-calendar-weekday';
+    weekday.textContent = label;
+    grid.appendChild(weekday);
+  });
+
+  const firstCell = new Date(activeMonth);
+  firstCell.setDate(firstCell.getDate() - firstCell.getDay());
+  const todayKey = eventDateKey({ starts_at: new Date().toISOString() });
+  for (let i = 0; i < 42; i += 1) {
+    const date = new Date(firstCell);
+    date.setDate(firstCell.getDate() + i);
+    const key = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+    const day = document.createElement('div');
+    day.className = 'events-calendar-day' + (date.getMonth() === activeMonth.getMonth() ? '' : ' outside');
+    const dateLabel = document.createElement('div');
+    dateLabel.className = 'events-calendar-date' + (key === todayKey ? ' today' : '');
+    dateLabel.textContent = date.getDate();
+    day.appendChild(dateLabel);
+
+    const dayEvents = eventsByDate[key] || [];
+    dayEvents.slice(0, 3).forEach(event => {
+      const eventButton = document.createElement('button');
+      eventButton.className = 'events-calendar-event' + (event.format === 'offline' ? ' offline' : '');
+      eventButton.type = 'button';
+      eventButton.textContent = event.title;
+      eventButton.title = event.title;
+      eventButton.addEventListener('click', () => {
+        const pageEvents = mode === 'calendar' ? monthEvents : events;
+        const index = pageEvents.findIndex(item => item.discord_message_id === event.discord_message_id);
+        if (index >= 0) eventPages[mode] = Math.floor(index / EVENT_PAGE_SIZE) + 1;
+        pendingEventScrollId = eventDomId(event);
+        renderEventsView();
+      });
+      day.appendChild(eventButton);
+    });
+    if (dayEvents.length > 3) {
+      const more = document.createElement('div');
+      more.className = 'events-calendar-more';
+      more.textContent = `他 ${dayEvents.length - 3}件`;
+      day.appendChild(more);
+    }
+    grid.appendChild(day);
+  }
+
+  shell.appendChild(grid);
+  return shell;
+}
+
 function buildPagination({ page, totalItems, pageSize, onPageChange }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   if (totalPages <= 1) return null;
@@ -3809,7 +4115,8 @@ function renderEventsHeader(counts) {
   const switcher = document.createElement('div');
   switcher.id = 'events-switcher';
   [
-    { value: 'upcoming', label: `これから開催 ${counts.upcoming}` },
+    { value: 'calendar', label: `カレンダー ${counts.total}` },
+    { value: 'upcoming', label: `開催予定 ${counts.upcoming}` },
     { value: 'past', label: `開催済み ${counts.past}` },
   ].forEach(item => {
     const tab = document.createElement('button');
@@ -3838,15 +4145,39 @@ function renderEventsView() {
     return;
   }
   const now = new Date();
-  const upcoming = communityEvents
+  const displayEvents = dedupeEvents(communityEvents);
+  const upcoming = displayEvents
     .filter(event => isUpcomingEvent(event, now))
     .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-  const past = communityEvents
+  const past = displayEvents
     .filter(event => !isUpcomingEvent(event, now))
     .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
 
-  renderEventsHeader({ upcoming: upcoming.length, past: past.length });
-  const visibleEvents = activeEventsSection === 'upcoming' ? upcoming : past;
+  renderEventsHeader({ total: displayEvents.length, upcoming: upcoming.length, past: past.length });
+  const calendarEvents = displayEvents
+    .filter(event => !event.cancelled_at)
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  const visibleEvents = activeEventsSection === 'calendar'
+    ? calendarEvents.filter(event => {
+      if (!eventCalendarMonths.calendar) eventCalendarMonths.calendar = defaultCalendarMonth(upcoming.length ? upcoming : calendarEvents, 'calendar');
+      const date = new Date(event.starts_at);
+      return !Number.isNaN(date.getTime()) && monthKey(date) === monthKey(eventCalendarMonths.calendar);
+    })
+    : activeEventsSection === 'upcoming'
+      ? upcoming
+      : past;
+
+  if (activeEventsSection === 'calendar') {
+    const calendar = renderEventCalendar(calendarEvents, activeEventsSection);
+    if (calendar) body.appendChild(calendar);
+    if (visibleEvents.length) {
+      const title = document.createElement('div');
+      title.className = 'events-section-title';
+      title.textContent = 'この月のイベント';
+      body.appendChild(title);
+    }
+  }
+
   const paginated = paginateItems(visibleEvents, eventPages[activeEventsSection], EVENT_PAGE_SIZE);
   eventPages[activeEventsSection] = paginated.page;
   paginated.items.forEach(event => body.appendChild(buildEventCard(event, activeEventsSection)));
@@ -3864,10 +4195,20 @@ function renderEventsView() {
   if (visibleEvents.length === 0) {
     const empty = document.createElement('div');
     empty.id = 'events-empty';
-    empty.textContent = activeEventsSection === 'upcoming'
+    empty.textContent = activeEventsSection === 'calendar'
+      ? 'この月のイベントはありません'
+      : activeEventsSection === 'upcoming'
       ? 'これから開催するイベントはありません'
       : '開催済みイベントはありません';
     body.appendChild(empty);
+  }
+  if (pendingEventScrollId) {
+    const targetId = pendingEventScrollId;
+    pendingEventScrollId = null;
+    requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 }
 
