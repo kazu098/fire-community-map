@@ -3952,6 +3952,16 @@ function eventDateKey(event) {
   ].join('-');
 }
 
+function eventTimeLabel(event) {
+  if (isTentativeDateEvent(event) || isTentativeTimeEvent(event)) return '';
+  const date = new Date(event.starts_at);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
 function defaultCalendarMonth(events, mode) {
   if (events.length) {
     const event = mode === 'past' ? events[0] : events.find(item => !isTentativeDateEvent(item)) || events[0];
@@ -4044,7 +4054,8 @@ function renderEventCalendar(events, mode) {
       const eventButton = document.createElement('button');
       eventButton.className = 'events-calendar-event' + (event.format === 'offline' ? ' offline' : '');
       eventButton.type = 'button';
-      eventButton.textContent = event.title;
+      const timeLabel = eventTimeLabel(event);
+      eventButton.textContent = timeLabel ? `${timeLabel} ${event.title}` : event.title;
       eventButton.title = event.title;
       eventButton.addEventListener('click', () => {
         const pageEvents = mode === 'calendar' ? monthEvents : events;
