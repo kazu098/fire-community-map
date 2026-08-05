@@ -1,6 +1,6 @@
 # Googleフォーム送信時のメンバー自動追加
 
-フォーム回答シートに新規入力が来たタイミングで GitHub Actions を起動し、既存の `scripts/sync_member_location_deltas.py` で Supabase に同期する。
+フォーム回答シートに新規入力が来たタイミングで GitHub Actions を起動し、`scripts/sync_member_profile_form_deltas.py` で Supabase の `member_profiles` に同期する。
 
 Apps Script から同期に必要な最小CSVを送るため、回答シートを公開共有にする必要はない。
 
@@ -104,9 +104,9 @@ function buildMinimalMembersCsvB64(responseSheet) {
   const lastRow = responseSheet.getLastRow();
   if (lastRow < 1) throw new Error('Response sheet is empty.');
 
-  // sync_member_location_deltas.py reads nickname from column B and location from column D.
-  // Sending only A:D keeps the workflow_dispatch payload small and avoids exposing unrelated answers.
-  const values = responseSheet.getRange(1, 1, lastRow, 4).getDisplayValues();
+  // sync_member_profile_form_deltas.py reads nickname from column B.
+  // Sending only A:B keeps the workflow_dispatch payload small and avoids exposing unrelated answers.
+  const values = responseSheet.getRange(1, 1, lastRow, 2).getDisplayValues();
   const csv = values.map(row => row.map(csvEscape).join(',')).join('\n') + '\n';
   return Utilities.base64Encode(csv, Utilities.Charset.UTF_8);
 }

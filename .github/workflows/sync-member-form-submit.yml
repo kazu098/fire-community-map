@@ -48,7 +48,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Sync member locations
+      - name: Sync member profiles
         env:
           SHEET_URL: ${{ github.event.inputs.sheet_url }}
           SHEET_NAME: ${{ github.event.inputs.sheet_name }}
@@ -64,7 +64,7 @@ jobs:
           set -euo pipefail
 
           args=(
-            --report tmp/member_location_sync_report.json
+            --report tmp/member_profile_form_sync_report.json
           )
 
           if [ -n "${MEMBERS_CSV_B64:-}" ]; then
@@ -86,41 +86,39 @@ jobs:
             args+=(--dry-run)
           fi
 
-          python3 scripts/sync_member_location_deltas.py "${args[@]}"
+          python3 scripts/sync_member_profile_form_deltas.py "${args[@]}"
 
       - name: Upload sync report
-        if: always() && hashFiles('tmp/member_location_sync_report.json') != ''
+        if: always() && hashFiles('tmp/member_profile_form_sync_report.json') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: member-location-sync-report
-          path: tmp/member_location_sync_report.json
+          name: member-profile-form-sync-report
+          path: tmp/member_profile_form_sync_report.json
 
       - name: Create review issue
-        if: ${{ hashFiles('tmp/member_location_sync_report.json') != '' }}
+        if: ${{ hashFiles('tmp/member_profile_form_sync_report.json') != '' && github.event.inputs.dry_run != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          needs_review="$(jq '.summary.needs_review + .summary.avatar_unmatched + .summary.avatar_duplicate_matches + .summary.skipped_changed' tmp/member_location_sync_report.json)"
+          needs_review="$(jq '.summary.candidates' tmp/member_profile_form_sync_report.json)"
           if [ "$needs_review" = "0" ]; then
-            echo "No member sync review items."
+            echo "No new member profile opt-ins."
             exit 0
           fi
 
-          title="メンバー自動同期の確認が必要です - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
-          body_file="tmp/member_location_sync_issue.md"
+          title="メンバー表示フォームから新規プロフィールを追加しました - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          body_file="tmp/member_profile_form_sync_issue.md"
           {
-            echo "フォーム送信後のメンバー同期で確認が必要な項目があります。"
+            echo "タグ表示フォームの回答から、新しい member_profiles 行を追加しました。"
             echo
             echo '```json'
             jq '{
               summary,
-              needs_review,
-              skipped_changed,
-              avatar_unmatched,
-              avatar_duplicate_matches
-            }' tmp/member_location_sync_report.json
+              candidates,
+              duplicate_sheet_nicknames
+            }' tmp/member_profile_form_sync_report.json
             echo '```'
           } > "$body_file"
 
