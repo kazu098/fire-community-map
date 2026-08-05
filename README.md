@@ -142,6 +142,8 @@ Storage pathにはDiscordユーザーIDを含めません。出力JSONの `avata
 
 Googleフォーム回答シートから新しく追加されたメンバーだけをSupabaseへ追加します。まずdry-runで対象件数を確認します。
 
+フォーム送信時点で自動同期したい場合は、GitHub Actions と Apps Script を使う [Googleフォーム送信時のメンバー自動追加](./docs/member-form-submit-automation.md) を参照してください。
+
 ```bash
 python3 scripts/sync_member_location_deltas.py \
   --sheet-url "https://docs.google.com/spreadsheets/d/1PWU_Kx-bRJphF2KONPssu5DmxhlQEXmKHCwu9DaWK00/edit?usp=sharing" \

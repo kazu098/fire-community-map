@@ -1,0 +1,123 @@
+name: Sync member form submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      sheet_url:
+        description: "Google Form response spreadsheet URL"
+        required: false
+        default: "https://docs.google.com/spreadsheets/d/1YR2wNqzIMIQjbwjBVUtPx8Ys0zQggJmbghKdntXt2ZM/edit"
+      sheet_name:
+        description: "Response sheet tab name"
+        required: false
+        default: "Form Responses 1"
+      update_existing:
+        description: "Update existing members when location input changed"
+        required: false
+        type: boolean
+        default: false
+      refresh_avatars:
+        description: "Refresh avatars for existing unchanged members"
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: "Run without writing Supabase/Storage changes"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: member-form-submit-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-member:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync member locations
+        env:
+          SHEET_URL: ${{ github.event.inputs.sheet_url }}
+          SHEET_NAME: ${{ github.event.inputs.sheet_name }}
+          UPDATE_EXISTING: ${{ github.event.inputs.update_existing }}
+          REFRESH_AVATARS: ${{ github.event.inputs.refresh_avatars }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --sheet-url "$SHEET_URL"
+            --sheet-name "$SHEET_NAME"
+            --report tmp/member_location_sync_report.json
+          )
+
+          if [ "$UPDATE_EXISTING" = "true" ]; then
+            args+=(--update-existing)
+          fi
+
+          if [ "$REFRESH_AVATARS" = "true" ]; then
+            args+=(--refresh-avatars)
+          fi
+
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+
+          python3 scripts/sync_member_location_deltas.py "${args[@]}"
+
+      - name: Upload sync report
+        if: always() && hashFiles('tmp/member_location_sync_report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: member-location-sync-report
+          path: tmp/member_location_sync_report.json
+
+      - name: Create review issue
+        if: ${{ hashFiles('tmp/member_location_sync_report.json') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          needs_review="$(jq '.summary.needs_review + .summary.avatar_unmatched + .summary.avatar_duplicate_matches + .summary.skipped_changed' tmp/member_location_sync_report.json)"
+          if [ "$needs_review" = "0" ]; then
+            echo "No member sync review items."
+            exit 0
+          fi
+
+          title="メンバー自動同期の確認が必要です - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          body_file="tmp/member_location_sync_issue.md"
+          {
+            echo "フォーム送信後のメンバー同期で確認が必要な項目があります。"
+            echo
+            echo '```json'
+            jq '{
+              summary,
+              needs_review,
+              skipped_changed,
+              avatar_unmatched,
+              avatar_duplicate_matches
+            }' tmp/member_location_sync_report.json
+            echo '```'
+          } > "$body_file"
+
+          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file "$body_file"
+          else
+            gh issue create --title "$title" --body-file "$body_file"
+          fi
