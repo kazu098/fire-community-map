@@ -11,6 +11,9 @@ on:
         description: "Response sheet tab name"
         required: false
         default: "Form Responses 1"
+      members_csv_b64:
+        description: "Optional base64-encoded minimal CSV from Apps Script. If present, the sheet does not need to be public."
+        required: false
       update_existing:
         description: "Update existing members when location input changed"
         required: false
@@ -49,6 +52,7 @@ jobs:
         env:
           SHEET_URL: ${{ github.event.inputs.sheet_url }}
           SHEET_NAME: ${{ github.event.inputs.sheet_name }}
+          MEMBERS_CSV_B64: ${{ github.event.inputs.members_csv_b64 }}
           UPDATE_EXISTING: ${{ github.event.inputs.update_existing }}
           REFRESH_AVATARS: ${{ github.event.inputs.refresh_avatars }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
@@ -60,10 +64,15 @@ jobs:
           set -euo pipefail
 
           args=(
-            --sheet-url "$SHEET_URL"
-            --sheet-name "$SHEET_NAME"
             --report tmp/member_location_sync_report.json
           )
+
+          if [ -n "${MEMBERS_CSV_B64:-}" ]; then
+            python3 -c 'import base64, os, pathlib; pathlib.Path("tmp").mkdir(exist_ok=True); pathlib.Path("tmp/form_responses.csv").write_bytes(base64.b64decode(os.environ["MEMBERS_CSV_B64"]))'
+            args+=(--members-csv tmp/form_responses.csv)
+          else
+            args+=(--sheet-url "$SHEET_URL" --sheet-name "$SHEET_NAME")
+          fi
 
           if [ "$UPDATE_EXISTING" = "true" ]; then
             args+=(--update-existing)

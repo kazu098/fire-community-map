@@ -2,6 +2,8 @@
 
 フォーム回答シートに新規入力が来たタイミングで GitHub Actions を起動し、既存の `scripts/sync_member_location_deltas.py` で Supabase に同期する。
 
+Apps Script から同期に必要な最小CSVを送るため、回答シートを公開共有にする必要はない。
+
 ## 1. GitHub Secrets
 
 Repository Settings > Secrets and variables > Actions に以下を登録する。
@@ -61,6 +63,10 @@ function dispatchMemberSync() {
   if (!token) throw new Error('GITHUB_TOKEN is not set. Run setupMemberSubmitSync first.');
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet();
+  const responseSheet = sheet.getSheetByName('Form Responses 1');
+  if (!responseSheet) throw new Error('Form Responses 1 sheet was not found.');
+
+  const membersCsvB64 = buildMinimalMembersCsvB64(responseSheet);
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`;
 
   const response = UrlFetchApp.fetch(url, {
@@ -76,6 +82,7 @@ function dispatchMemberSync() {
       inputs: {
         sheet_url: sheet.getUrl(),
         sheet_name: 'Form Responses 1',
+        members_csv_b64: membersCsvB64,
         update_existing: 'false',
         refresh_avatars: 'false',
         dry_run: 'false',
@@ -89,6 +96,25 @@ function dispatchMemberSync() {
     throw new Error(`GitHub workflow dispatch failed: ${code} ${response.getContentText()}`);
   }
 }
+
+function buildMinimalMembersCsvB64(responseSheet) {
+  const lastRow = responseSheet.getLastRow();
+  if (lastRow < 1) throw new Error('Response sheet is empty.');
+
+  // sync_member_location_deltas.py reads nickname from column B and location from column D.
+  // Sending only A:D keeps the workflow_dispatch payload small and avoids exposing unrelated answers.
+  const values = responseSheet.getRange(1, 1, lastRow, 4).getDisplayValues();
+  const csv = values.map(row => row.map(csvEscape).join(',')).join('\n') + '\n';
+  return Utilities.base64Encode(csv, Utilities.Charset.UTF_8);
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '');
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
 ```
 
 ## 4. 初回設定
@@ -99,6 +125,6 @@ Apps Script の `setupMemberSubmitSync` を1回だけ実行し、GitHub token �
 
 ## 注意
 
-- 回答シートは workflow から公開CSVとして読める必要がある。非公開運用にする場合は、Apps Script 側で回答行を webhook payload として送る別実装にする。
 - 同時送信があっても workflow 側は `concurrency` で直列化する。
 - 住所判定不能、Discordアバター未一致、既存メンバーの住所変更検知などは GitHub Issue に確認項目として出す。
+- GitHub Actions `workflow_dispatch` の入力サイズ上限に近づくほど回答数が増えた場合は、Apps Script から中継APIへ送る方式に切り替える。
