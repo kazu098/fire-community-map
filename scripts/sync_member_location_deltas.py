@@ -126,6 +126,32 @@ def ensure_unique(rows: list[dict[str, Any]], key: str, label: str) -> None:
         raise SystemExit(f"Duplicate {label} values are not safe to sync: {joined}")
 
 
+def dedupe_members_by_latest(
+    members: list[locations.MemberLocation],
+) -> tuple[list[locations.MemberLocation], list[dict[str, Any]]]:
+    latest_by_nickname: dict[str, locations.MemberLocation] = {}
+    duplicates_by_nickname: dict[str, list[locations.MemberLocation]] = {}
+
+    for member in members:
+        nickname = member.nickname.strip()
+        if not nickname:
+            continue
+        previous = latest_by_nickname.get(nickname)
+        if previous:
+            duplicates_by_nickname.setdefault(nickname, [previous]).append(member)
+        latest_by_nickname[nickname] = member
+
+    duplicate_report = [
+        {
+            "nickname": nickname,
+            "sheet_rows": [member.sheet_row for member in rows],
+            "latest_sheet_row": latest_by_nickname[nickname].sheet_row,
+        }
+        for nickname, rows in sorted(duplicates_by_nickname.items())
+    ]
+    return list(latest_by_nickname.values()), duplicate_report
+
+
 def supabase_request(
     supabase_url: str,
     service_role_key: str,
@@ -283,7 +309,8 @@ def main() -> int:
     load_dotenv(Path(args.env_file))
 
     source_members = read_source_members(args)
-    normalized = normalize_members(args, source_members)
+    sync_members, duplicate_sheet_nicknames = dedupe_members_by_latest(source_members)
+    normalized = normalize_members(args, sync_members)
     ensure_unique(normalized, "nickname", "sheet nickname")
 
     ready = [row for row in normalized if not row["needs_review"]]
@@ -349,6 +376,8 @@ def main() -> int:
         "dry_run": args.dry_run,
         "summary": {
             "sheet_members": len(source_members),
+            "sync_members": len(sync_members),
+            "duplicate_sheet_nicknames": len(duplicate_sheet_nicknames),
             "ready": len(ready),
             "needs_review": len(needs_review),
             "existing": len(existing),
@@ -359,6 +388,7 @@ def main() -> int:
             "avatar_unmatched": len(match_report.get("unmatched") or []),
             "skipped_changed": len(skipped_changed),
         },
+        "duplicate_sheet_nicknames": duplicate_sheet_nicknames,
         "needs_review": needs_review,
         "skipped_changed": skipped_changed,
         "avatar_unmatched": match_report.get("unmatched") or [],
