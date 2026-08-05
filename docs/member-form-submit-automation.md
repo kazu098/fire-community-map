@@ -21,7 +21,10 @@ Apps Script から GitHub Actions の `workflow_dispatch` API を呼ぶため、
 - Repository permissions: `Actions` を `Read and write`
 - 有効期限は運用に合わせて設定
 
-作成した token は Apps Script の Script Properties に保存する。
+作成した token は Apps Script の Project Settings > Script properties に保存する。
+
+- Property: `GITHUB_TOKEN`
+- Value: 作成した GitHub token
 
 ## 3. Apps Script
 
@@ -34,8 +37,8 @@ const WORKFLOW_ID = 'sync-member-form-submit.yml';
 const REF = 'main';
 
 function setupMemberSubmitSync() {
-  const token = Browser.inputBox('GitHub token');
-  PropertiesService.getScriptProperties().setProperty('GITHUB_TOKEN', token);
+  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) throw new Error('Set GITHUB_TOKEN in Script properties first.');
 
   ScriptApp.getProjectTriggers()
     .filter(trigger => trigger.getHandlerFunction() === 'onMemberFormSubmit')
@@ -119,7 +122,7 @@ function csvEscape(value) {
 
 ## 4. 初回設定
 
-Apps Script の `setupMemberSubmitSync` を1回だけ実行し、GitHub token を入力する。権限確認が出たら承認する。
+Apps Script の Project Settings > Script properties に `GITHUB_TOKEN` を保存したあと、`setupMemberSubmitSync` を1回だけ実行する。権限確認が出たら承認する。
 
 以後はフォーム送信ごとに `Sync member form submit` workflow が起動する。
 
