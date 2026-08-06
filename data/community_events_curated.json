@@ -113,6 +113,20 @@
     "discord_permalink": "https://discord.com/events/1389921372683112539/1534076687002894366"
   },
   {
+    "title": "『FIRE1年目の教科書』お疲れ様飲み会！",
+    "tags": ["オンライン", "交流会", "出版"],
+    "starts_at": "2026-08-13T20:00:00+09:00",
+    "format": "online",
+    "prefecture": "オンライン",
+    "location_label": "Discord / 飲み会1",
+    "participant_count": 1,
+    "participation_note": "Discordのサーバーイベントから参加。寄稿者以外のメンバーも参加可。",
+    "summary": "『FIRE1年目の教科書』出版チームのお疲れ様飲み会。寄稿者だけでなく、関わりのなかったメンバーも参加できるオンライン交流会。",
+    "discord_channel_name": "飲み会1",
+    "discord_message_id": "scheduled_event:1534718366395400193",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1534718366395400193"
+  },
+  {
     "title": "オンライン麻雀②",
     "tags": ["オンライン", "ゲーム"],
     "starts_at": "2026-08-15T20:00:00+09:00",
@@ -176,12 +190,13 @@
     "starts_at": "2026-08-28T17:00:00+09:00",
     "format": "online",
     "prefecture": "オンライン",
-    "location_label": "Discord",
-    "participation_note": "参加希望者は告知投稿の投票で参加表明。",
-    "summary": "体重増加時に食べるメニューや体脂肪を減らす工夫、おすすめプロテインなどを共有・相談するオンライン座談会。",
-    "discord_channel_name": "オンラインイベント",
-    "discord_message_id": "1533991075822309517",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1533991075822309517"
+    "location_label": "Discord / 一般",
+    "participant_count": 1,
+    "participation_note": "Discordのサーバーイベントから参加。飲みながらの参加も歓迎。",
+    "summary": "ダイエットメニューを紹介したり、相談したりするオンライン座談会。体重増加時に食べるメニューや体脂肪を減らす工夫、おすすめプロテインなどを共有する。",
+    "discord_channel_name": "一般",
+    "discord_message_id": "scheduled_event:1534721103761768558",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1534721103761768558"
   },
   {
     "title": "OJI-OFF（仮称）",
