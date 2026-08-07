@@ -49,6 +49,28 @@ def normalize_spaces(value: str) -> str:
     return re.sub(r"\s+", " ", value.replace("　", " ")).strip()
 
 
+PAREN_PATTERN = re.compile(r"[（(]([^）)]*)[）)]")
+
+
+def fold_keys(nickname: str) -> set[str]:
+    """Loose match keys for a nickname, to catch re-submissions with slightly
+    different formatting (added parenthetical, case change, extra spaces)
+    before treating them as a brand-new member.
+
+    Example: "べる（Karin Bell）" and "べる" both produce the base key "べる".
+    "echo(えこー)" and "えこー" both produce the paren-content key "えこー".
+    """
+    base = normalize_spaces(PAREN_PATTERN.sub("", nickname)).casefold()
+    keys = {normalize_spaces(nickname).casefold()}
+    if base:
+        keys.add(base)
+    for match in PAREN_PATTERN.finditer(nickname):
+        inner = normalize_spaces(match.group(1)).casefold()
+        if inner:
+            keys.add(inner)
+    return keys
+
+
 def parse_sheet_id(sheet_url: str) -> str:
     match = re.search(r"/spreadsheets/d/([^/]+)", sheet_url)
     if not match:
@@ -201,8 +223,32 @@ def main() -> int:
     service_role_key = require_env("SUPABASE_SERVICE_ROLE_KEY")
     existing = fetch_existing_profiles(supabase_url, service_role_key)
 
-    candidates = [member for member in sync_members if member.nickname not in existing]
+    existing_fold_index: dict[str, list[str]] = {}
+    for nickname in existing:
+        for key in fold_keys(nickname):
+            existing_fold_index.setdefault(key, []).append(nickname)
+
+    candidates: list[FormMember] = []
     skipped_existing = [member for member in sync_members if member.nickname in existing]
+    possible_duplicates: list[dict[str, Any]] = []
+
+    for member in sync_members:
+        if member.nickname in existing:
+            continue
+        matches = sorted(
+            {
+                existing_nickname
+                for key in fold_keys(member.nickname)
+                for existing_nickname in existing_fold_index.get(key, [])
+            }
+        )
+        if matches:
+            possible_duplicates.append(
+                {"sheet_row": member.sheet_row, "nickname": member.nickname, "likely_matches": matches}
+            )
+        else:
+            candidates.append(member)
+
     payload = [{"nickname": member.nickname} for member in candidates]
 
     response = None
@@ -227,22 +273,27 @@ def main() -> int:
             "candidates": len(candidates),
             "insert": len(payload) if not args.dry_run else 0,
             "skipped_existing": len(skipped_existing),
+            "possible_duplicates": len(possible_duplicates),
         },
         "duplicate_sheet_nicknames": duplicate_sheet_nicknames,
         "candidates": [{"sheet_row": member.sheet_row, "nickname": member.nickname} for member in candidates],
         "skipped_existing": [
             {"sheet_row": member.sheet_row, "nickname": member.nickname} for member in skipped_existing
         ],
+        "possible_duplicates": possible_duplicates,
         "response": response,
     }
     write_report(Path(args.report), report)
 
     summary = report["summary"]
     print(
-        "Synced {candidates} profile candidates ({insert} insert, {skipped_existing} skipped existing).".format(
-            **summary
-        )
+        "Synced {candidates} profile candidates ({insert} insert, {skipped_existing} skipped existing, "
+        "{possible_duplicates} possible duplicates held back for review).".format(**summary)
     )
+    if possible_duplicates:
+        print("Possible duplicates (not inserted, needs manual review):")
+        for entry in possible_duplicates:
+            print(f"  - {entry['nickname']!r} looks like: {entry['likely_matches']}")
     print(f"Wrote {args.report}")
     return 0
 

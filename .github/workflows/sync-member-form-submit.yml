@@ -102,8 +102,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          needs_review="$(jq '.summary.candidates' tmp/member_profile_form_sync_report.json)"
-          if [ "$needs_review" = "0" ]; then
+          candidates_count="$(jq '.summary.candidates' tmp/member_profile_form_sync_report.json)"
+          duplicates_count="$(jq '.summary.possible_duplicates' tmp/member_profile_form_sync_report.json)"
+          if [ "$candidates_count" = "0" ] && [ "$duplicates_count" = "0" ]; then
             echo "No new member profile opt-ins."
             exit 0
           fi
@@ -112,12 +113,17 @@ jobs:
           body_file="tmp/member_profile_form_sync_issue.md"
           {
             echo "タグ表示フォームの回答から、新しい member_profiles 行を追加しました。"
+            if [ "$duplicates_count" != "0" ]; then
+              echo
+              echo "⚠️ 既存メンバーの表記ゆれ（別ニックネームでの再送信）と思われる回答が ${duplicates_count} 件あり、自動追加せず保留しました。\`possible_duplicates\` を確認し、同一人物なら無視、別人なら手動で member_profiles に追加してください。"
+            fi
             echo
             echo '```json'
             jq '{
               summary,
               candidates,
-              duplicate_sheet_nicknames
+              duplicate_sheet_nicknames,
+              possible_duplicates
             }' tmp/member_profile_form_sync_report.json
             echo '```'
           } > "$body_file"
