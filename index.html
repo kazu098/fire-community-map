@@ -145,6 +145,8 @@
       aspect-ratio: 1; border-radius: 4px;
       background: #f3f4f6;
       overflow: hidden;
+      display: block;
+      cursor: zoom-in;
     }
     .photo-cell img {
       width: 100%; height: 100%; object-fit: cover; display: block;
@@ -1698,6 +1700,8 @@ function directoryLocationLabel(member) {
 // 地図初期化
 // ================================================================
 const map = L.map('map', { zoomControl: true }).setView([36.5, 136.0], 5);
+const DEFAULT_MAP_CENTER = [36.5, 136.0];
+const DEFAULT_MAP_ZOOM = 5;
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -1871,8 +1875,11 @@ function makeTravelPopup(p) {
     const grid = document.createElement('div');
     grid.className = 'photo-grid';
     p.photos.forEach(url => {
-      const cell = document.createElement('div');
+      const cell = document.createElement('a');
       cell.className = 'photo-cell';
+      cell.href = url;
+      cell.target = '_blank';
+      cell.rel = 'noopener';
       const img = document.createElement('img');
       img.src = url;
       img.alt = '';
@@ -1900,7 +1907,12 @@ function renderTravelPosts(posts) {
   travelLayer.clearLayers();
   travelMarkersByMessageId.clear();
   posts
-    .filter(p => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+    .filter(p => (
+      Number.isFinite(Number(p.lat)) &&
+      Number.isFinite(Number(p.lng)) &&
+      Array.isArray(p.photos) &&
+      p.photos.length > 0
+    ))
     .forEach(p => {
       const marker = L.marker([p.lat, p.lng], { icon: makeTravelIcon(p) })
         .bindPopup(makeTravelPopup(p), { maxWidth: 260 })
@@ -1962,7 +1974,7 @@ loadTravelPosts();
 const layers = { member: memberLayer, travel: travelLayer };
 const layerClasses = { member: 'on-member', travel: 'on-travel' };
 
-function selectLayer(type) {
+function selectLayer(type, { resetView = true } = {}) {
   Object.entries(layers).forEach(([key, layer]) => {
     const active = key === type;
     const pill = document.getElementById(`pill-${key}`);
@@ -1972,6 +1984,16 @@ function selectLayer(type) {
     } else {
       if (map.hasLayer(layer)) map.removeLayer(layer);
       pill.classList.remove(layerClasses[key]);
+    }
+  });
+  refreshMapLayout({ resetView });
+}
+
+function refreshMapLayout({ resetView = false } = {}) {
+  requestAnimationFrame(() => {
+    map.invalidateSize();
+    if (resetView) {
+      map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, { animate: false });
     }
   });
 }
@@ -2022,7 +2044,7 @@ function focusMember(m) {
   searchInput.value = m.nickname;
   searchSuggestions.style.display = 'none';
   searchClear.style.display = 'block';
-  selectLayer('member');
+  selectLayer('member', { resetView: false });
   map.setView([m.map_lat, m.map_lng], 12, { animate: true });
   m._marker.openPopup();
 }
@@ -2164,6 +2186,7 @@ function selectView(view) {
 
   if (isMap) {
     if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
+    refreshMapLayout({ resetView: true });
     return;
   }
   if (isUsage) {

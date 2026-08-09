@@ -188,6 +188,7 @@
     "title": "OJI-OFF",
     "tags": ["オフ会", "交流会", "昼飲み"],
     "starts_at": "2026-09-15T14:00:00+09:00",
+    "ends_at": "2026-09-15T17:00:00+09:00",
     "format": "offline",
     "prefecture": "東京都",
     "location_label": "新橋",
@@ -195,8 +196,8 @@
     "participation_note": "専用スレッドで参加者と店舗などの連絡を実施。2026/8/8時点で参加者11名。",
     "summary": "「オジサンの、オジサンによる、オジサンのためのオフ会」として、新橋の昼飲みで開催する大人の交流会。参加者連絡用スレッドが立ち上がり、当日の調整が進んでいる。",
     "discord_channel_name": "OJI-OFF",
-    "discord_message_id": "1535452382865915924",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1535452382865915924/1535452382865915924"
+    "discord_message_id": "scheduled_event:1535461358571618365",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1535461358571618365"
   },
   {
     "title": "名古屋ブルーインパルス鑑賞オフ会",
