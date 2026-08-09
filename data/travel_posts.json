@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1535979799854714891",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1535979799854714891",
+    "discord_channel_name": "旅行",
+    "nickname": "推し旅トラベラー０",
+    "avatar_path": "data/travel-avatars/1122d87ac308.png",
+    "avatarColor": "#f97316",
+    "init": "推",
+    "prefecture": "山形県",
+    "municipality_optional": null,
+    "lat": 38.24056,
+    "lng": 140.36333,
+    "date": "2026/08/09",
+    "posted_at": "2026-08-09T11:55:21.410000+00:00",
+    "comment": "山形に来ました。花笠まつりは先週でしたが。。",
+    "photos": [
+      "data/travel-photos/1535979799854714891-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1535571990331654164",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1535571990331654164",
     "discord_channel_name": "旅行",
