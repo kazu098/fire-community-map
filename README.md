@@ -213,6 +213,29 @@ python3 scripts/load_community_posts.py
 
 ✕ボタンで非表示にされた投稿(`community_posts_history` に `action=delete` が記録されたもの)は自動的にスキップされ、再クロールしても復活しません。
 
+### コミュニティ投稿候補の定期確認
+
+`.github/workflows/sync-community-content.yml` で毎日 05:45 JST に、前回リポジトリへ反映された `data/community_posts_sync_state.json` 以降の差分だけを取得します。
+
+- `こんな本読みました` と旅行/グルメ系は、自動投稿に寄せやすい候補としてGitHub Issueにまとめます。
+- お金・介護/医療・子育て・不動産・質問相談は、内容確認が必要な「暮らしの知恵」候補としてGitHub Issueにまとめます。
+- 旅行グルメで画像と場所の手がかりがある投稿は、地図追加候補として確認します。
+- 候補がある場合だけ `暮らしの知恵・旅行グルメ候補の確認が必要です - YYYY-MM-DD` というGitHub Issueを作成します。同日のIssueが既に開いている場合はコメント追記します。
+
+ローカルで同じ候補抽出だけ確認する場合:
+
+```bash
+python3 scripts/fetch_community_posts.py
+python3 scripts/build_community_content_review_report.py \
+  --raw tmp/community_posts_raw.json \
+  --curated tmp/community_posts_curated.json \
+  --travel-posts data/travel_posts.json \
+  --output tmp/community_content_review_needed.md \
+  --count-output tmp/community_content_review_count.txt
+```
+
+承認後は、暮らしの知恵・読んだ本は `tmp/community_posts_curated.json` を整えて `scripts/load_community_posts.py` でSupabaseへ反映し、旅行グルメは `scripts/sync_travel_posts.py` と `scripts/load_travel_posts_to_community_posts.py` で地図・メンバー詳細へ反映します。自動投稿まで進める場合も、まずはIssue候補の分類精度を数回見てから、`book` と場所確定済みの `travel` だけ自動反映に広げる方針にします。
+
 ## Discordイベント開催記録
 
 イベントは「暮らしの知恵」とは別のタブで表示します。Discordの告知・振り返り投稿をそのまま一覧化するのではなく、開催単位で人手レビュー済みの `tmp/community_events_curated.json` を作成し、Supabaseの `community_events` へ反映します。

@@ -1,0 +1,61 @@
+name: Sync community content candidates
+
+on:
+  schedule:
+    # 20:45 UTC = 05:45 JST
+    - cron: "45 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  review-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch Discord community post deltas
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+        run: |
+          python3 scripts/fetch_community_posts.py \
+            --since 2026-01-01T00:00:00+09:00 \
+            --output tmp/community_posts_raw.json \
+            --state-file data/community_posts_sync_state.json
+
+      - name: Build review-needed report
+        run: |
+          python3 scripts/build_community_content_review_report.py \
+            --raw tmp/community_posts_raw.json \
+            --curated tmp/community_posts_curated.json \
+            --travel-posts data/travel_posts.json \
+            --output tmp/community_content_review_needed.md \
+            --count-output tmp/community_content_review_count.txt \
+            --limit 30
+
+      - name: Create review issue
+        if: ${{ hashFiles('tmp/community_content_review_count.txt') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count="$(cat tmp/community_content_review_count.txt)"
+          if [ "$count" = "0" ]; then
+            echo "No review-needed community content candidates."
+            exit 0
+          fi
+          title="暮らしの知恵・旅行グルメ候補の確認が必要です - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file tmp/community_content_review_needed.md
+          else
+            gh issue create \
+              --title "$title" \
+              --body-file tmp/community_content_review_needed.md
+          fi
