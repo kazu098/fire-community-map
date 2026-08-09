@@ -1,5 +1,177 @@
 [
   {
+    "discord_message_id": "1535571990331654164",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1535571990331654164",
+    "discord_channel_name": "旅行",
+    "nickname": "きこ",
+    "avatar_path": "data/travel-avatars/5395d6279723.png",
+    "avatarColor": "#f97316",
+    "init": "き",
+    "prefecture": "長崎県",
+    "municipality_optional": null,
+    "lat": 32.74472,
+    "lng": 129.87361,
+    "date": "2026/08/08",
+    "posted_at": "2026-08-08T08:54:52.043000+00:00",
+    "comment": "長崎県の平戸へ行きました！\nオランダの影響で、和と洋が混在する不思議な街並みでした🇳🇱",
+    "photos": [
+      "data/travel-photos/1535571990331654164-1.jpg",
+      "data/travel-photos/1535571990331654164-2.jpg",
+      "data/travel-photos/1535571990331654164-3.jpg",
+      "data/travel-photos/1535571990331654164-4.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1535131252406091777",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1535131252406091777",
+    "discord_channel_name": "旅行",
+    "nickname": "あんぱんだ",
+    "avatar_path": "data/travel-avatars/bf7e21db937a.png",
+    "avatarColor": "#f97316",
+    "init": "あ",
+    "prefecture": "岐阜県",
+    "municipality_optional": null,
+    "lat": 35.39111,
+    "lng": 136.72222,
+    "date": "2026/08/07",
+    "posted_at": "2026-08-07T03:43:31.933000+00:00",
+    "comment": "出張のついでに強引に観光をねじこんでみました。岐阜県垂井宿。",
+    "photos": [
+      "data/travel-photos/1535131252406091777-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1534547425539391518",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1534547425539391518",
+    "discord_channel_name": "旅行",
+    "nickname": "きこ",
+    "avatar_path": "data/travel-avatars/3bf8386705aa.png",
+    "avatarColor": "#f97316",
+    "init": "き",
+    "prefecture": "福岡県",
+    "municipality_optional": null,
+    "lat": 33.60639,
+    "lng": 130.41806,
+    "date": "2026/08/05",
+    "posted_at": "2026-08-05T13:03:36.761000+00:00",
+    "comment": "ヨルシカのライブのため博多にきています！\nせっかくなので福岡タワーに行ったり、素敵なホテル（映画グランド・ブダペスト・ホテルみたい😳）でお茶したりしましたー！",
+    "photos": [
+      "data/travel-photos/1534547425539391518-1.jpg",
+      "data/travel-photos/1534547425539391518-2.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1534351912890142771",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1534351912890142771",
+    "discord_channel_name": "旅行",
+    "nickname": "にょろ",
+    "avatar_path": "data/travel-avatars/34b86b637295.png",
+    "avatarColor": "#f97316",
+    "init": "に",
+    "prefecture": "北海道",
+    "municipality_optional": null,
+    "lat": 43.06417,
+    "lng": 141.34694,
+    "date": "2026/08/05",
+    "posted_at": "2026-08-05T00:06:42.913000+00:00",
+    "comment": "週末が雨模様にはなってしまいますが、今年の北海道はここ数年とちがってかなり従来の北海道らしい夏になっています☀️(少し前と比較すると夏を取り戻しつつはありますが)\n\n晴れているタイミングは小樽の天狗山リス園(※動画参照)などの動物や自然と触れ合える場を、雨になる後半はロイズカカオ&チョコレートタウンや札幌ビール博物館のような工場見学などで組むのがいいかもしれません…🤔",
+    "photos": [
+      "data/travel-photos/1534351912890142771-1.png"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1533983792396501253",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1533983792396501253",
+    "discord_channel_name": "旅行",
+    "nickname": "はるた",
+    "avatar_path": "data/travel-avatars/b12821b644eb.png",
+    "avatarColor": "#f97316",
+    "init": "は",
+    "prefecture": "愛媛県",
+    "municipality_optional": null,
+    "lat": 33.84167,
+    "lng": 132.76611,
+    "date": "2026/08/03",
+    "posted_at": "2026-08-03T23:43:56.148000+00:00",
+    "comment": "愛媛滞在を終えて、千葉の自宅に帰宅しましたー🏠 \nさっそくお土産の一六タルトをもぐもぐ。\n今回は買いませんでしたが、山田屋まんじゅうもおすすめです🥰",
+    "photos": [
+      "data/travel-photos/1533983792396501253-1.jpg",
+      "data/travel-photos/1533983792396501253-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1533687463653150851",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1533687463653150851",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/94f3382f69cb.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "東京都",
+    "municipality_optional": null,
+    "lat": 35.68944,
+    "lng": 139.69167,
+    "date": "2026/08/03",
+    "posted_at": "2026-08-03T04:06:25.870000+00:00",
+    "comment": "川崎で人気の麻婆まぜそば 麻ぜろう。\n\n先週のマツコ世界でここ紹介してほしかったな〜。東京の店ばっかりだったし。\n\n旨辛ピリ辛でホント美味しいんですよ🤣",
+    "photos": [
+      "data/travel-photos/1533687463653150851-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1533235322224377876",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1533235322224377876",
+    "discord_channel_name": "旅行",
+    "nickname": "はるた",
+    "avatar_path": "data/travel-avatars/711cd1d159af.png",
+    "avatarColor": "#f97316",
+    "init": "は",
+    "prefecture": "愛媛県",
+    "municipality_optional": "西予市",
+    "lat": 33.3629,
+    "lng": 132.51084,
+    "date": "2026/08/01",
+    "posted_at": "2026-08-01T22:09:46.953000+00:00",
+    "comment": "わらマンモス見ましたー🐘 \n想像より一回り大きかったです👍️",
+    "photos": [
+      "data/travel-photos/1533235322224377876-1.jpg",
+      "data/travel-photos/1533235322224377876-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1533095698147315742",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1533095698147315742",
+    "discord_channel_name": "旅行",
+    "nickname": "コタ@フランスでFIRE",
+    "avatar_path": "data/travel-avatars/0f093bc9c40f.png",
+    "avatarColor": "#f97316",
+    "init": "コ",
+    "prefecture": "香川県",
+    "municipality_optional": null,
+    "lat": 34.34028,
+    "lng": 134.04333,
+    "date": "2026/08/01",
+    "posted_at": "2026-08-01T12:54:57.979000+00:00",
+    "comment": "フェリー⛴️で小豆島に。そこから香川の金比羅山に。785段、20分強で登り切ったが暑さが凄かった！香川の老舗旅館も良かったし、流石に讃岐うどんとて美味しい😋",
+    "photos": [
+      "data/travel-photos/1533095698147315742-1.jpg",
+      "data/travel-photos/1533095698147315742-2.jpg",
+      "data/travel-photos/1533095698147315742-3.jpg",
+      "data/travel-photos/1533095698147315742-4.jpg",
+      "data/travel-photos/1533095698147315742-5.jpg",
+      "data/travel-photos/1533095698147315742-6.jpg",
+      "data/travel-photos/1533095698147315742-7.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1532591471893545021",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1532591471893545021",
     "discord_channel_name": "旅行",
