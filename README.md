@@ -215,9 +215,11 @@ python3 scripts/load_community_posts.py
 
 ### コミュニティ投稿候補の定期確認
 
-`.github/workflows/sync-community-content.yml` で毎日 05:45 JST に、前回リポジトリへ反映された `data/community_posts_sync_state.json` 以降の差分だけを取得します。
+`.github/workflows/sync-community-content.yml` で毎日 05:45 JST に、前回リポジトリへ反映された `data/community_posts_sync_state.json` 以降の差分だけを取得します。処理後は同期stateを自動commitするため、同じ差分を毎日繰り返しIssue化しません。
 
-- `こんな本読みました` と旅行/グルメ系は、自動投稿に寄せやすい候補としてGitHub Issueにまとめます。
+- `こんな本読みました` は、本文から本タイトルを抽出でき、投稿者が `member_profiles` に一致する場合だけ自動でSupabaseへ反映します。
+- 読書投稿でも、タイトルを本文から確定できないもの、投稿者が未マッピングのもの、短文返信っぽいものはGitHub Issueに回します。
+- 旅行/グルメ系は、自動投稿に寄せやすい候補としてGitHub Issueにまとめます。
 - お金・介護/医療・子育て・不動産・質問相談は、内容確認が必要な「暮らしの知恵」候補としてGitHub Issueにまとめます。
 - 旅行グルメで画像と場所の手がかりがある投稿は、地図追加候補として確認します。
 - 候補がある場合だけ `暮らしの知恵・旅行グルメ候補の確認が必要です - YYYY-MM-DD` というGitHub Issueを作成します。同日のIssueが既に開いている場合はコメント追記します。
@@ -226,15 +228,22 @@ python3 scripts/load_community_posts.py
 
 ```bash
 python3 scripts/fetch_community_posts.py
-python3 scripts/build_community_content_review_report.py \
+python3 scripts/build_auto_book_posts.py \
   --raw tmp/community_posts_raw.json \
   --curated tmp/community_posts_curated.json \
+  --output tmp/community_posts_book_auto.json \
+  --review-output tmp/community_posts_book_review_needed.md \
+  --count-output tmp/community_posts_book_auto_count.txt \
+  --review-count-output tmp/community_posts_book_review_count.txt
+python3 scripts/build_community_content_review_report.py \
+  --raw tmp/community_posts_raw.json \
+  --curated tmp/community_posts_book_auto.json \
   --travel-posts data/travel_posts.json \
   --output tmp/community_content_review_needed.md \
   --count-output tmp/community_content_review_count.txt
 ```
 
-承認後は、暮らしの知恵・読んだ本は `tmp/community_posts_curated.json` を整えて `scripts/load_community_posts.py` でSupabaseへ反映し、旅行グルメは `scripts/sync_travel_posts.py` と `scripts/load_travel_posts_to_community_posts.py` で地図・メンバー詳細へ反映します。自動投稿まで進める場合も、まずはIssue候補の分類精度を数回見てから、`book` と場所確定済みの `travel` だけ自動反映に広げる方針にします。
+承認後は、暮らしの知恵と例外扱いの読書投稿は `tmp/community_posts_curated.json` を整えて `scripts/load_community_posts.py` でSupabaseへ反映し、旅行グルメは `scripts/sync_travel_posts.py` と `scripts/load_travel_posts_to_community_posts.py` で地図・メンバー詳細へ反映します。旅行グルメも自動投稿まで進める場合は、画像保存・場所推定・投稿者マッピングがすべて通った投稿だけを自動反映対象に広げます。
 
 ## Discordイベント開催記録
 

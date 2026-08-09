@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -30,11 +30,38 @@ jobs:
             --output tmp/community_posts_raw.json \
             --state-file data/community_posts_sync_state.json
 
+      - name: Build auto-curated book posts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/build_auto_book_posts.py \
+            --raw tmp/community_posts_raw.json \
+            --curated tmp/community_posts_curated.json \
+            --output tmp/community_posts_book_auto.json \
+            --review-output tmp/community_posts_book_review_needed.md \
+            --count-output tmp/community_posts_book_auto_count.txt \
+            --review-count-output tmp/community_posts_book_review_count.txt
+
+      - name: Upsert auto-curated book posts
+        if: ${{ hashFiles('tmp/community_posts_book_auto_count.txt') != '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          count="$(cat tmp/community_posts_book_auto_count.txt)"
+          if [ "$count" = "0" ]; then
+            echo "No auto-curated book posts."
+            exit 0
+          fi
+          python3 scripts/load_community_posts.py \
+            --curated tmp/community_posts_book_auto.json
+
       - name: Build review-needed report
         run: |
           python3 scripts/build_community_content_review_report.py \
             --raw tmp/community_posts_raw.json \
-            --curated tmp/community_posts_curated.json \
+            --curated tmp/community_posts_book_auto.json \
             --travel-posts data/travel_posts.json \
             --output tmp/community_content_review_needed.md \
             --count-output tmp/community_content_review_count.txt \
@@ -59,3 +86,16 @@ jobs:
               --title "$title" \
               --body-file tmp/community_content_review_needed.md
           fi
+
+      - name: Commit sync state
+        run: |
+          if git diff --quiet -- data/community_posts_sync_state.json; then
+            echo "No community post sync state changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/community_posts_sync_state.json
+          git commit -m "Advance community content sync state"
+          git pull --rebase origin main
+          git push origin HEAD:main
