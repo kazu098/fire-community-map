@@ -20,3 +20,9 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 中部地方,,中部地方,region,35.5,137.0,manual_alias,地方名の概略代表点
 北陸,,北陸,region,36.7,137.2,manual_alias,地方名の概略代表点
 愛媛,愛媛県,,prefecture,33.84167,132.76611,manual_alias,愛媛県として扱う
+宇和島,愛媛県,宇和島市,municipality,33.22334,132.5606,manual_alias,宇和島鯛めし投稿から宇和島市として扱う
+南予,愛媛県,宇和島市,area,33.22334,132.5606,manual_alias,宇和島鯛めし文脈では宇和島市代表点として扱う
+八幡浜,愛媛県,八幡浜市,municipality,33.46312,132.42333,manual_alias,八幡浜ちゃんぽん投稿から八幡浜市として扱う
+道後温泉,愛媛県,松山市,spot,33.85015,132.78552,manual_alias,道後温泉投稿の代表点
+西予,愛媛県,西予市,municipality,33.3629,132.51084,manual_alias,西予市の旅行投稿から市代表点として扱う
+わらマンモス,愛媛県,西予市,spot,33.3629,132.51084,manual_alias,西予市のわらマンモス投稿から市代表点として扱う

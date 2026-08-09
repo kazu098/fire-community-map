@@ -129,15 +129,15 @@
     "discord_permalink": "https://discord.com/events/1389921372683112539/1534116339583553536"
   },
   {
-    "title": "オンラインお料理会🥕",
-    "tags": ["オンライン"],
+    "title": "オンラインお料理会 子どもが食べやすい野菜レシピ",
+    "tags": ["オンライン", "料理", "子育て"],
     "starts_at": "2026-08-25T18:00:00+09:00",
     "format": "online",
     "prefecture": "オンライン",
     "location_label": "Discord / 一般",
     "participant_count": 5,
-    "participation_note": "Discordのサーバーイベントから参加。一緒に作る参加、チャット・聞き専の参加も歓迎。",
-    "summary": "オンラインで繋がりながらみんなでお料理する会。「子どもが食べやすい野菜レシピ」で簡単に出来そうなものにする予定。レシピ・材料はフォーラムで共有。",
+    "participation_note": "Discordのサーバーイベントから参加。一緒に作る参加、チャット・聞き専の参加も歓迎。レシピや材料はフォーラムで共有予定。",
+    "summary": "子どもが食べやすい野菜レシピをテーマにしたオンラインお料理会。簡単に作れそうな野菜レシピを持ち寄り、オンラインでつながりながら一緒に料理する企画。",
     "discord_channel_name": "一般",
     "discord_message_id": "scheduled_event:1533980321689895023",
     "discord_permalink": "https://discord.com/events/1389921372683112539/1533980321689895023"
@@ -171,20 +171,6 @@
     "discord_permalink": "https://discord.com/events/1389921372683112539/1534872096662880347"
   },
   {
-    "title": "オンラインお料理会 子どもが食べやすい野菜レシピ",
-    "tags": ["オンライン", "料理", "募集中"],
-    "starts_at": "2026-08-25T18:00:00+09:00",
-    "format": "online",
-    "prefecture": "オンライン",
-    "location_label": "Discord",
-    "participant_count": 4,
-    "participation_note": "Discordのサーバーイベントから参加。一緒に作る参加、チャット・聞き専の参加も歓迎。",
-    "summary": "子どもが食べやすい野菜レシピをテーマにしたオンラインお料理会。レシピや材料はフォーラムで共有予定。",
-    "discord_channel_name": "オンラインイベント",
-    "discord_message_id": "1532616972775456858",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1532616972775456858"
-  },
-  {
     "title": "ダイエットメニュー相談&座談会",
     "tags": ["オンライン", "相談会", "健康"],
     "starts_at": "2026-08-28T17:00:00+09:00",
@@ -199,17 +185,18 @@
     "discord_permalink": "https://discord.com/events/1389921372683112539/1534721103761768558"
   },
   {
-    "title": "OJI-OFF（仮称）",
-    "tags": ["オフ会", "交流会", "募集中"],
+    "title": "OJI-OFF",
+    "tags": ["オフ会", "交流会", "昼飲み"],
     "starts_at": "2026-09-15T14:00:00+09:00",
     "format": "offline",
     "prefecture": "東京都",
     "location_label": "新橋",
-    "participation_note": "日程候補への最多リアクションを受けて9/15（火）14時開始に確定。今後Discordイベント登録とフォーラムを作成予定。",
-    "summary": "「心にオジサンを飼っている」人を対象にした大人のオフ会企画。参加希望アンケートの結果、9/15（火）14時から新橋で開催に決定。",
-    "discord_channel_name": "オフ会",
-    "discord_message_id": "1532999315851710516",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1532999315851710516"
+    "participant_count": 11,
+    "participation_note": "専用スレッドで参加者と店舗などの連絡を実施。2026/8/8時点で参加者11名。",
+    "summary": "「オジサンの、オジサンによる、オジサンのためのオフ会」として、新橋の昼飲みで開催する大人の交流会。参加者連絡用スレッドが立ち上がり、当日の調整が進んでいる。",
+    "discord_channel_name": "OJI-OFF",
+    "discord_message_id": "1535452382865915924",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1535452382865915924/1535452382865915924"
   },
   {
     "title": "名古屋ブルーインパルス鑑賞オフ会",
