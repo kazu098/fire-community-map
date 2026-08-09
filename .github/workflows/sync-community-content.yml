@@ -57,6 +57,24 @@ jobs:
           python3 scripts/load_community_posts.py \
             --curated tmp/community_posts_book_auto.json
 
+      - name: Sync auto-qualified travel and gourmet posts
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+        run: python3 scripts/sync_travel_posts.py
+
+      - name: Upsert auto-synced travel posts
+        env:
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if git diff --quiet -- data/travel_posts.json; then
+            echo "No auto-synced travel posts to upsert."
+            exit 0
+          fi
+          python3 scripts/load_travel_posts_to_community_posts.py
+
       - name: Build review-needed report
         run: |
           python3 scripts/build_community_content_review_report.py \
@@ -89,13 +107,14 @@ jobs:
 
       - name: Commit sync state
         run: |
-          if git diff --quiet -- data/community_posts_sync_state.json; then
-            echo "No community post sync state changes."
+          changed="$(git status --porcelain -- data/community_posts_sync_state.json data/travel_sync_state.json data/travel_posts.json data/travel-photos data/travel-avatars)"
+          if [ -z "$changed" ]; then
+            echo "No community content data changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/community_posts_sync_state.json
+          git add data/community_posts_sync_state.json data/travel_sync_state.json data/travel_posts.json data/travel-photos data/travel-avatars
           git commit -m "Advance community content sync state"
           git pull --rebase origin main
           git push origin HEAD:main
