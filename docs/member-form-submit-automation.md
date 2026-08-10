@@ -69,7 +69,7 @@ function dispatchMemberSync() {
   const responseSheet = sheet.getSheetByName('Form Responses 1');
   if (!responseSheet) throw new Error('Form Responses 1 sheet was not found.');
 
-  const membersCsvB64 = buildMinimalMembersCsvB64(responseSheet);
+  const membersCsvB64 = buildMembersCsvB64(responseSheet);
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`;
 
   const response = UrlFetchApp.fetch(url, {
@@ -100,13 +100,15 @@ function dispatchMemberSync() {
   }
 }
 
-function buildMinimalMembersCsvB64(responseSheet) {
+function buildMembersCsvB64(responseSheet) {
   const lastRow = responseSheet.getLastRow();
+  const lastColumn = responseSheet.getLastColumn();
   if (lastRow < 1) throw new Error('Response sheet is empty.');
+  if (lastColumn < 2) throw new Error('Response sheet must include at least timestamp and nickname columns.');
 
-  // sync_member_profile_form_deltas.py reads nickname from column B.
-  // Sending only A:B keeps the workflow_dispatch payload small and avoids exposing unrelated answers.
-  const values = responseSheet.getRange(1, 1, lastRow, 2).getDisplayValues();
+  // sync_member_profile_form_deltas.py reads the nickname from the matching header
+  // or column B, and auto-detects profile/tag/link columns from the header row.
+  const values = responseSheet.getRange(1, 1, lastRow, lastColumn).getDisplayValues();
   const csv = values.map(row => row.map(csvEscape).join(',')).join('\n') + '\n';
   return Utilities.base64Encode(csv, Utilities.Charset.UTF_8);
 }
@@ -129,5 +131,7 @@ Apps Script の Project Settings > Script properties に `GITHUB_TOKEN` を保�
 ## 注意
 
 - 同時送信があっても workflow 側は `concurrency` で直列化する。
+- フォーム回答は、ニックネームを公開ONにし、回答列から判定できる自己紹介・居住地・リンク・タグを `member_profiles` / `member_tags` / `member_links` に同期する。
+- 自己紹介・居住地・リンクの公開フラグは、該当値がある場合だけONにする。アイコン公開は既存 `avatar_url` がある場合だけONにする。
 - 住所判定不能、Discordアバター未一致、既存メンバーの住所変更検知などは GitHub Issue に確認項目として出す。
 - GitHub Actions `workflow_dispatch` の入力サイズ上限に近づくほど回答数が増えた場合は、Apps Script から中継APIへ送る方式に切り替える。

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync tag-display form nickname opt-ins into member_profiles."""
+"""Sync tag-display form responses into public member profiles."""
 
 from __future__ import annotations
 
@@ -24,6 +24,25 @@ USER_AGENT = "fire-community-map-profile-form-sync/0.1"
 class FormMember:
     sheet_row: int
     nickname: str
+    tags: dict[str, list[str]]
+    links: list[dict[str, str]]
+    external_self_intro_text: str | None = None
+    location_text: str | None = None
+
+
+CATEGORY_HEADERS = {
+    "investment_style": ("投資スタイル", "投資", "資産運用"),
+    "fire_status": ("FIREステータス", "FIRE状況", "FIRE"),
+    "mbti": ("MBTI",),
+    "skill": ("スキル", "得意"),
+    "consultation": ("相談できること", "相談"),
+    "interest": ("趣味", "興味", "関心"),
+    "affiliation": ("所属活動", "部活", "所属"),
+}
+NICKNAME_HEADERS = ("ニックネーム", "nickname", "表示名")
+INTRO_HEADERS = ("外部向け自己紹介", "自己紹介", "紹介文", "プロフィール")
+LOCATION_HEADERS = ("居住地", "お住まい", "住所", "都道府県")
+LINK_HEADERS = ("リンク", "URL", "note", "YouTube", "ブログ", "SNS", "X（Twitter）", "Twitter")
 
 
 def load_dotenv(path: Path) -> None:
@@ -47,6 +66,68 @@ def require_env(name: str) -> str:
 
 def normalize_spaces(value: str) -> str:
     return re.sub(r"\s+", " ", value.replace("　", " ")).strip()
+
+
+def normalize_header(value: str) -> str:
+    return normalize_spaces(value).casefold()
+
+
+def header_matches(header: str, needles: tuple[str, ...]) -> bool:
+    normalized = normalize_header(header)
+    return any(normalize_header(needle) in normalized for needle in needles)
+
+
+def find_first_column(headers: list[str], aliases: tuple[str, ...], *, fallback: int | None = None) -> int | None:
+    for index, header in enumerate(headers):
+        if header_matches(header, aliases):
+            return index
+    return fallback if fallback is not None and fallback < len(headers) else None
+
+
+def split_multi_value(value: str) -> list[str]:
+    text = value.strip()
+    if not text:
+        return []
+    parts = re.split(r"[\n\r,、;；/／]+", text)
+    values: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        item = normalize_spaces(part)
+        if not item or item in seen:
+            continue
+        values.append(item)
+        seen.add(item)
+    return values
+
+
+def looks_like_url(value: str) -> bool:
+    return bool(re.match(r"https?://", value.strip()))
+
+
+def link_label_from_header(header: str, index: int) -> str:
+    text = normalize_spaces(header)
+    lowered = text.casefold()
+    if "youtube" in lowered:
+        return "YouTube"
+    if "note" in lowered:
+        return "note"
+    if "ブログ" in text or "blog" in lowered:
+        return "ブログ"
+    if "twitter" in lowered or "x（twitter" in lowered:
+        return "X"
+    return "リンク" if index == 0 else f"リンク{index + 1}"
+
+
+def cell(row: list[str], index: int | None) -> str:
+    if index is None or index >= len(row):
+        return ""
+    return normalize_spaces(row[index])
+
+
+def raw_cell(row: list[str], index: int | None) -> str:
+    if index is None or index >= len(row):
+        return ""
+    return row[index]
 
 
 PAREN_PATTERN = re.compile(r"[（(]([^）)]*)[）)]")
@@ -105,11 +186,61 @@ def read_sheet_members(sheet_id: str, sheet_name: str) -> list[FormMember]:
 
 
 def rows_to_members(rows: list[list[str]]) -> list[FormMember]:
+    if not rows:
+        return []
+
+    headers = rows[0]
+    nickname_col = find_first_column(headers, NICKNAME_HEADERS, fallback=1)
+    intro_col = find_first_column(headers, INTRO_HEADERS)
+    location_col = find_first_column(headers, LOCATION_HEADERS)
+    category_columns: dict[str, list[int]] = {}
+    assigned_category_columns: set[int] = set()
+    for category, aliases in CATEGORY_HEADERS.items():
+        columns = []
+        for index, header in enumerate(headers):
+            if index == nickname_col or index in assigned_category_columns:
+                continue
+            if header_matches(header, aliases):
+                columns.append(index)
+                assigned_category_columns.add(index)
+        category_columns[category] = columns
+    link_columns = [
+        index
+        for index, header in enumerate(headers)
+        if header_matches(header, LINK_HEADERS) and index not in {nickname_col, intro_col, location_col}
+    ]
+
     members: list[FormMember] = []
     for index, row in enumerate(rows[1:], start=2):
-        nickname = normalize_spaces(row[1]) if len(row) > 1 else ""
+        nickname = cell(row, nickname_col)
         if nickname:
-            members.append(FormMember(index, nickname))
+            tags = {
+                category: [
+                    value
+                    for column in columns
+                    for value in split_multi_value(raw_cell(row, column))
+                    if value
+                ]
+                for category, columns in category_columns.items()
+            }
+            tags = {category: values for category, values in tags.items() if values}
+
+            links: list[dict[str, str]] = []
+            for link_index, column in enumerate(link_columns):
+                url = cell(row, column)
+                if looks_like_url(url):
+                    links.append({"label": link_label_from_header(headers[column], link_index), "url": url})
+
+            members.append(
+                FormMember(
+                    index,
+                    nickname,
+                    tags=tags,
+                    links=links,
+                    external_self_intro_text=cell(row, intro_col) or None,
+                    location_text=cell(row, location_col) or None,
+                )
+            )
     return members
 
 
@@ -187,13 +318,102 @@ def supabase_request(
         raise RuntimeError(f"Supabase request failed {method} {path}: {exc}") from exc
 
 
-def fetch_existing_profiles(supabase_url: str, service_role_key: str) -> set[str]:
+def fetch_existing_profiles(supabase_url: str, service_role_key: str) -> dict[str, dict[str, Any]]:
     rows = supabase_request(
         supabase_url,
         service_role_key,
-        "/rest/v1/member_profiles?select=nickname&limit=10000",
+        "/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,external_self_intro_text,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public&limit=10000",
     )
-    return {str(row["nickname"]) for row in rows or [] if row.get("nickname")}
+    return {str(row["nickname"]): row for row in rows or [] if row.get("nickname")}
+
+
+def build_profile_payload(member: FormMember, existing_profile: dict[str, Any] | None) -> dict[str, Any]:
+    external_intro = member.external_self_intro_text
+    if external_intro is None and existing_profile:
+        external_intro = existing_profile.get("external_self_intro_text") or existing_profile.get("self_intro_text")
+
+    location_text = member.location_text
+    if location_text is None and existing_profile:
+        location_text = existing_profile.get("location_text")
+
+    avatar_url = existing_profile.get("avatar_url") if existing_profile else None
+
+    return {
+        "nickname": member.nickname,
+        "external_self_intro_text": external_intro,
+        "location_text": location_text,
+        "nickname_public": True,
+        "avatar_public": bool(avatar_url),
+        "self_intro_public": bool(external_intro),
+        "location_public": bool(location_text),
+        "links_public": bool(member.links) or bool(existing_profile and existing_profile.get("links_public")),
+    }
+
+
+def tag_rows_for_member(member: FormMember) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for category, values in member.tags.items():
+        for sort_order, value in enumerate(values):
+            rows.append(
+                {
+                    "member_nickname": member.nickname,
+                    "category": category,
+                    "value": value,
+                    "sort_order": sort_order,
+                }
+            )
+    return rows
+
+
+def sync_tags(
+    supabase_url: str,
+    service_role_key: str,
+    member: FormMember,
+    *,
+    dry_run: bool,
+) -> int:
+    tag_rows = tag_rows_for_member(member)
+    if not tag_rows or dry_run:
+        return len(tag_rows)
+    categories = sorted(member.tags)
+    query = (
+        f"member_nickname=eq.{quote(member.nickname, safe='')}"
+        f"&category=in.({','.join(quote(category, safe='') for category in categories)})"
+    )
+    supabase_request(supabase_url, service_role_key, f"/rest/v1/member_tags?{query}", method="DELETE")
+    supabase_request(
+        supabase_url,
+        service_role_key,
+        "/rest/v1/member_tags?on_conflict=member_nickname,category,value",
+        method="POST",
+        payload=tag_rows,
+        prefer="resolution=merge-duplicates,return=minimal",
+    )
+    return len(tag_rows)
+
+
+def sync_links(
+    supabase_url: str,
+    service_role_key: str,
+    member: FormMember,
+    *,
+    dry_run: bool,
+) -> int:
+    if not member.links or dry_run:
+        return len(member.links)
+    payload = [
+        {"member_nickname": member.nickname, "label": link["label"], "url": link["url"]}
+        for link in member.links
+    ]
+    supabase_request(
+        supabase_url,
+        service_role_key,
+        "/rest/v1/member_links?on_conflict=member_nickname,url",
+        method="POST",
+        payload=payload,
+        prefer="resolution=merge-duplicates,return=minimal",
+    )
+    return len(payload)
 
 
 def write_report(path: Path, payload: dict[str, Any]) -> None:
@@ -203,7 +423,7 @@ def write_report(path: Path, payload: dict[str, Any]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Read the tag-display form response sheet and add new nicknames to member_profiles."
+        description="Read the tag-display form response sheet and publish member profile fields."
     )
     parser.add_argument("--env-file", default=".env")
     parser.add_argument("--sheet-url")
@@ -221,7 +441,8 @@ def main() -> int:
 
     supabase_url = require_env("SUPABASE_URL")
     service_role_key = require_env("SUPABASE_SERVICE_ROLE_KEY")
-    existing = fetch_existing_profiles(supabase_url, service_role_key)
+    existing_profiles = fetch_existing_profiles(supabase_url, service_role_key)
+    existing = set(existing_profiles)
 
     existing_fold_index: dict[str, list[str]] = {}
     for nickname in existing:
@@ -229,7 +450,7 @@ def main() -> int:
             existing_fold_index.setdefault(key, []).append(nickname)
 
     candidates: list[FormMember] = []
-    skipped_existing = [member for member in sync_members if member.nickname in existing]
+    exact_existing = [member for member in sync_members if member.nickname in existing]
     possible_duplicates: list[dict[str, Any]] = []
 
     for member in sync_members:
@@ -249,7 +470,11 @@ def main() -> int:
         else:
             candidates.append(member)
 
-    payload = [{"nickname": member.nickname} for member in candidates]
+    syncable_members = [*exact_existing, *candidates]
+    payload = [
+        build_profile_payload(member, existing_profiles.get(member.nickname))
+        for member in syncable_members
+    ]
 
     response = None
     if payload and not args.dry_run:
@@ -259,8 +484,14 @@ def main() -> int:
             "/rest/v1/member_profiles?on_conflict=nickname",
             method="POST",
             payload=payload,
-            prefer="resolution=ignore-duplicates,return=representation",
+            prefer="resolution=merge-duplicates,return=representation",
         )
+
+    tags_synced = 0
+    links_synced = 0
+    for member in syncable_members:
+        tags_synced += sync_tags(supabase_url, service_role_key, member, dry_run=args.dry_run)
+        links_synced += sync_links(supabase_url, service_role_key, member, dry_run=args.dry_run)
 
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -271,14 +502,35 @@ def main() -> int:
             "duplicate_sheet_nicknames": len(duplicate_sheet_nicknames),
             "existing": len(existing),
             "candidates": len(candidates),
-            "insert": len(payload) if not args.dry_run else 0,
-            "skipped_existing": len(skipped_existing),
+            "profiles_upserted": len(payload) if not args.dry_run else 0,
+            "existing_profiles_updated": len(exact_existing) if not args.dry_run else 0,
+            "insert": len(candidates) if not args.dry_run else 0,
+            "tags_synced": tags_synced,
+            "links_synced": links_synced,
             "possible_duplicates": len(possible_duplicates),
         },
         "duplicate_sheet_nicknames": duplicate_sheet_nicknames,
-        "candidates": [{"sheet_row": member.sheet_row, "nickname": member.nickname} for member in candidates],
-        "skipped_existing": [
-            {"sheet_row": member.sheet_row, "nickname": member.nickname} for member in skipped_existing
+        "candidates": [
+            {
+                "sheet_row": member.sheet_row,
+                "nickname": member.nickname,
+                "tags": member.tags,
+                "links": member.links,
+                "external_self_intro_text": member.external_self_intro_text,
+                "location_text": member.location_text,
+            }
+            for member in candidates
+        ],
+        "updated_existing": [
+            {
+                "sheet_row": member.sheet_row,
+                "nickname": member.nickname,
+                "tags": member.tags,
+                "links": member.links,
+                "external_self_intro_text": member.external_self_intro_text,
+                "location_text": member.location_text,
+            }
+            for member in exact_existing
         ],
         "possible_duplicates": possible_duplicates,
         "response": response,
@@ -287,8 +539,9 @@ def main() -> int:
 
     summary = report["summary"]
     print(
-        "Synced {candidates} profile candidates ({insert} insert, {skipped_existing} skipped existing, "
-        "{possible_duplicates} possible duplicates held back for review).".format(**summary)
+        "Synced {profiles_upserted} profiles ({insert} new, {existing_profiles_updated} existing, "
+        "{tags_synced} tags, {links_synced} links, {possible_duplicates} possible duplicates held back for review)."
+        .format(**summary)
     )
     if possible_duplicates:
         print("Possible duplicates (not inserted, needs manual review):")

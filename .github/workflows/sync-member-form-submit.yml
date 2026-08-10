@@ -109,10 +109,10 @@ jobs:
             exit 0
           fi
 
-          title="メンバー表示フォームから新規プロフィールを追加しました - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          title="メンバー表示フォームをプロフィール公開情報へ同期しました - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
           body_file="tmp/member_profile_form_sync_issue.md"
           {
-            echo "タグ表示フォームの回答から、新しい member_profiles 行を追加しました。"
+            echo "タグ表示フォームの回答から、member_profiles の公開設定と member_tags / member_links を同期しました。"
             if [ "$duplicates_count" != "0" ]; then
               echo
               echo "⚠️ 既存メンバーの表記ゆれ（別ニックネームでの再送信）と思われる回答が ${duplicates_count} 件あり、自動追加せず保留しました。\`possible_duplicates\` を確認し、同一人物なら無視、別人なら手動で member_profiles に追加してください。"
