@@ -19,6 +19,8 @@ PUBLIC_FIELDS = (
     "links_public",
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 
 def assert_no_auto_public_flags_for_new_profile() -> None:
     member = FormMember(
@@ -64,9 +66,33 @@ def assert_existing_flags_are_preserved() -> None:
             raise SystemExit(f"Public profile flag {field} was not preserved.")
 
 
+def assert_database_publication_guard_exists() -> None:
+    schema_sql = (PROJECT_ROOT / "supabase" / "public_profile_publication.sql").read_text()
+    guard_sql = (PROJECT_ROOT / "supabase" / "public_profile_publication_guard.sql").read_text()
+    combined_sql = schema_sql + "\n" + guard_sql
+    required_fragments = [
+        "prevent_implicit_public_profile_publication",
+        "before insert or update on public.member_profiles",
+        "update_member_profile_publication",
+        "set_config('app.allow_public_profile_publication', 'on', true)",
+        "security invoker",
+    ]
+    missing = [fragment for fragment in required_fragments if fragment not in combined_sql]
+    if missing:
+        raise SystemExit("Database publication guard is missing: " + ", ".join(missing))
+
+
+def assert_frontend_uses_publication_rpc() -> None:
+    index_html = (PROJECT_ROOT / "index.html").read_text()
+    if "/rest/v1/rpc/update_member_profile_publication" not in index_html:
+        raise SystemExit("Public profile toggles must use update_member_profile_publication RPC.")
+
+
 def main() -> int:
     assert_no_auto_public_flags_for_new_profile()
     assert_existing_flags_are_preserved()
+    assert_database_publication_guard_exists()
+    assert_frontend_uses_publication_rpc()
     print("Public profile privacy guard passed.")
     return 0
 

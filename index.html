@@ -3058,19 +3058,23 @@ function buildPublicToggle({ member, field, label, status, className = 'public-t
 async function savePublicSetting(nickname, field, value, button, status) {
   button.disabled = true;
   status.textContent = '保存中...';
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
-    method: 'PATCH',
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_member_profile_publication`, {
+    method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
-    body: JSON.stringify({ [field]: value }),
+    body: JSON.stringify({
+      target_nickname: nickname,
+      field_name: field,
+      enabled: value,
+    }),
   });
   if (!res.ok) {
     button.disabled = false;
-    status.textContent = '保存できませんでした。Supabaseに公開設定カラムを反映してください。';
+    status.textContent = '保存できませんでした。Supabaseに公開設定RPCを反映してください。';
     return;
   }
   await refreshDirectory();

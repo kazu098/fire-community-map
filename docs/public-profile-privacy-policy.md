@@ -24,3 +24,10 @@ python3 scripts/check_public_profile_privacy_guard.py
 ```
 
 このチェックは、新規プロフィールpayloadに自己紹介・アイコン・リンクが含まれていても、外部公開フラグがすべて `false` のままであることを検証する。
+
+## DB側の防御
+
+- `member_profiles` には `prevent_implicit_public_profile_publication` トリガーを置き、通常の `INSERT` / `UPDATE` で外部公開フラグが `false` から `true` になる変更を拒否する。
+- メンバー一覧画面の外部公開設定だけは、専用RPC `update_member_profile_publication` を通して明示的にON/OFFする。
+- 同期スクリプトやバッチ投入スクリプトは、外部公開フラグをONにする専用RPCを呼んではいけない。
+- 新しい同期処理を追加するときは、公開フラグをpayloadに含めないか、既存値維持/新規`false`のみ許可する。`true` 固定や `bool(avatar_url)` のような自動判定は禁止。
