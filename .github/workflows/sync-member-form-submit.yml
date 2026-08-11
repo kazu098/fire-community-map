@@ -48,6 +48,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Guard public profile privacy flags
+        run: python3 scripts/check_public_profile_privacy_guard.py
+
       - name: Sync member profiles
         env:
           SHEET_URL: ${{ github.event.inputs.sheet_url }}
