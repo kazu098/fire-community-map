@@ -8,13 +8,15 @@ import csv
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
+
+import fetch_self_intros
 
 
 USER_AGENT = "fire-community-map-profile-form-sync/0.1"
@@ -28,6 +30,10 @@ class FormMember:
     links: list[dict[str, str]]
     external_self_intro_text: str | None = None
     location_text: str | None = None
+    avatar_url: str | None = None
+    self_intro_text: str | None = None
+    self_intro_url: str | None = None
+    self_intro_posted_at: str | None = None
 
 
 CATEGORY_HEADERS = {
@@ -43,6 +49,84 @@ NICKNAME_HEADERS = ("ニックネーム", "nickname", "表示名")
 INTRO_HEADERS = ("外部向け自己紹介", "自己紹介", "紹介文", "プロフィール")
 LOCATION_HEADERS = ("居住地", "お住まい", "住所", "都道府県")
 LINK_HEADERS = ("リンク", "URL", "note", "YouTube", "ブログ", "SNS", "X（Twitter）", "Twitter")
+SELF_INTRO_CHANNEL_ID = "1389923387887063171"
+PREFECTURE_NAMES = (
+    "北海道", "青森", "岩手", "宮城", "秋田", "山形", "福島", "茨城", "栃木", "群馬",
+    "埼玉", "千葉", "東京", "神奈川", "新潟", "富山", "石川", "福井", "山梨", "長野",
+    "岐阜", "静岡", "愛知", "三重", "滋賀", "京都", "大阪", "兵庫", "奈良", "和歌山",
+    "鳥取", "島根", "岡山", "広島", "山口", "徳島", "香川", "愛媛", "高知", "福岡",
+    "佐賀", "長崎", "熊本", "大分", "宮崎", "鹿児島", "沖縄",
+)
+INVESTMENT_TAG_PATTERNS = (
+    ("米国インデックス", ("米国インデックス", "米国株インデックス")),
+    ("S&P500", ("S&P500", "SP500", "S＆P500")),
+    ("QQQ", ("QQQ",)),
+    ("FANG+", ("FANG+", "FANG＋")),
+    ("オルカン", ("オルカン", "全世界")),
+    ("インデックス投資", ("インデックス", "投資信託")),
+    ("日本株", ("日本株", "国内株")),
+    ("米国株", ("米国株",)),
+    ("高配当株", ("高配当", "配当")),
+    ("個別株", ("個別株",)),
+    ("NISA", ("NISA",)),
+    ("iDeCo", ("iDeCo", "ideco")),
+    ("債券", ("債券", "米国債")),
+    ("REIT", ("REIT", "リート")),
+    ("不動産投資", ("不動産投資",)),
+    ("暗号資産", ("暗号資産", "仮想通貨", "ビットコイン", "BTC")),
+    ("金(ゴールド)", ("ゴールド", "金（", "金(")),
+)
+FIRE_STATUS_PATTERNS = (
+    ("サイドFIRE", ("サイドFIRE",)),
+    ("コーストFIRE", ("コーストFIRE",)),
+    ("バリスタFIRE", ("バリスタFIRE",)),
+    ("窓際FIRE", ("窓際FIRE",)),
+    ("FIRE済", ("FIRE済", "FIREしました", "FIRE生活")),
+    ("FIRE目指し中", ("FIRE目指", "FIREを目指")),
+    ("FIRE準備中", ("FIRE準備",)),
+    ("セミリタイア", ("セミリタイア",)),
+    ("個人事業主", ("個人事業主",)),
+    ("フリーランス", ("フリーランス",)),
+    ("会社員", ("会社員", "勤続", "社員")),
+)
+SKILL_TAG_PATTERNS = (
+    ("ITエンジニア", ("ITエンジニア", "エンジニア")),
+    ("プログラミング", ("プログラマ", "プログラマー", "プログラミング")),
+    ("看護師", ("看護師",)),
+    ("医療", ("医療",)),
+    ("介護", ("介護",)),
+    ("FP", ("FP", "ファイナンシャルプランナー")),
+    ("宅建士", ("宅建",)),
+    ("行政書士", ("行政書士",)),
+    ("簿記", ("簿記",)),
+    ("英語", ("英語",)),
+    ("note執筆", ("note",)),
+    ("デザイン", ("デザイナー", "デザイン")),
+    ("プランニング", ("プランナー",)),
+    ("プロジェクトマネジメント", ("PM", "プロジェクトマネジメント")),
+    ("AIアプリ開発", ("AIを使ってアプリ", "アプリを作")),
+    ("小説執筆", ("小説",)),
+    ("ブログ運営", ("ブログ",)),
+    ("YouTube発信", ("YouTube", "youtube")),
+    ("草刈り剪定", ("草刈り", "剪定")),
+)
+INTEREST_TAG_PATTERNS = (
+    ("旅行", ("旅行", "旅")),
+    ("読書", ("読書", "本")),
+    ("ランニング", ("ランニング", "マラソン")),
+    ("料理", ("料理",)),
+    ("果樹栽培", ("果樹",)),
+    ("中古戸建リフォーム", ("中古戸建", "リフォーム")),
+    ("畑作業", ("畑作業", "畑")),
+    ("家庭菜園", ("家庭菜園",)),
+    ("釣り", ("釣り",)),
+    ("サウナ", ("サウナ",)),
+    ("温泉・銭湯", ("温泉", "銭湯")),
+    ("映画鑑賞", ("映画",)),
+    ("音楽", ("音楽", "ブラスバンド")),
+    ("猫", ("猫",)),
+    ("犬", ("犬",)),
+)
 
 
 def load_dotenv(path: Path) -> None:
@@ -264,6 +348,169 @@ def read_source_members(args: argparse.Namespace) -> list[FormMember]:
         ) from exc
 
 
+def latest_member_only(members: list[FormMember]) -> list[FormMember]:
+    if not members:
+        return []
+    return [max(members, key=lambda member: member.sheet_row)]
+
+
+def unique_values(values: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        item = normalize_spaces(value)
+        if item and item not in seen:
+            result.append(item)
+            seen.add(item)
+    return result
+
+
+def tags_from_patterns(content: str, patterns: tuple[tuple[str, tuple[str, ...]], ...]) -> list[str]:
+    return [
+        tag
+        for tag, needles in patterns
+        if any(needle.casefold() in content.casefold() for needle in needles)
+    ]
+
+
+def extract_mbti_tags(content: str) -> list[str]:
+    values = re.findall(r"\b[EI][NS][FT][JP](?:[-ー－]?[AT])?\b", content, flags=re.IGNORECASE)
+    return unique_values([value.upper().replace("ー", "-").replace("－", "-") for value in values])
+
+
+INTRO_SECTION_RE = re.compile(r"【([^】]+)】\s*(.*?)(?=\n\s*【|$)", re.DOTALL)
+
+
+def intro_sections(content: str) -> dict[str, str]:
+    sections: dict[str, str] = {}
+    for title, body in INTRO_SECTION_RE.findall(content):
+        sections[normalize_spaces(title)] = normalize_spaces(body)
+    return sections
+
+
+def extract_location_text(content: str) -> str | None:
+    sections = intro_sections(content)
+    for title, body in sections.items():
+        if "居住地" in title and body:
+            body = re.sub(r"^\s*\d+\s*[^\s・／/]*[・／/]\s*", "", body)
+            parts = re.split(r"[・／/]", body)
+            for part in parts:
+                if any(token in part for token in ("都", "道", "府", "県", "市", "区", "町", "村")) or any(
+                    prefecture in part for prefecture in PREFECTURE_NAMES
+                ):
+                    return normalize_spaces(part)
+            return body
+    return None
+
+
+def link_label_from_url(url: str) -> str:
+    lowered = url.casefold()
+    if "note.com" in lowered:
+        return "note"
+    if "youtube.com" in lowered or "youtu.be" in lowered:
+        return "YouTube"
+    if "twitter.com" in lowered or "x.com" in lowered:
+        return "X"
+    return "リンク"
+
+
+def extract_links_from_self_intro(content: str) -> list[dict[str, str]]:
+    urls = re.findall(r"https?://[^\s　)）]+", content)
+    links: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for url in urls:
+        cleaned = url.rstrip("。、,.")
+        if cleaned in seen:
+            continue
+        links.append({"label": link_label_from_url(cleaned), "url": cleaned})
+        seen.add(cleaned)
+    return links
+
+
+def infer_tags_from_self_intro(content: str) -> dict[str, list[str]]:
+    sections = intro_sections(content)
+    investment_text = "\n".join(
+        body for title, body in sections.items() if any(token in title for token in ("投資", "資産", "運用"))
+    ) or content
+    job_text = "\n".join(
+        body for title, body in sections.items() if any(token in title for token in ("仕事", "収入", "診断", "属性"))
+    ) or content
+    interest_text = "\n".join(
+        body for title, body in sections.items() if any(token in title for token in ("やりたい", "趣味", "一言", "属性", "仕事", "収入"))
+    ) or content
+    fire_status_text = "\n".join(
+        body for title, body in sections.items() if any(token in title for token in ("属性", "FIRE"))
+    ) or "\n".join(sections.values()) or content
+
+    tags = {
+        "investment_style": tags_from_patterns(investment_text, INVESTMENT_TAG_PATTERNS),
+        "fire_status": tags_from_patterns(fire_status_text, FIRE_STATUS_PATTERNS),
+        "mbti": extract_mbti_tags(content),
+        "skill": tags_from_patterns(job_text, SKILL_TAG_PATTERNS),
+        "interest": tags_from_patterns(interest_text, INTEREST_TAG_PATTERNS),
+    }
+    return {category: unique_values(values) for category, values in tags.items() if values}
+
+
+def enrich_candidates_from_discord(
+    candidates: list[FormMember],
+    *,
+    channel_id: str,
+) -> tuple[list[FormMember], list[dict[str, Any]]]:
+    if not candidates:
+        return candidates, []
+
+    token = require_env("DISCORD_BOT_TOKEN")
+    guild_id = require_env("DISCORD_GUILD_ID")
+    messages = fetch_self_intros.fetch_all_messages(token, channel_id)
+    matches = fetch_self_intros.find_matches([member.nickname for member in candidates], messages)
+
+    enriched: list[FormMember] = []
+    report: list[dict[str, Any]] = []
+    for member in candidates:
+        candidates_for_member = matches.get(member.nickname, [])
+        if not candidates_for_member:
+            enriched.append(member)
+            report.append({"nickname": member.nickname, "found": False})
+            continue
+
+        latest = max(candidates_for_member, key=lambda message: int(message["id"]))
+        content = str(latest.get("content") or "").strip()
+        inferred_tags = infer_tags_from_self_intro(content)
+        merged_tags = {
+            category: unique_values([*(member.tags.get(category, [])), *values])
+            for category, values in inferred_tags.items()
+        }
+        for category, values in member.tags.items():
+            merged_tags.setdefault(category, values)
+
+        message_id = str(latest["id"])
+        enriched_member = replace(
+            member,
+            tags={category: values for category, values in merged_tags.items() if values},
+            links=[*member.links, *extract_links_from_self_intro(content)],
+            external_self_intro_text=member.external_self_intro_text or content or None,
+            location_text=member.location_text or extract_location_text(content),
+            avatar_url=fetch_self_intros.avatar_url(latest),
+            self_intro_text=content or None,
+            self_intro_url=f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}",
+            self_intro_posted_at=latest.get("timestamp"),
+        )
+        enriched.append(enriched_member)
+        report.append(
+            {
+                "nickname": member.nickname,
+                "found": True,
+                "discord_message_id": message_id,
+                "discord_display_name": fetch_self_intros.display_name(latest),
+                "tags": enriched_member.tags,
+                "self_intro_url": enriched_member.self_intro_url,
+            }
+        )
+
+    return enriched, report
+
+
 def dedupe_members_by_latest(members: list[FormMember]) -> tuple[list[FormMember], list[dict[str, Any]]]:
     latest_by_nickname: dict[str, FormMember] = {}
     duplicates_by_nickname: dict[str, list[FormMember]] = {}
@@ -322,13 +569,45 @@ def fetch_existing_profiles(supabase_url: str, service_role_key: str) -> dict[st
     rows = supabase_request(
         supabase_url,
         service_role_key,
-        "/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,external_self_intro_text,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public&limit=10000",
+        "/rest/v1/member_profiles?select=nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,external_self_intro_text,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public&limit=10000",
     )
     return {str(row["nickname"]): row for row in rows or [] if row.get("nickname")}
 
 
+def fetch_member_tag_counts(
+    supabase_url: str,
+    service_role_key: str,
+    nicknames: list[str],
+) -> dict[str, int]:
+    if not nicknames:
+        return {}
+    counts = {nickname: 0 for nickname in nicknames}
+    chunk_size = 100
+    for index in range(0, len(nicknames), chunk_size):
+        chunk = nicknames[index : index + chunk_size]
+        query = (
+            "select=member_nickname"
+            f"&member_nickname=in.({','.join(quote(nickname, safe='') for nickname in chunk)})"
+            "&limit=10000"
+        )
+        rows = supabase_request(supabase_url, service_role_key, f"/rest/v1/member_tags?{query}")
+        for row in rows or []:
+            nickname = str(row.get("member_nickname") or "")
+            if nickname in counts:
+                counts[nickname] += 1
+    return counts
+
+
+def profile_needs_discord_backfill(profile: dict[str, Any] | None, tag_count: int) -> bool:
+    if not profile:
+        return False
+    has_profile_text = bool(profile.get("self_intro_text") or profile.get("external_self_intro_text"))
+    has_profile_data = has_profile_text or bool(profile.get("avatar_url")) or bool(profile.get("location_text"))
+    return not has_profile_data and tag_count == 0
+
+
 def build_profile_payload(member: FormMember, existing_profile: dict[str, Any] | None) -> dict[str, Any]:
-    external_intro = member.external_self_intro_text
+    external_intro = member.external_self_intro_text or member.self_intro_text
     if external_intro is None and existing_profile:
         external_intro = existing_profile.get("external_self_intro_text") or existing_profile.get("self_intro_text")
 
@@ -336,10 +615,14 @@ def build_profile_payload(member: FormMember, existing_profile: dict[str, Any] |
     if location_text is None and existing_profile:
         location_text = existing_profile.get("location_text")
 
-    avatar_url = existing_profile.get("avatar_url") if existing_profile else None
+    avatar_url = member.avatar_url or (existing_profile.get("avatar_url") if existing_profile else None)
 
-    return {
+    payload = {
         "nickname": member.nickname,
+        "avatar_url": avatar_url,
+        "self_intro_text": member.self_intro_text or (existing_profile.get("self_intro_text") if existing_profile else None),
+        "self_intro_url": member.self_intro_url or (existing_profile.get("self_intro_url") if existing_profile else None),
+        "self_intro_posted_at": member.self_intro_posted_at or (existing_profile.get("self_intro_posted_at") if existing_profile else None),
         "external_self_intro_text": external_intro,
         "location_text": location_text,
         "nickname_public": True,
@@ -348,6 +631,7 @@ def build_profile_payload(member: FormMember, existing_profile: dict[str, Any] |
         "location_public": bool(location_text),
         "links_public": bool(member.links) or bool(existing_profile and existing_profile.get("links_public")),
     }
+    return payload
 
 
 def tag_rows_for_member(member: FormMember) -> list[dict[str, Any]]:
@@ -430,13 +714,20 @@ def main() -> int:
     parser.add_argument("--sheet-id")
     parser.add_argument("--sheet-name")
     parser.add_argument("--members-csv")
+    parser.add_argument("--latest-only", action="store_true")
+    parser.add_argument("--update-existing", action="store_true")
+    parser.add_argument("--update-incomplete-existing-from-discord", action="store_true")
+    parser.add_argument("--refresh-avatars", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--enrich-from-discord-self-intros", action="store_true")
+    parser.add_argument("--self-intro-channel-id", default=SELF_INTRO_CHANNEL_ID)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--report", default="tmp/member_profile_form_sync_report.json")
     args = parser.parse_args()
 
     load_dotenv(Path(args.env_file))
 
-    source_members = read_source_members(args)
+    all_source_members = read_source_members(args)
+    source_members = latest_member_only(all_source_members) if args.latest_only else all_source_members
     sync_members, duplicate_sheet_nicknames = dedupe_members_by_latest(source_members)
 
     supabase_url = require_env("SUPABASE_URL")
@@ -449,8 +740,22 @@ def main() -> int:
         for key in fold_keys(nickname):
             existing_fold_index.setdefault(key, []).append(nickname)
 
-    candidates: list[FormMember] = []
     exact_existing = [member for member in sync_members if member.nickname in existing]
+    tag_counts = fetch_member_tag_counts(
+        supabase_url,
+        service_role_key,
+        [member.nickname for member in exact_existing],
+    )
+    incomplete_existing = [
+        member
+        for member in exact_existing
+        if profile_needs_discord_backfill(existing_profiles.get(member.nickname), tag_counts.get(member.nickname, 0))
+    ]
+    normal_exact_existing = [
+        member for member in exact_existing if member.nickname not in {entry.nickname for entry in incomplete_existing}
+    ]
+
+    candidates: list[FormMember] = []
     possible_duplicates: list[dict[str, Any]] = []
 
     for member in sync_members:
@@ -470,7 +775,57 @@ def main() -> int:
         else:
             candidates.append(member)
 
-    syncable_members = [*exact_existing, *candidates]
+    discord_self_intros: list[dict[str, Any]] = []
+    held_without_profile_data: list[dict[str, Any]] = []
+    backfill_existing: list[FormMember] = []
+    if args.enrich_from_discord_self_intros:
+        enrich_targets = [
+            *candidates,
+            *(incomplete_existing if args.update_incomplete_existing_from_discord else []),
+        ]
+        enriched_members, discord_self_intros = enrich_candidates_from_discord(
+            enrich_targets,
+            channel_id=args.self_intro_channel_id,
+        )
+        enriched_by_nickname = {member.nickname: member for member in enriched_members}
+        candidates = [enriched_by_nickname[member.nickname] for member in candidates]
+        backfill_existing = [
+            enriched_by_nickname[member.nickname]
+            for member in incomplete_existing
+            if member.nickname in enriched_by_nickname
+        ]
+        sync_candidates: list[FormMember] = []
+        for member in candidates:
+            if member.tags or member.links or member.external_self_intro_text or member.self_intro_text or member.location_text:
+                sync_candidates.append(member)
+            else:
+                held_without_profile_data.append(
+                    {
+                        "sheet_row": member.sheet_row,
+                        "nickname": member.nickname,
+                        "reason": "Discord自己紹介が見つからず、フォームにもタグ・自己紹介・居住地・リンク列がないため自動登録を保留",
+                    }
+                )
+        candidates = sync_candidates
+        sync_backfill_existing: list[FormMember] = []
+        for member in backfill_existing:
+            if member.tags or member.links or member.external_self_intro_text or member.self_intro_text or member.location_text:
+                sync_backfill_existing.append(member)
+            else:
+                held_without_profile_data.append(
+                    {
+                        "sheet_row": member.sheet_row,
+                        "nickname": member.nickname,
+                        "reason": "既存プロフィールが空に近く、Discord自己紹介も見つからないため補完を保留",
+                    }
+                )
+        backfill_existing = sync_backfill_existing
+
+    syncable_members = [
+        *(normal_exact_existing if args.update_existing else []),
+        *backfill_existing,
+        *candidates,
+    ]
     payload = [
         build_profile_payload(member, existing_profiles.get(member.nickname))
         for member in syncable_members
@@ -498,16 +853,23 @@ def main() -> int:
         "dry_run": args.dry_run,
         "summary": {
             "sheet_members": len(source_members),
+            "source_sheet_members_total": len(all_source_members),
             "sync_members": len(sync_members),
             "duplicate_sheet_nicknames": len(duplicate_sheet_nicknames),
             "existing": len(existing),
             "candidates": len(candidates),
             "profiles_upserted": len(payload) if not args.dry_run else 0,
-            "existing_profiles_updated": len(exact_existing) if not args.dry_run else 0,
+            "existing_profiles_updated": 0 if args.dry_run else (
+                (len(normal_exact_existing) if args.update_existing else 0) + len(backfill_existing)
+            ),
+            "incomplete_existing_backfilled": len(backfill_existing) if not args.dry_run else 0,
             "insert": len(candidates) if not args.dry_run else 0,
             "tags_synced": tags_synced,
             "links_synced": links_synced,
             "possible_duplicates": len(possible_duplicates),
+            "discord_self_intros_found": sum(1 for entry in discord_self_intros if entry.get("found")),
+            "discord_self_intros_missing": sum(1 for entry in discord_self_intros if not entry.get("found")),
+            "held_without_profile_data": len(held_without_profile_data),
         },
         "duplicate_sheet_nicknames": duplicate_sheet_nicknames,
         "candidates": [
@@ -530,9 +892,11 @@ def main() -> int:
                 "external_self_intro_text": member.external_self_intro_text,
                 "location_text": member.location_text,
             }
-            for member in exact_existing
+            for member in [*(normal_exact_existing if args.update_existing else []), *backfill_existing]
         ],
         "possible_duplicates": possible_duplicates,
+        "discord_self_intros": discord_self_intros,
+        "held_without_profile_data": held_without_profile_data,
         "response": response,
     }
     write_report(Path(args.report), report)

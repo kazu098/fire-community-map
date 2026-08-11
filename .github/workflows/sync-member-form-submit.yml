@@ -65,6 +65,9 @@ jobs:
 
           args=(
             --report tmp/member_profile_form_sync_report.json
+            --latest-only
+            --enrich-from-discord-self-intros
+            --update-incomplete-existing-from-discord
           )
 
           if [ -n "${MEMBERS_CSV_B64:-}" ]; then
@@ -104,7 +107,8 @@ jobs:
 
           candidates_count="$(jq '.summary.candidates' tmp/member_profile_form_sync_report.json)"
           duplicates_count="$(jq '.summary.possible_duplicates' tmp/member_profile_form_sync_report.json)"
-          if [ "$candidates_count" = "0" ] && [ "$duplicates_count" = "0" ]; then
+          held_without_profile_data_count="$(jq '.summary.held_without_profile_data' tmp/member_profile_form_sync_report.json)"
+          if [ "$candidates_count" = "0" ] && [ "$duplicates_count" = "0" ] && [ "$held_without_profile_data_count" = "0" ]; then
             echo "No new member profile opt-ins."
             exit 0
           fi
@@ -122,6 +126,9 @@ jobs:
             jq '{
               summary,
               candidates,
+              updated_existing,
+              discord_self_intros,
+              held_without_profile_data,
               duplicate_sheet_nicknames,
               possible_duplicates
             }' tmp/member_profile_form_sync_report.json

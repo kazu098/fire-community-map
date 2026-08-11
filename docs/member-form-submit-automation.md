@@ -1,6 +1,7 @@
 # Googleフォーム送信時のメンバー自動追加
 
-フォーム回答シートに新規入力が来たタイミングで GitHub Actions を起動し、`scripts/sync_member_profile_form_deltas.py` で Supabase の `member_profiles` に同期する。
+フォーム回答シートに新規入力が来たタイミングで GitHub Actions を起動し、`scripts/sync_member_profile_form_deltas.py` で Supabase の `member_profiles` / `member_tags` に同期する。
+フォームからはニックネームだけを受け取り、最新のフォーム送信行だけを対象にする。新規メンバーだけ Discord の自己紹介チャンネルを参照して、自己紹介文・アイコン・居住地・タグを補完する。
 
 Apps Script から同期に必要な最小CSVを送るため、回答シートを公開共有にする必要はない。
 
@@ -131,7 +132,11 @@ Apps Script の Project Settings > Script properties に `GITHUB_TOKEN` を保�
 ## 注意
 
 - 同時送信があっても workflow 側は `concurrency` で直列化する。
-- フォーム回答は、ニックネームを公開ONにし、回答列から判定できる自己紹介・居住地・リンク・タグを `member_profiles` / `member_tags` / `member_links` に同期する。
+- フォーム回答は、ニックネームを公開ONにし、新規メンバーだけ Discord 自己紹介から判定できる自己紹介・居住地・タグを `member_profiles` / `member_tags` に同期する。
+- Apps Script は回答シート全体のCSVを送るが、workflow は `--latest-only` で最後の回答行だけ処理する。過去行の表記ゆれや重複回答は毎回の issue には出さない。
+- 既存メンバーはデフォルトでは更新しない。明示的に `update_existing: 'true'` を渡した時だけ更新対象にする。
+- 旧処理で名前だけ作られた不完全な既存プロフィールは、最新送信行に限って Discord 自己紹介から補完する。
+- Discord自己紹介が見つからず、フォーム側にもタグ・自己紹介・居住地・リンク列がない場合は、名前だけの空プロフィールを作らず issue に保留内容を出す。
 - 自己紹介・居住地・リンクの公開フラグは、該当値がある場合だけONにする。アイコン公開は既存 `avatar_url` がある場合だけONにする。
 - 住所判定不能、Discordアバター未一致、既存メンバーの住所変更検知などは GitHub Issue に確認項目として出す。
 - GitHub Actions `workflow_dispatch` の入力サイズ上限に近づくほど回答数が増えた場合は、Apps Script から中継APIへ送る方式に切り替える。
