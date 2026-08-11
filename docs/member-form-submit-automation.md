@@ -132,7 +132,7 @@ Apps Script の Project Settings > Script properties に `GITHUB_TOKEN` を保�
 ## 注意
 
 - 同時送信があっても workflow 側は `concurrency` で直列化する。
-- フォーム回答は、ニックネームを公開ONにし、新規メンバーだけ Discord 自己紹介から判定できる自己紹介・居住地・タグを `member_profiles` / `member_tags` に同期する。
+- フォーム回答は、新規メンバーだけ Discord 自己紹介から判定できる自己紹介・居住地・タグを `member_profiles` / `member_tags` に同期する。外部公開フラグは自動でONにしない。
 - Apps Script は回答シート全体のCSVを送るが、workflow は `--latest-only` で最後の回答行だけ処理する。過去行の表記ゆれや重複回答は毎回の issue には出さない。
 - 既存メンバーはデフォルトでは更新しない。明示的に `update_existing: 'true'` を渡した時だけ更新対象にする。
 - 旧処理で名前だけ作られた不完全な既存プロフィールは、最新送信行に限って Discord 自己紹介から補完する。

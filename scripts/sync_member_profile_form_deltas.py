@@ -625,11 +625,11 @@ def build_profile_payload(member: FormMember, existing_profile: dict[str, Any] |
         "self_intro_posted_at": member.self_intro_posted_at or (existing_profile.get("self_intro_posted_at") if existing_profile else None),
         "external_self_intro_text": external_intro,
         "location_text": location_text,
-        "nickname_public": True,
-        "avatar_public": bool(avatar_url),
-        "self_intro_public": bool(external_intro),
-        "location_public": bool(location_text),
-        "links_public": bool(member.links) or bool(existing_profile and existing_profile.get("links_public")),
+        "nickname_public": bool(existing_profile and existing_profile.get("nickname_public")),
+        "avatar_public": bool(existing_profile and existing_profile.get("avatar_public")),
+        "self_intro_public": bool(existing_profile and existing_profile.get("self_intro_public")),
+        "location_public": bool(existing_profile and existing_profile.get("location_public")),
+        "links_public": bool(existing_profile and existing_profile.get("links_public")),
     }
     return payload
 
