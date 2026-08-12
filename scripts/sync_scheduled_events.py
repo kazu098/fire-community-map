@@ -219,11 +219,17 @@ def delete_events(supabase_url: str, service_role_key: str, discord_message_ids:
     )
 
 
-def existing_scheduled_event_ids(supabase_url: str, service_role_key: str) -> set[str]:
+def existing_future_scheduled_event_ids(supabase_url: str, service_role_key: str) -> set[str]:
+    # Discord stops returning an event from /scheduled-events once it has
+    # started or completed, so comparing against the live Discord list only
+    # makes sense for events that haven't happened yet -- otherwise every
+    # past event we curated would look "stale" and get deleted the next day.
+    now_iso = datetime.now(timezone.utc).isoformat()
     query = urlencode(
         {
             "select": "discord_message_id",
             "discord_message_id": "like.scheduled_event:*",
+            "starts_at": f"gt.{now_iso}",
         },
         safe=",:*",
     )
@@ -267,7 +273,7 @@ def main() -> int:
         if event.get("scheduled_start_time") and is_public_event(event, names.get(str(event.get("channel_id") or "")))
     ]
     current_public_ids = {str(row["discord_message_id"]) for row in rows}
-    stale_ids = sorted(existing_scheduled_event_ids(supabase_url, service_role_key) - current_public_ids)
+    stale_ids = sorted(existing_future_scheduled_event_ids(supabase_url, service_role_key) - current_public_ids)
     delete_ids = sorted(set(private_ids) | set(stale_ids))
     print(f"Prepared {len(rows)} Discord scheduled events.")
     print(f"Private scheduled events to delete: {len(private_ids)}")
