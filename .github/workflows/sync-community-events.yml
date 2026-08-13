@@ -46,7 +46,7 @@ jobs:
             --curated data/community_events_curated.json \
             --output tmp/community_events_review_needed.md \
             --count-output tmp/community_events_review_count.txt \
-            --lookback-days 3 \
+            --lookback-hours 26 \
             --min-score 3
 
       - name: Create review issue

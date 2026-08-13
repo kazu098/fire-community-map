@@ -248,6 +248,53 @@ def existing_future_scheduled_event_ids(supabase_url: str, service_role_key: str
     }
 
 
+SYNCED_FIELDS = (
+    "title",
+    "tags",
+    "starts_at",
+    "ends_at",
+    "format",
+    "prefecture",
+    "location_label",
+    "participant_count",
+    "participation_note",
+    "summary",
+    "discord_channel_name",
+    "discord_permalink",
+    "cancelled_at",
+)
+
+
+def existing_synced_rows(
+    supabase_url: str, service_role_key: str, discord_message_ids: set[str]
+) -> dict[str, dict[str, Any]]:
+    if not discord_message_ids:
+        return {}
+    ids_csv = ",".join(sorted(discord_message_ids))
+    query = urlencode(
+        {
+            "select": ",".join(("discord_message_id",) + SYNCED_FIELDS),
+            "discord_message_id": f"in.({ids_csv})",
+        },
+        safe="(),.:*",
+    )
+    rows = request_json(
+        "GET",
+        f"{supabase_url}/rest/v1/community_events?{query}",
+        {
+            "apikey": service_role_key,
+            "Authorization": f"Bearer {service_role_key}",
+        },
+    )
+    return {str(row["discord_message_id"]): row for row in (rows or []) if row.get("discord_message_id")}
+
+
+def row_changed(row: dict[str, Any], existing: dict[str, Any] | None) -> bool:
+    if existing is None:
+        return True
+    return any(row.get(field) != existing.get(field) for field in SYNCED_FIELDS)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync Discord scheduled events into Supabase.")
     parser.add_argument("--env-file", default=os.environ.get("ENV_FILE", ".env"))
@@ -275,20 +322,23 @@ def main() -> int:
     current_public_ids = {str(row["discord_message_id"]) for row in rows}
     stale_ids = sorted(existing_future_scheduled_event_ids(supabase_url, service_role_key) - current_public_ids)
     delete_ids = sorted(set(private_ids) | set(stale_ids))
+    existing_rows = existing_synced_rows(supabase_url, service_role_key, current_public_ids)
+    changed_rows = [row for row in rows if row_changed(row, existing_rows.get(row["discord_message_id"]))]
     print(f"Prepared {len(rows)} Discord scheduled events.")
+    print(f"Changed scheduled events to upsert: {len(changed_rows)}")
     print(f"Private scheduled events to delete: {len(private_ids)}")
     print(f"Stale scheduled events to delete: {len(stale_ids)}")
     if args.dry_run:
         if delete_ids:
             print(json.dumps({"delete_discord_message_ids": delete_ids}, ensure_ascii=False, indent=2))
-        print(json.dumps(rows, ensure_ascii=False, indent=2))
+        print(json.dumps(changed_rows, ensure_ascii=False, indent=2))
         return 0
-    if rows:
+    if changed_rows:
         supabase_request(
             "POST",
             f"{supabase_url}/rest/v1/community_events?on_conflict=discord_message_id",
             service_role_key,
-            rows,
+            changed_rows,
         )
         print("Upserted Discord scheduled events into community_events.")
     if delete_ids:

@@ -68,11 +68,11 @@ def build_report(
     raw: list[dict[str, Any]],
     curated: list[dict[str, Any]],
     limit: int,
-    lookback_days: int,
+    lookback_hours: float,
     min_score: int,
 ) -> tuple[int, str]:
     curated_ids = already_curated_ids(curated)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
     candidates = []
     for item in raw:
         if item.get("source_type") == "scheduled_event":
@@ -103,7 +103,7 @@ def build_report(
         "Discordのイベント系チャンネルから、まだcuratedデータに入っていない候補を検出しました。",
         "内容を確認し、必要なものだけ `data/community_events_curated.json` またはSupabaseの `community_events` に反映してください。",
         "",
-        f"対象期間: 直近{lookback_days}日",
+        f"対象期間: 直近{lookback_hours:g}時間",
         f"候補件数: {len(candidates)}",
         "",
     ]
@@ -134,7 +134,7 @@ def main() -> int:
     parser.add_argument("--output", default="tmp/community_events_review_needed.md")
     parser.add_argument("--count-output", default="tmp/community_events_review_count.txt")
     parser.add_argument("--limit", type=int, default=20)
-    parser.add_argument("--lookback-days", type=int, default=3)
+    parser.add_argument("--lookback-hours", type=float, default=26)
     parser.add_argument("--min-score", type=int, default=3)
     args = parser.parse_args()
 
@@ -145,7 +145,7 @@ def main() -> int:
     if not isinstance(curated, list):
         raise SystemExit(f"{args.curated} must contain a JSON array.")
 
-    count, report = build_report(raw, curated, args.limit, args.lookback_days, args.min_score)
+    count, report = build_report(raw, curated, args.limit, args.lookback_hours, args.min_score)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(report + "\n", encoding="utf-8")
