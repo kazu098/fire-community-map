@@ -26,3 +26,5 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 道後温泉,愛媛県,松山市,spot,33.85015,132.78552,manual_alias,道後温泉投稿の代表点
 西予,愛媛県,西予市,municipality,33.3629,132.51084,manual_alias,西予市の旅行投稿から市代表点として扱う
 わらマンモス,愛媛県,西予市,spot,33.3629,132.51084,manual_alias,西予市のわらマンモス投稿から市代表点として扱う
+阿波踊り,徳島県,,prefecture,34.06583,134.55944,manual_alias,阿波踊りは徳島の祭りとして徳島県代表点で扱う
+南八ヶ岳,長野県,,prefecture,36.65139,138.18111,manual_alias,南八ヶ岳投稿は長野県側として県代表点で扱う

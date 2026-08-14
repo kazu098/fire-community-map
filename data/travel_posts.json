@@ -1,5 +1,46 @@
 [
   {
+    "discord_message_id": "1537921657887395871",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1537921657887395871",
+    "discord_channel_name": "旅行",
+    "nickname": "butabutakun",
+    "avatar_path": "data/travel-avatars/87a8ff462b23.png",
+    "avatarColor": "#f97316",
+    "init": "b",
+    "prefecture": "徳島県",
+    "municipality_optional": null,
+    "lat": 34.06583,
+    "lng": 134.55944,
+    "date": "2026/08/15",
+    "posted_at": "2026-08-14T20:31:36.443000+00:00",
+    "comment": "阿波踊り！",
+    "photos": [
+      "data/travel-photos/1537921657887395871-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1537577803522768897",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1537577803522768897",
+    "discord_channel_name": "旅行",
+    "nickname": "Aki",
+    "avatar_path": "data/travel-avatars/12ff8f1f1738.png",
+    "avatarColor": "#f97316",
+    "init": "A",
+    "prefecture": "長野県",
+    "municipality_optional": null,
+    "lat": 36.65139,
+    "lng": 138.18111,
+    "date": "2026/08/14",
+    "posted_at": "2026-08-13T21:45:15.174000+00:00",
+    "comment": "南八ヶ岳に来てます。涼しくて気持ち良い気候です。",
+    "photos": [
+      "data/travel-photos/1537577803522768897-1.jpg",
+      "data/travel-photos/1537577803522768897-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1536877267899387945",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1536877267899387945",
     "discord_channel_name": "旅行",
