@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1538048069738827817",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538048069738827817",
+    "discord_channel_name": "旅行",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/8c6b9086000f.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "東京都",
+    "municipality_optional": null,
+    "lat": 35.68944,
+    "lng": 139.69167,
+    "date": "2026/08/15",
+    "posted_at": "2026-08-15T04:53:55.377000+00:00",
+    "comment": "東京ゲートブリッジ来たら\n\n雨が振ってきました😭",
+    "photos": [
+      "data/travel-photos/1538048069738827817-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1537921657887395871",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1537921657887395871",
     "discord_channel_name": "旅行",
