@@ -1,0 +1,39 @@
+name: Refresh member avatars
+
+on:
+  schedule:
+    # 21:15 UTC = 06:15 JST, weekly on Monday
+    - cron: "15 21 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-member-avatars
+  cancel-in-progress: false
+
+jobs:
+  refresh-avatars:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Refresh member_profiles avatar_url from current Discord avatars
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Mirrors each member's current Discord avatar into the member-avatars
+          # Storage bucket under a nickname-keyed path, then points
+          # member_profiles.avatar_url at that stable Storage URL. See
+          # scripts/refresh_member_avatars.py for why this exists (Discord's
+          # own avatar URLs 404 whenever a member changes their profile
+          # picture; re-running this weekly keeps the mirrored copy current).
+          python3 scripts/refresh_member_avatars.py
