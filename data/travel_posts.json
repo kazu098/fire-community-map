@@ -1,5 +1,68 @@
 [
   {
+    "discord_message_id": "1538182324938612746",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538182324938612746",
+    "discord_channel_name": "旅行",
+    "nickname": "推し旅トラベラー０",
+    "avatar_path": "data/travel-avatars/0fccc5e70313.png",
+    "avatarColor": "#f97316",
+    "init": "推",
+    "prefecture": "富山県",
+    "municipality_optional": "黒部市",
+    "lat": 36.8258,
+    "lng": 137.6194,
+    "date": "2026/08/15",
+    "posted_at": "2026-08-15T13:47:24.311000+00:00",
+    "comment": "キャニオンルートに行くと、さらにちっちゃなトロッコに乗れます。\nただ、今年から観光化されて、旅行会社の高いツアーでないと乗れなくなってしまいました。",
+    "photos": [
+      "data/travel-photos/1538182324938612746-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1538158020599488623",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538158020599488623",
+    "discord_channel_name": "旅行",
+    "nickname": "とみと",
+    "avatar_path": "data/travel-avatars/312f9743f552.png",
+    "avatarColor": "#f97316",
+    "init": "と",
+    "prefecture": "富山県",
+    "municipality_optional": "黒部市",
+    "lat": 36.8804,
+    "lng": 137.4538,
+    "date": "2026/08/15",
+    "posted_at": "2026-08-15T12:10:49.705000+00:00",
+    "comment": "古い電車に乗って、宇奈月温泉に行きましてトロッコ電車乗りました\n足湯とかしてめちゃくちゃ楽しかった！",
+    "photos": [
+      "data/travel-photos/1538158020599488623-1.jpg",
+      "data/travel-photos/1538158020599488623-2.jpg",
+      "data/travel-photos/1538158020599488623-3.jpg",
+      "data/travel-photos/1538158020599488623-4.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1538071038502506526",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538071038502506526",
+    "discord_channel_name": "旅行",
+    "nickname": "butabutakun",
+    "avatar_path": "data/travel-avatars/98706b197868.png",
+    "avatarColor": "#f97316",
+    "init": "b",
+    "prefecture": "徳島県",
+    "municipality_optional": "鳴門市",
+    "lat": 34.1706,
+    "lng": 134.6067,
+    "date": "2026/08/15",
+    "posted_at": "2026-08-15T06:25:11.557000+00:00",
+    "comment": "鳴門のうずしお",
+    "photos": [
+      "data/travel-photos/1538071038502506526-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1538048069738827817",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538048069738827817",
     "discord_channel_name": "旅行",
@@ -16,6 +79,26 @@
     "comment": "東京ゲートブリッジ来たら\n\n雨が振ってきました😭",
     "photos": [
       "data/travel-photos/1538048069738827817-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1537992895028527134",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1537992895028527134",
+    "discord_channel_name": "旅行",
+    "nickname": "soto",
+    "avatar_path": "data/travel-avatars/d429e29b39f3.png",
+    "avatarColor": "#f97316",
+    "init": "s",
+    "prefecture": "神奈川県",
+    "municipality_optional": "足柄下郡箱根町",
+    "lat": 35.2323,
+    "lng": 139.1069,
+    "date": "2026/08/15",
+    "posted_at": "2026-08-15T01:14:40.701000+00:00",
+    "comment": "昨日帰ってきましたー。我が家最高。\n宿の近くにある美術館と博物館について話したんですが、全て拒絶…。なーんにも興味を持てないんですって😂\n苦肉の策で箱根水族館に行ったんですが、これが良かった！「バックヤードツアー」があって、大きな水槽の上から海ガメの餌やりとかできました。大人にもおすすめでした！",
+    "photos": [
+      "data/travel-photos/1537992895028527134-1.png"
     ],
     "location_source": "manual_alias"
   },
