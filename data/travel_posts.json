@@ -1,5 +1,29 @@
 [
   {
+    "discord_message_id": "1538539049210617857",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538539049210617857",
+    "discord_channel_name": "旅行",
+    "nickname": "とみと",
+    "avatar_path": "data/travel-avatars/8b78dfd99edb.png",
+    "avatarColor": "#f97316",
+    "init": "と",
+    "prefecture": "富山県",
+    "municipality_optional": null,
+    "lat": 36.69528,
+    "lng": 137.21139,
+    "date": "2026/08/16",
+    "posted_at": "2026-08-16T13:24:54.005000+00:00",
+    "comment": "富山地方鉄道に乗って海水浴場行きました\n砂利浜の遠浅で、まるくてかわいいきれいなシーグラスが拾える最高（私調べ）の海です\n富山地方鉄道、赤字みたいだけど、かわいい電車だし車ない人にはありがたいから、頑張って走ってほしいな",
+    "photos": [
+      "data/travel-photos/1538539049210617857-1.jpg",
+      "data/travel-photos/1538539049210617857-2.jpg",
+      "data/travel-photos/1538539049210617857-3.jpg",
+      "data/travel-photos/1538539049210617857-4.jpg",
+      "data/travel-photos/1538539049210617857-5.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1538182324938612746",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538182324938612746",
     "discord_channel_name": "旅行",
