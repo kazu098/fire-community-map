@@ -24,6 +24,26 @@
     "location_source": "prefecture_static"
   },
   {
+    "discord_message_id": "1538503813764223006",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538503813764223006",
+    "discord_channel_name": "旅行",
+    "nickname": "さとりーまん",
+    "avatar_path": "data/travel-avatars/da9ed8ec7cdd.png",
+    "avatarColor": "#f97316",
+    "init": "さ",
+    "prefecture": "鹿児島県",
+    "municipality_optional": "奄美大島",
+    "lat": 28.37725,
+    "lng": 129.49379,
+    "date": "2026/08/16",
+    "posted_at": "2026-08-16T11:04:53.220000+00:00",
+    "comment": "奄美、海が綺麗すぎます！",
+    "photos": [
+      "data/travel-photos/1538503813764223006-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1538182324938612746",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538182324938612746",
     "discord_channel_name": "旅行",

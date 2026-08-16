@@ -32,3 +32,4 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 キャニオンルート,富山県,黒部市,spot,36.8258,137.6194,manual_alias,黒部峡谷キャニオンルート投稿から富山県黒部市として扱う
 鳴門,徳島県,鳴門市,municipality,34.1706,134.6067,manual_alias,鳴門のうずしお投稿から徳島県鳴門市として扱う
 箱根,神奈川県,足柄下郡箱根町,municipality,35.2323,139.1069,manual_alias,箱根旅行投稿から神奈川県箱根町として扱う
+奄美,鹿児島県,奄美大島,area,28.37725,129.49379,manual_alias,「奄美」表記の海投稿を奄美大島の代表点として扱う
