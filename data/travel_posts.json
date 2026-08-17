@@ -1,5 +1,28 @@
 [
   {
+    "discord_message_id": "1538913476422930453",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538913476422930453",
+    "discord_channel_name": "旅行",
+    "nickname": "みなくさ",
+    "avatar_path": "data/travel-avatars/abdf9a919b76.png",
+    "avatarColor": "#f97316",
+    "init": "み",
+    "prefecture": "滋賀県",
+    "municipality_optional": null,
+    "lat": 35.00444,
+    "lng": 135.86833,
+    "date": "2026/08/17",
+    "posted_at": "2026-08-17T14:12:44.409000+00:00",
+    "comment": "久しぶりにドリームルリエのプレシャスシートに乗れました。動くビジホ（笑）。\n大阪で姉と合流して、姉が優待でオリックスレンタカー運転して滋賀に戻って父の墓参りと母のお見舞いして帰るだけの旅です。大阪で皆さんにお会いしたかった。。。\nコロナ禍では9000円で乗れましたが今や2万になろうかという。\n今回お盆明けで若干安く14000円でした。\nこの秘密基地感が好きで空いてたら乗りたい個室の深夜高速バス🚌です。",
+    "photos": [
+      "data/travel-photos/1538913476422930453-1.jpg",
+      "data/travel-photos/1538913476422930453-2.jpg",
+      "data/travel-photos/1538913476422930453-3.jpg",
+      "data/travel-photos/1538913476422930453-4.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1538539049210617857",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538539049210617857",
     "discord_channel_name": "旅行",
