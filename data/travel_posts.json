@@ -1,5 +1,46 @@
 [
   {
+    "discord_message_id": "1539158198509109280",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1539158198509109280",
+    "discord_channel_name": "旅行",
+    "nickname": "soto",
+    "avatar_path": "data/travel-avatars/36e85794c895.png",
+    "avatarColor": "#f97316",
+    "init": "s",
+    "prefecture": "青森県",
+    "municipality_optional": null,
+    "lat": 40.82444,
+    "lng": 140.74,
+    "date": "2026/08/18",
+    "posted_at": "2026-08-18T06:25:10.701000+00:00",
+    "comment": "ねぶたを見に行ったご近所さんからの青森土産。\n僕は青森行った事ないんですが、ど真ん中だなーって思えるお土産で楽しい気持ちになりました😄",
+    "photos": [
+      "data/travel-photos/1539158198509109280-1.png"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1539037836433555508",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1539037836433555508",
+    "discord_channel_name": "旅行",
+    "nickname": "みなくさ",
+    "avatar_path": "data/travel-avatars/f86fb7af3ccd.png",
+    "avatarColor": "#f97316",
+    "init": "み",
+    "prefecture": "大阪府",
+    "municipality_optional": null,
+    "lat": 34.68639,
+    "lng": 135.52,
+    "date": "2026/08/17",
+    "posted_at": "2026-08-17T22:26:54.146000+00:00",
+    "comment": "深夜高速なんで景色は全く眺めませんで大阪到着です（笑）",
+    "photos": [
+      "data/travel-photos/1539037836433555508-1.jpg",
+      "data/travel-photos/1539037836433555508-2.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1538913476422930453",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1538913476422930453",
     "discord_channel_name": "旅行",
