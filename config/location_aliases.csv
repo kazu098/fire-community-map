@@ -33,3 +33,6 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 鳴門,徳島県,鳴門市,municipality,34.1706,134.6067,manual_alias,鳴門のうずしお投稿から徳島県鳴門市として扱う
 箱根,神奈川県,足柄下郡箱根町,municipality,35.2323,139.1069,manual_alias,箱根旅行投稿から神奈川県箱根町として扱う
 奄美,鹿児島県,奄美大島,area,28.37725,129.49379,manual_alias,「奄美」表記の海投稿を奄美大島の代表点として扱う
+高野山,和歌山県,伊都郡高野町,spot,34.214108,135.584108,manual_alias,高野山投稿から金剛峯寺代表点として扱う
+石山寺,滋賀県,大津市,spot,34.960419,135.905625,manual_alias,石山寺投稿から石山寺代表点として扱う
+明治大学博物館,東京都,千代田区,spot,35.6987,139.7619,manual_alias,明治大学博物館投稿から博物館代表点として扱う
