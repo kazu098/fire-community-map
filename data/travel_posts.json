@@ -1,24 +1,44 @@
 [
   {
-    "discord_message_id": "1539129729972568176",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1539129729972568176",
+    "discord_message_id": "1539549913036099615",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1539549913036099615",
     "discord_channel_name": "旅行",
-    "nickname": "みなくさ",
-    "avatar_path": "data/travel-avatars/1598779b8f26.png",
+    "nickname": "あきら",
+    "avatar_path": "data/travel-avatars/875469e4965e.png",
     "avatarColor": "#f97316",
-    "init": "み",
-    "prefecture": "滋賀県",
-    "municipality_optional": "大津市",
-    "lat": 34.960419,
-    "lng": 135.905625,
-    "date": "2026/08/18",
-    "posted_at": "2026-08-18T04:32:03.273000+00:00",
-    "comment": "推し旅さん、さすがです。遠足で何回か来てるんですけど興味がないので全く記憶に残らずこんな立派なお寺だったのかと驚いております💦\n紫式部のことも知りませんでした（笑）。",
+    "init": "あ",
+    "prefecture": "大阪府",
+    "municipality_optional": null,
+    "lat": 34.68639,
+    "lng": 135.52,
+    "date": "2026/08/19",
+    "posted_at": "2026-08-19T08:21:42.722000+00:00",
+    "comment": "甲子園に令和の怪物がいると聞いて、大阪インですぞ⚾️",
     "photos": [
-      "data/travel-photos/1539129729972568176-1.jpg",
-      "data/travel-photos/1539129729972568176-2.jpg"
+      "data/travel-photos/1539549913036099615-1.jpg"
     ],
-    "location_source": "manual_alias"
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1539520344682004520",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1539520344682004520",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "hakunoie（はく）",
+    "avatar_path": "data/travel-avatars/3b3590a654bd.png",
+    "avatarColor": "#f97316",
+    "init": "h",
+    "prefecture": "京都府",
+    "municipality_optional": null,
+    "lat": 35.02139,
+    "lng": 135.75556,
+    "date": "2026/08/19",
+    "posted_at": "2026-08-19T06:24:13.077000+00:00",
+    "comment": "本日、京都にてランチは手毬寿司。「映え」狙いなのでしょうか、外観がとても可愛い。でもいろんな食材を使っていて、美味しかったです。店の雰囲気もオシャレで、若者をターゲットにしている感じでした。😊 \nこの後、猛暑の京都でカフェ廻りをしていたのですが、2軒は閉店していて、3軒廻ったところで、あまりの暑さにギブアップ。「哲学の道」もお盆すぎだと、急に人混みが減ったということでした。😖",
+    "photos": [
+      "data/travel-photos/1539520344682004520-1.jpeg",
+      "data/travel-photos/1539520344682004520-2.jpeg"
+    ],
+    "location_source": "prefecture_static"
   },
   {
     "discord_message_id": "1539175117849104465",
@@ -62,6 +82,27 @@
       "data/travel-photos/1539158198509109280-1.png"
     ],
     "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1539129729972568176",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1539129729972568176",
+    "discord_channel_name": "旅行",
+    "nickname": "みなくさ",
+    "avatar_path": "data/travel-avatars/1598779b8f26.png",
+    "avatarColor": "#f97316",
+    "init": "み",
+    "prefecture": "滋賀県",
+    "municipality_optional": "大津市",
+    "lat": 34.960419,
+    "lng": 135.905625,
+    "date": "2026/08/18",
+    "posted_at": "2026-08-18T04:32:03.273000+00:00",
+    "comment": "推し旅さん、さすがです。遠足で何回か来てるんですけど興味がないので全く記憶に残らずこんな立派なお寺だったのかと驚いております💦\n紫式部のことも知りませんでした（笑）。",
+    "photos": [
+      "data/travel-photos/1539129729972568176-1.jpg",
+      "data/travel-photos/1539129729972568176-2.jpg"
+    ],
+    "location_source": "manual_alias"
   },
   {
     "discord_message_id": "1539117423238844416",
