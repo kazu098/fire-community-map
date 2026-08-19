@@ -2097,13 +2097,14 @@ function takeTagsByCharLimit(tags, limit) {
   }
   return result;
 }
-const LINK_ICONS = { note: '📝', youtube: '▶️', memo: '🔒', blog: '📰' };
+const LINK_ICONS = { note: '📝', youtube: '▶️', memo: '🔒', blog: '📰', amazon: '📚' };
 
 function linkIcon(label) {
   const key = label.toLowerCase();
   if (key.includes('note')) return LINK_ICONS.note;
   if (key.includes('youtube')) return LINK_ICONS.youtube;
   if (key.includes('メモ') || key.includes('memo')) return LINK_ICONS.memo;
+  if (key.includes('amazon') || key.includes('kindle') || key.includes('書籍') || key.includes('本')) return LINK_ICONS.amazon;
   return LINK_ICONS.blog;
 }
 
@@ -2112,6 +2113,7 @@ const LINK_BADGES = {
   x:       { char: 'X', bg: '#000000', color: '#ffffff' },
   youtube: { char: '▶', bg: '#ff0000', color: '#ffffff' },
   memo:    { char: 'M', bg: '#7c3aed', color: '#ffffff' },
+  amazon:  { char: 'a', bg: '#ff9900', color: '#ffffff' },
   blog:    { char: 'B', bg: '#9ca3af', color: '#ffffff' },
 };
 
@@ -2121,11 +2123,13 @@ function linkType(label, url) {
   if (host.includes('note.com')) return 'note';
   if (host.includes('youtube.com') || host.includes('youtu.be')) return 'youtube';
   if (host.includes('twitter.com') || host.includes('x.com')) return 'x';
+  if (host.includes('amazon.') || host.includes('amzn.to') || host.includes('amzn.asia')) return 'amazon';
   const key = label.toLowerCase();
   if (key.includes('note')) return 'note';
   if (key.includes('youtube')) return 'youtube';
   if (key.includes('twitter') || key === 'x') return 'x';
   if (key.includes('メモ') || key.includes('memo')) return 'memo';
+  if (key.includes('amazon') || key.includes('kindle') || key.includes('書籍') || key.includes('本')) return 'amazon';
   return 'blog';
 }
 
