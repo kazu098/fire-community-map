@@ -74,7 +74,7 @@ SELF_INTRO_TEXT = (
 
 PROFILE = {
     "nickname": "あおい",
-    "avatar_url": None,
+    "avatar_url": "https://cdn.discordapp.com/avatars/1519865412307652658/0fb022018d730f3a3c0240eb0854ea30.png?size=128",
     "self_intro_text": SELF_INTRO_TEXT,
     "external_self_intro_text": SELF_INTRO_TEXT,
     "self_intro_url": "https://discord.com/channels/1389921372683112539/1389923387887063171/1442802098847612968",
