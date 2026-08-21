@@ -1,5 +1,33 @@
 [
   {
+    "title": "もふのもふもふ会",
+    "tags": ["オフ会", "動物ふれあい", "募集中"],
+    "starts_at": "2026-09-07T13:00:00+09:00",
+    "format": "offline",
+    "prefecture": "東京都",
+    "location_label": "吉祥寺",
+    "participant_count": 3,
+    "participation_note": "動物相手のため少人数募集。もふ・ちゃんさん・とみとさんの3名に加え、+3名まで募集。",
+    "summary": "吉祥寺でうさぎカフェ（カフェミニヨン）とマモテラス（マーモット）を巡るお昼の遠足オフ会。余力があれば飲み会も。",
+    "discord_channel_name": "オフ会",
+    "discord_message_id": "1540242200351346739",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1540242200351346739"
+  },
+  {
+    "title": "三浦海岸でウイングフォイル体験＆マグロを食べる会",
+    "tags": ["オフ会", "マリンスポーツ", "グルメ", "募集中"],
+    "starts_at": "2026-08-24T13:00:00+09:00",
+    "format": "offline",
+    "prefecture": "神奈川県",
+    "location_label": "三浦市 三浦海岸",
+    "participant_count": 5,
+    "participation_note": "追加1名を募集。参加希望者は主催者へDM。予約都合により2026/8/10 17:00締切。",
+    "summary": "三浦海岸でウイングフォイル体験をした後、マグロが評判の居酒屋で交流する少人数オフ会。未経験者でも参加しやすいマリンスポーツ体験として企画された。",
+    "discord_channel_name": "オフ会",
+    "discord_message_id": "1535876508995027045",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1535876508995027045"
+  },
+  {
     "title": "少人数飲み会第2弾",
     "tags": ["オンライン", "交流会", "募集中"],
     "starts_at": "2026-08-05T20:00:00+09:00",
