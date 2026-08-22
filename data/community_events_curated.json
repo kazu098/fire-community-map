@@ -1,5 +1,19 @@
 [
   {
+    "title": "ITチーム、公開打ち合わせ",
+    "tags": ["オンライン", "打ち合わせ", "IT"],
+    "starts_at": "2026-09-03T20:00:00+09:00",
+    "format": "online",
+    "prefecture": "オンライン",
+    "location_label": "Discord / 打ち合わせ",
+    "participant_count": 7,
+    "participation_note": "Discordのサーバーイベントから参加。どなたでも参加可。",
+    "summary": "定期的に行っているITチームの打ち合わせ。F研コミュニティマップの拡張などがテーマ。ITチーム以外の人も興味があれば参加歓迎。",
+    "discord_channel_name": "打ち合わせ",
+    "discord_message_id": "scheduled_event:1540522859317694555",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1540522859317694555"
+  },
+  {
     "title": "もふのもふもふ会",
     "tags": ["オフ会", "動物ふれあい", "募集中"],
     "starts_at": "2026-09-07T13:00:00+09:00",
