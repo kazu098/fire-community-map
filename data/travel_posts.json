@@ -1,5 +1,26 @@
 [
   {
+    "discord_message_id": "1540933395213717606",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1540933395213717606",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "こーいち",
+    "avatar_path": "data/travel-avatars/aa886dc6782e.png",
+    "avatarColor": "#f97316",
+    "init": "こ",
+    "prefecture": "千葉県",
+    "municipality_optional": null,
+    "lat": 35.60472,
+    "lng": 140.12333,
+    "date": "2026/08/23",
+    "posted_at": "2026-08-23T03:59:10.577000+00:00",
+    "comment": "昨晩はちいかわ大好きな娘達のためくら寿司へ。\n\n無事びっくらポンも当てて、巾着もゲットして。\n\n事前にLINEギフトで10%オフで買ってたお食事券と千葉キャッシュレス還元キャンペーンでお得と満足を両立できました❗️\n\nhttps://www.kurasushi.co.jp/topic/008159.html",
+    "photos": [
+      "data/travel-photos/1540933395213717606-1.png",
+      "data/travel-photos/1540933395213717606-2.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1539926677461934122",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1539926677461934122",
     "discord_channel_name": "グルメ・料理",
