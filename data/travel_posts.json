@@ -1,5 +1,27 @@
 [
   {
+    "discord_message_id": "1541234473096450108",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1541234473096450108",
+    "discord_channel_name": "旅行",
+    "nickname": "めめと",
+    "avatar_path": "data/travel-avatars/da6b8c22b01e.png",
+    "avatarColor": "#f97316",
+    "init": "め",
+    "prefecture": "広島県",
+    "municipality_optional": null,
+    "lat": 34.39639,
+    "lng": 132.45944,
+    "date": "2026/08/23",
+    "posted_at": "2026-08-23T23:55:33.138000+00:00",
+    "comment": "妻の実家がある広島・竹原から、少し足を伸ばして江田島へ妻家族と小旅行してきました🚢\n\n現地で食べた生しらす丼がめちゃくちゃ美味しかったです。\n旅先で食べると満足度が上がりますね（笑）。\n\nあと想像以上によかったのが江田島の温泉。\n塩分濃度がかなり高めのお湯で、しっかり温泉に入った感がありました♨️\n\n\n広島方面へ行かれる方は、宮島や尾道だけでなく江田島も小旅行の候補にぜひ！",
+    "photos": [
+      "data/travel-photos/1541234473096450108-1.jpg",
+      "data/travel-photos/1541234473096450108-2.jpg",
+      "data/travel-photos/1541234473096450108-3.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1540933395213717606",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1540933395213717606",
     "discord_channel_name": "グルメ・料理",
