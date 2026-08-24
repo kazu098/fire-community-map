@@ -2,8 +2,8 @@ name: Sync community content candidates
 
 on:
   schedule:
-    # 20:45 UTC = 05:45 JST
-    - cron: "45 20 * * *"
+    # 20:30 UTC = 05:30 JST
+    - cron: "30 20 * * *"
   workflow_dispatch:
 
 permissions:

@@ -47,6 +47,9 @@ POST_TYPE_LABELS = {
     "real_estate": "不動産",
 }
 
+PUBLIC_IMAGE_TOPIC_TYPES = {"book", "travel", "note"}
+PUBLIC_SENSITIVE_TOPIC_RE = re.compile(r"(ロゴ|名刺|規約|転載厳禁|スクリーンショット|Screenshot|個人情報|口座|証券)")
+
 EVENT_ANNOUNCEMENT_RE = re.compile(
     r"(@everyone|開催します|開催しました|募集|締め切|〆切|リマインド|日程アンケート|イベントフォーラム|お知らせ)"
 )
@@ -208,11 +211,11 @@ def month_half_range(value: str, half: str) -> tuple[datetime, datetime]:
     )
 
 
-def clean_text(value: str | None, limit: int = 180) -> str:
+def clean_text(value: str | None, limit: int | None = 180) -> str:
     text = re.sub(r"<@!?\d+>|@everyone|@here", "", value or "")
     text = re.sub(r"https?://\S+", "", text)
     text = " ".join(text.split())
-    if len(text) > limit:
+    if limit and len(text) > limit:
         return text[: limit - 1] + "..."
     return text
 
@@ -233,11 +236,82 @@ def keyword_hits(texts: list[str], keywords: tuple[str, ...], limit: int = 6) ->
     return [keyword for keyword in keywords if keyword in joined][:limit]
 
 
+def has_any(texts: list[str], keywords: tuple[str, ...]) -> bool:
+    joined = "\n".join(texts)
+    return any(keyword in joined for keyword in keywords)
+
+
+def topic_has_sensitive_public_content(texts: list[str]) -> bool:
+    return any(PUBLIC_SENSITIVE_TOPIC_RE.search(text) for text in texts)
+
+
+def is_public_sensitive_text(text: str) -> bool:
+    return bool(PUBLIC_SENSITIVE_TOPIC_RE.search(text))
+
+
 def book_titles(texts: list[str], limit: int = 6) -> list[str]:
     titles: list[str] = []
     for text in texts:
         titles.extend(re.findall(r"『([^』]+)』", text))
     return unique_preserve_order(titles)[:limit]
+
+
+def topic_focus_paragraphs(content_type: str, texts: list[str]) -> list[str]:
+    paragraphs: list[str] = []
+    if content_type == "book":
+        if has_any(texts, ("FIRE", "自由権", "民主主義", "資本主義", "宇沢弘文")):
+            paragraphs.append("印象的だったのは、本の感想がそのままFIREや自由、社会の仕組みの話につながっていたことです。投資や節約のテクニックだけではなく、「自分がどう生きるか」を考える材料として本が読まれていました。")
+        if has_any(texts, ("悲嘆", "最愛", "脳科学", "神様のカルテ", "医療")):
+            paragraphs.append("一方で、喪失や医療のような重いテーマの本も話題になりました。読み終えた感想が単なるおすすめで終わらず、家族や自分のこれからを考える入口になっていたのが印象的です。")
+        if has_any(texts, ("れんげ荘", "リーンFIRE", "月10万円", "会社を辞め")):
+            paragraphs.append("『れんげ荘』のように、会社を辞めた後の小さな暮らしを想像させる本も読まれていました。FIRE後の生活を、数字ではなく日々の手触りとして考える話題になっていたと思います。")
+    elif content_type == "travel":
+        if has_any(texts, ("ネパール", "カトマンズ", "ナガルコット", "ヒマラヤ", "エベレスト", "チャング・ナラヤン", "マウンテンフライト")):
+            paragraphs.append("特に面白かったのは、ネパール旅行の企画です。カトマンズとナガルコットを中心に、ヒマラヤの夕日、星空、日の出、チャング・ナラヤンまでのハイキング、カトマンズの世界遺産巡り、早朝のマウンテンフライトでエベレストを空から見る、という流れが出ていました。")
+            paragraphs.append("ただ「行きたいね」で終わらず、日程、直行便、航空券やホテル、現地ガイド、送迎、マウンテンフライトまで含めた概算予算まで話が進んでいたのが良いところです。国内の週末旅だけでなく、海外で数日間合流するような企画まで自然に立ち上がるのは、F研の旅行チャンネルらしい面白さだと思います。")
+        if has_any(texts, ("北海道", "小樽", "天狗山", "札幌", "旭川")):
+            paragraphs.append("旅行では、北海道の夏の空気や小樽の天狗山など、行った人だからこそ出てくる具体的なおすすめが目立ちました。地名の羅列ではなく、天気や季節感まで含めて旅先の様子が伝わっていました。")
+        if has_any(texts, ("スリランカ", "サーフィン", "ミリッサ")):
+            paragraphs.append("スリランカでサーフィンを始めた話もありました。年齢を重ねてから新しいことを始める話は、旅行というより「これからの時間をどう使うか」というF研らしいテーマにもつながっています。")
+        if has_any(texts, ("インド", "RRR", "K.G.F", "テルグ語", "カンナダ語")):
+            paragraphs.append("インド映画から、言語、宗教、旅のハードルまで話が広がっていたところも印象的でした。『RRR』や『K.G.F』の言語の違い、バガヴァット・ギーターの言葉など、映画を入口に知らない国を知っていく面白さがありました。")
+        if has_any(texts, ("姫路", "神戸", "小豆島", "石川県")):
+            paragraphs.append("姫路のホテル事情、小豆島、石川の建物など、近場の旅の話も出ていました。大きな旅行記だけでなく、日帰りや家族旅行の小さな気づきが集まるのも、このチャンネルの良さです。")
+    elif content_type == "question_consultation":
+        if has_any(texts, ("Discord", "ボイチャ", "マイク", "顔出し", "注意事項")):
+            paragraphs.append("Discordの使い方やボイスチャット参加時の説明も話題になりました。新しく入った人が安心して参加できるように、細かい不安を先回りして減らそうとしている動きが見えます。")
+    elif content_type == "money_consultation":
+        if has_any(texts, ("こどもNISA", "児童手当", "教育資金", "学資保険", "生前贈与")):
+            paragraphs.append("お金の話では、こどもNISAをきっかけに、教育資金、児童手当、学資保険、生前贈与まで話が広がりました。制度を使うかどうかだけでなく、子どもにどうお金を渡すのか、金融教育としてどう扱うのかまで踏み込んだ相談になっていました。")
+        if has_any(texts, ("新NISA", "非課税", "キャッシュ", "投資への抵抗")):
+            paragraphs.append("新NISAの枠をどう使うかという話も、家計全体の優先順位や日本での投資への抵抗感の話につながっていました。数字の最適解だけでは割り切れないところまで話せるのが、このチャンネルの濃さだと思います。")
+    elif content_type == "care_medical":
+        if has_any(texts, ("介護", "認知症", "在宅", "家族")):
+            paragraphs.append("介護の話では、制度や手続きだけでなく、家族としてどう向き合うかという現実的な悩みが出ていました。資産形成とは別の意味で、暮らしを支える知恵が集まっていました。")
+        if has_any(texts, ("医療", "体調", "病院", "検査")):
+            paragraphs.append("医療や体調の話も、経験者の言葉があることで少し相談しやすくなっていました。ひとりで抱えやすいテーマほど、こうした場がある意味は大きいと感じます。")
+    elif content_type == "note":
+        if has_any(texts, ("note", "記事", "書く", "発信")):
+            paragraphs.append("noteの話題では、書いたものをどう届けるか、どう続けるかという発信の工夫が話されていました。完成品だけでなく、書く途中の迷いも共有できる場になっています。")
+    elif content_type == "parenting":
+        paragraphs.append("子育ての話では、家庭ごとの事情を前提にしながら、無理なく続けられる選択肢を探す会話がありました。")
+    elif content_type == "real_estate":
+        paragraphs.append("不動産の話では、物件や制度の知識だけでなく、生活設計としてどう判断するかという視点で会話が進んでいました。")
+    return paragraphs[:3]
+
+
+def topic_heading(content_type: str, texts: list[str], label: str) -> str:
+    if content_type == "book" and has_any(texts, ("FIRE", "自由", "れんげ荘", "民主主義", "宇沢弘文")):
+        return "本の話は、FIRE後の暮らし方まで広がりました"
+    if content_type == "travel" and has_any(texts, ("ネパール", "カトマンズ", "ナガルコット", "ヒマラヤ", "エベレスト")):
+        return "旅の話には、ネパール旅行企画と新しい挑戦がありました"
+    if content_type == "travel":
+        return "旅の話には、季節感と新しい挑戦がありました"
+    if content_type == "money_consultation" and has_any(texts, ("こどもNISA", "児童手当", "教育資金", "生前贈与")):
+        return "こどもNISAの話は、家族のお金の渡し方まで深まりました"
+    if content_type == "question_consultation" and has_any(texts, ("Discord", "ボイチャ", "マイク", "顔出し", "注意事項")):
+        return "参加しやすい場づくりの話もありました"
+    return label
 
 
 def final_reader_cleanup(text: str) -> str:
@@ -474,7 +548,7 @@ def collect_post_topics(
         dt = parse_dt(item.get("posted_at"))
         if dt is None or not (start <= dt <= end):
             continue
-        content = clean_text(str(item.get("content") or ""), 170)
+        content = clean_text(str(item.get("content") or ""), 600)
         if len(content) < 20:
             continue
         content_type = str(item.get("content_type") or "other")
@@ -492,20 +566,37 @@ def collect_topic_images(
     end: datetime,
     max_per_type: int,
 ) -> dict[str, list[str]]:
-    grouped: dict[str, list[str]] = defaultdict(list)
+    grouped: dict[str, list[tuple[int, datetime, str]]] = defaultdict(list)
     seen: set[str] = set()
     for item in posts:
         dt = parse_dt(item.get("posted_at"))
         if dt is None or not (start <= dt <= end):
             continue
         content_type = str(item.get("content_type") or "other")
+        if content_type not in PUBLIC_IMAGE_TOPIC_TYPES:
+            continue
+        text = str(item.get("content") or "")
+        if PUBLIC_SENSITIVE_TOPIC_RE.search(text):
+            continue
+        score = 0
+        if has_any([text], ("ネパール", "カトマンズ", "ナガルコット", "ヒマラヤ", "エベレスト")):
+            score += 50
+        if has_any([text], ("FIRE", "自由", "れんげ荘", "民主主義", "宇沢弘文", "神様のカルテ")):
+            score += 20
+        if has_any([text], ("スリランカ", "サーフィン", "北海道", "小樽", "平戸", "石川", "小豆島")):
+            score += 10
         for url in image_urls(item, max_per_type):
             if url in seen:
                 continue
             seen.add(url)
-            if len(grouped[content_type]) < max_per_type:
-                grouped[content_type].append(url)
-    return dict(grouped)
+            grouped[content_type].append((score, dt, url))
+    return {
+        content_type: [
+            url
+            for _, _, url in sorted(items, key=lambda item: (item[0], item[1]), reverse=True)[:max_per_type]
+        ]
+        for content_type, items in grouped.items()
+    }
 
 
 def date_label(dt: datetime) -> str:
@@ -525,6 +616,10 @@ def period_label(start: datetime, end: datetime) -> str:
 
 
 def render_activity(activity: Activity, include_source_links: bool) -> list[str]:
+    if activity.summary == "Discord上で開催された活動です。":
+        return []
+    if len(clean_text(activity.summary, 80)) < 8 and not activity.images:
+        return []
     count = f"（参加者数: {activity.participant_count}名）" if activity.participant_count else ""
     lines = [
         f"### {activity.title}",
@@ -550,8 +645,11 @@ def render_topic_section(
     texts = [str(item.get("clean_content") or "") for item in items]
     if not texts:
         return []
+    focus_paragraphs = topic_focus_paragraphs(content_type, texts)
+    if content_type in {"question_consultation", "note", "care_medical", "parenting", "real_estate"} and not focus_paragraphs:
+        return []
 
-    lines = [f"## {label}", ""]
+    lines = [f"## {topic_heading(content_type, texts, label)}", ""]
     if content_type == "book":
         titles = book_titles(texts)
         if titles:
@@ -595,14 +693,9 @@ def render_topic_section(
         lines.append(f"{label}でも、メンバー同士の暮らしや関心が見える会話がありました。")
         lines.append("日々の小さな話題から交流が広がるのも、F研らしい動きでした。")
 
-    examples = [
-        example_text(text)
-        for text in texts
-        if len(text) >= 35 and not re.search(r"(AI|ChatGPT|さん[:：])", text)
-    ][:3]
-    if examples:
-        lines.extend(["", "話題になっていたこと:"])
-        lines.extend(f"- {clean_text(text, 110)}" for text in examples)
+    if focus_paragraphs:
+        lines.append("")
+        lines.extend(focus_paragraphs)
 
     if topic_images.get(content_type):
         lines.extend(["", "画像候補:"])
@@ -628,6 +721,25 @@ def opener_lines(
     topic_labels = [POST_TYPE_LABELS.get(key, key) for key in post_topics]
     section_labels = [name.replace("・", "、") for name in top_sections[:3]]
     highlights = unique_preserve_order(section_labels + topic_labels[:4])
+    travel_texts = [str(item.get("clean_content") or "") for item in post_topics.get("travel", [])]
+    money_texts = [str(item.get("clean_content") or "") for item in post_topics.get("money_consultation", [])]
+    book_texts = [str(item.get("clean_content") or "") for item in post_topics.get("book", [])]
+    if has_any(travel_texts, ("ネパール", "カトマンズ", "ナガルコット", "ヒマラヤ", "エベレスト")):
+        return [
+            f"{period_text}のF研は、大きなイベントの数で押すというより、日々の会話の中に面白さが詰まっていた期間でした。",
+            "",
+            "本の話からこれからの暮らし方を考えたり、旅の話からネパール旅行の企画が立ち上がったり、お金の相談から家族への渡し方まで掘り下がったり。",
+            "",
+            "派手なニュースではないけれど、読んでいると「自分ならどうするかな」と考えたくなる話題がいくつもありました。",
+            "",
+        ]
+    if has_any(money_texts, ("こどもNISA", "児童手当", "教育資金")) or has_any(book_texts, ("FIRE", "自由", "れんげ荘")):
+        return [
+            f"{period_text}のF研は、本、旅、お金の話を通じて、これからの暮らし方を考える会話が広がりました。",
+            "",
+            "単なる情報交換というより、自分ならどうするか、どんな毎日を送りたいかを考える材料があちこちにありました。",
+            "",
+        ]
     if highlights:
         return [
             f"{period_text}は、" + "、".join(highlights) + "など、いろいろなチャンネルで会話と交流が広がりました。",
@@ -655,12 +767,17 @@ def render_draft(
     label = period_label(start, end)
     sections: dict[str, list[Activity]] = defaultdict(list)
     for activity in activities:
+        if is_public_sensitive_text(f"{activity.title}\n{activity.summary}"):
+            continue
         sections[activity.source].append(activity)
 
     top_sections = [name for name, _ in SECTION_RULES if sections.get(name)]
     top_sections.extend(name for name in ("その他の動き",) if sections.get(name))
     highlighted_section = max(top_sections, key=lambda name: len(sections[name]), default="")
-    if post_topics and start.day == 1 and end.day == 15:
+    travel_texts = [str(item.get("clean_content") or "") for item in post_topics.get("travel", [])]
+    if has_any(travel_texts, ("ネパール", "カトマンズ", "ナガルコット", "ヒマラヤ", "エベレスト")):
+        title_tail = "本と旅とお金の話から、暮らしの輪郭が見えてきました！"
+    elif post_topics and start.day == 1 and end.day == 15:
         title_tail = "暮らしの話題とオンライン企画が広がりました！"
     elif highlighted_section:
         title_tail = EDITORIAL_TITLE_BY_SECTION.get(highlighted_section, "F研らしい動きがありました！")
@@ -715,10 +832,14 @@ def render_draft(
                 lines.extend(render_topic_section(content_type, post_topics[content_type], topic_images))
 
     for section_name in top_sections:
-        lines.extend([f"## {section_name}", ""])
+        rendered_activities: list[str] = []
         section_activities = sections[section_name]
         for activity in section_activities[:max_activities_per_section]:
-            lines.extend(render_activity(activity, include_source_links))
+            rendered_activities.extend(render_activity(activity, include_source_links))
+        if not rendered_activities:
+            continue
+        lines.extend([f"## {section_name}", ""])
+        lines.extend(rendered_activities)
         omitted = len(section_activities) - max_activities_per_section
         if omitted > 0 and show_internal_notes:
             lines.extend([f"[編集メモ: このセクションには他に{omitted}件の候補があります。必要なら期間を短くするか、出力上限を増やしてください。]", ""])
@@ -757,6 +878,26 @@ def render_draft(
                 "それでは今月もよろしくお願いします！",
                 "",
                 "<!-- 宣伝セクションは既存記事の固定文をコピーして、この下に貼ってください。 -->",
+            ]
+        )
+    elif template == "editorial":
+        lines.extend(
+            [
+                "## さいごに",
+                "",
+                f"{label}は、本、旅、お金、相談、オンラインの交流など、いろいろな話題がありました。",
+                "",
+                "ただ並べてみると、どれも別々の話に見えて、根っこには「これからどう暮らすか」という問いがある気がします。",
+                "",
+                "どんな本を読むか。",
+                "どこへ行くか。",
+                "家族にどうお金を渡すか。",
+                "初めての人が入りやすい場をどう作るか。",
+                "自分の時間を何に使うか。",
+                "",
+                "FIREはゴールではなく、その後の暮らしを考えるための入口でもあります。",
+                "",
+                f"{label}のF研には、その入口から先の話がたくさんありました。",
             ]
         )
     elif show_internal_notes:

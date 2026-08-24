@@ -215,7 +215,7 @@ python3 scripts/load_community_posts.py
 
 ### コミュニティ投稿候補の定期確認
 
-`.github/workflows/sync-community-content.yml` で毎日 05:45 JST に、前回リポジトリへ反映された `data/community_posts_sync_state.json` 以降の差分だけを取得します。処理後は同期stateを自動commitするため、同じ差分を毎日繰り返しIssue化しません。
+`.github/workflows/sync-community-content.yml` で毎日 05:30 JST に、前回リポジトリへ反映された `data/community_posts_sync_state.json` 以降の差分だけを取得します。処理後は同期stateを自動commitするため、同じ差分を毎日繰り返しIssue化しません。
 
 - `こんな本読みました` は、本文から本タイトルを抽出でき、投稿者が `member_profiles` に一致する場合だけ自動でSupabaseへ反映します。
 - 読書投稿でも、タイトルを本文から確定できないもの、投稿者が未マッピングのもの、短文返信っぽいものはGitHub Issueに回します。
@@ -300,6 +300,7 @@ python3 scripts/load_community_events.py
 `.github/workflows/sync-community-events.yml` で毎日 05:30 JST に同期します。
 
 - Discordの「イベント作成」機能で作られたサーバーイベントは、自動で `community_events` にupsertします。
+- Discordの予定一覧から消えたサーバーイベントは、開催済みとして画面に残すため自動削除しません。削除したい場合だけ `scripts/sync_scheduled_events.py --delete-stale` を使います。
 - チャンネル投稿由来のイベント候補は自動投入せず、直近3日分から告知・募集らしい投稿だけを抽出します。
 - 人手確認が必要な候補がある場合は、GitHub Issue `イベント候補の確認が必要です - YYYY-MM-DD` を作成します。
 
@@ -326,14 +327,14 @@ python3 scripts/fetch_community_posts.py
 月2回運用のnote貼り付け用下書き:
 
 ```bash
-# 1日0:00〜15日12:00分。毎月15日12:00に作成する想定。
+# 1日0:00〜15日05:30分。毎月15日05:30に作成する想定。
 python3 scripts/generate_note_activity_draft.py \
   --month 2026-08 \
   --half first
 ```
 
 ```bash
-# 15日12:00直後〜月末12:00分。月末12:00に作成する想定。
+# 15日05:30直後〜月末05:30分。月末05:30に作成する想定。
 python3 scripts/generate_note_activity_draft.py \
   --month 2026-08 \
   --half second
@@ -372,4 +373,4 @@ python3 scripts/generate_note_activity_draft.py \
 
 画像はDiscord添付画像のURLを「画像候補」として出します。Discord CDNのURLは期限切れになることがあるため、noteに載せる写真は下書き確認時に早めに保存・アップロードしてください。
 
-自動実行する場合は、毎月15日12:00に `--half first`、月末12:00に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
+自動実行する場合は、毎月15日05:30に `--half first`、月末05:30に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。

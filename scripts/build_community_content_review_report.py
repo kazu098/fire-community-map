@@ -39,6 +39,9 @@ CONSULTATION_HINT_RE = re.compile(
     re.IGNORECASE,
 )
 BOOK_HINT_RE = re.compile(r"(読了|読みました|本|書籍|著者|Kindle|Audible|『.+?』|「.+?」)", re.IGNORECASE)
+BOOK_LOW_VALUE_RE = re.compile(
+    r"(ありがとうございます|ありがとう|読んでみます|読んでみよう|買いました|購入しました|気になります|面白いですよね)"
+)
 
 
 def read_json(path: Path, fallback: Any) -> Any:
@@ -101,6 +104,9 @@ def candidate_reason(item: dict[str, Any]) -> str | None:
     text_len = len(text.strip())
 
     if content_type == "book":
+        compact_text = " ".join(text.split())
+        if text_len < 80 and BOOK_LOW_VALUE_RE.search(compact_text):
+            return None
         if text_len >= 20 or BOOK_HINT_RE.search(text):
             return "読んだ本チャンネルの新規投稿。タイトル・要約を整えれば自動投稿候補にできます。"
         return None

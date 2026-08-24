@@ -14,25 +14,9 @@ on:
       members_csv_b64:
         description: "Optional base64-encoded minimal CSV from Apps Script. If present, the sheet does not need to be public."
         required: false
-      update_existing:
-        description: "Update existing members when location input changed"
-        required: false
-        type: boolean
-        default: false
-      refresh_avatars:
-        description: "Refresh avatars for existing unchanged members"
-        required: false
-        type: boolean
-        default: false
-      dry_run:
-        description: "Run without writing Supabase/Storage changes"
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: member-form-submit-sync
@@ -51,14 +35,11 @@ jobs:
       - name: Guard public profile privacy flags
         run: python3 scripts/check_public_profile_privacy_guard.py
 
-      - name: Sync member profiles
+      - name: Build member candidate report (dry run, no Supabase writes)
         env:
           SHEET_URL: ${{ github.event.inputs.sheet_url }}
           SHEET_NAME: ${{ github.event.inputs.sheet_name }}
           MEMBERS_CSV_B64: ${{ github.event.inputs.members_csv_b64 }}
-          UPDATE_EXISTING: ${{ github.event.inputs.update_existing }}
-          REFRESH_AVATARS: ${{ github.event.inputs.refresh_avatars }}
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -66,11 +47,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Manual-only report generator. It never writes to Supabase (--dry-run is
+          # always on) and does not create a GitHub issue. Run it by hand from the
+          # Actions tab and check the uploaded report artifact when you want to see
+          # what a form submission would resolve to.
           args=(
             --report tmp/member_profile_form_sync_report.json
             --latest-only
             --enrich-from-discord-self-intros
-            --update-incomplete-existing-from-discord
+            --dry-run
           )
 
           if [ -n "${MEMBERS_CSV_B64:-}" ]; then
@@ -78,18 +63,6 @@ jobs:
             args+=(--members-csv tmp/form_responses.csv)
           else
             args+=(--sheet-url "$SHEET_URL" --sheet-name "$SHEET_NAME")
-          fi
-
-          if [ "$UPDATE_EXISTING" = "true" ]; then
-            args+=(--update-existing)
-          fi
-
-          if [ "$REFRESH_AVATARS" = "true" ]; then
-            args+=(--refresh-avatars)
-          fi
-
-          if [ "$DRY_RUN" = "true" ]; then
-            args+=(--dry-run)
           fi
 
           python3 scripts/sync_member_profile_form_deltas.py "${args[@]}"
@@ -100,47 +73,3 @@ jobs:
         with:
           name: member-profile-form-sync-report
           path: tmp/member_profile_form_sync_report.json
-
-      - name: Create review issue
-        if: ${{ hashFiles('tmp/member_profile_form_sync_report.json') != '' && github.event.inputs.dry_run != 'true' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          candidates_count="$(jq '.summary.candidates' tmp/member_profile_form_sync_report.json)"
-          duplicates_count="$(jq '.summary.possible_duplicates' tmp/member_profile_form_sync_report.json)"
-          held_without_profile_data_count="$(jq '.summary.held_without_profile_data' tmp/member_profile_form_sync_report.json)"
-          if [ "$candidates_count" = "0" ] && [ "$duplicates_count" = "0" ] && [ "$held_without_profile_data_count" = "0" ]; then
-            echo "No new member profile opt-ins."
-            exit 0
-          fi
-
-          title="メンバー表示フォームをプロフィール公開情報へ同期しました - $(TZ=Asia/Tokyo date +%Y-%m-%d)"
-          body_file="tmp/member_profile_form_sync_issue.md"
-          {
-            echo "タグ表示フォームの回答から、member_profiles の公開設定と member_tags / member_links を同期しました。"
-            if [ "$duplicates_count" != "0" ]; then
-              echo
-              echo "⚠️ 既存メンバーの表記ゆれ（別ニックネームでの再送信）と思われる回答が ${duplicates_count} 件あり、自動追加せず保留しました。\`possible_duplicates\` を確認し、同一人物なら無視、別人なら手動で member_profiles に追加してください。"
-            fi
-            echo
-            echo '```json'
-            jq '{
-              summary,
-              candidates,
-              updated_existing,
-              discord_self_intros,
-              held_without_profile_data,
-              duplicate_sheet_nicknames,
-              possible_duplicates
-            }' tmp/member_profile_form_sync_report.json
-            echo '```'
-          } > "$body_file"
-
-          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body-file "$body_file"
-          else
-            gh issue create --title "$title" --body-file "$body_file"
-          fi
