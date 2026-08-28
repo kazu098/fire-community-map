@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1542457072820420669",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1542457072820420669",
+    "discord_channel_name": "旅行",
+    "nickname": "もずく",
+    "avatar_path": "data/travel-avatars/44f81a159b7b.png",
+    "avatarColor": "#f97316",
+    "init": "も",
+    "prefecture": "大阪府",
+    "municipality_optional": null,
+    "lat": 34.68639,
+    "lng": 135.52,
+    "date": "2026/08/27",
+    "posted_at": "2026-08-27T08:53:43.627000+00:00",
+    "comment": "大阪に来ました\n当たり前ですが、皆さん関西弁でハム太郎のまいどくんを思い出している僕です",
+    "photos": [
+      "data/travel-photos/1542457072820420669-1.png"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1542152539485773844",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1542152539485773844",
     "discord_channel_name": "旅行",
