@@ -1335,12 +1335,22 @@
     }
     .availability-cell {
       border: 1px solid #d1d5db; border-radius: 6px; background: white;
-      font-size: 11px; padding: 8px 0; cursor: pointer; color: #9ca3af;
+      font-size: 16px; font-weight: bold; padding: 8px 0; cursor: pointer; color: #cbd5e1;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .availability-cell:hover:not(:disabled) {
+      border-color: #93c5fd; background: #eff6ff;
     }
     .availability-cell.is-on {
-      background: #2563eb; border-color: #2563eb; color: white; font-weight: bold;
+      background: #2563eb; border-color: #2563eb; color: white;
+    }
+    .availability-cell.is-on:hover:not(:disabled) {
+      background: #1d4ed8;
     }
     .availability-cell:disabled { cursor: progress; opacity: 0.6; }
+    .availability-legend {
+      font-size: 11px; color: #6b7280; margin-top: 6px;
+    }
     .matching-status {
       font-size: 11px; color: #2563eb; min-height: 16px; margin-top: 8px;
     }
@@ -3189,7 +3199,7 @@ function buildMatchingSection(member) {
   section.className = 'detail-section';
   const title = document.createElement('div');
   title.className = 'detail-section-title';
-  title.textContent = 'マッチング（プチおせっかい）';
+  title.textContent = 'ゆるマッチング';
   section.appendChild(title);
 
   const hint = document.createElement('div');
@@ -3272,7 +3282,8 @@ function buildMatchingSection(member) {
       const cell = document.createElement('button');
       cell.type = 'button';
       cell.className = `availability-cell${isOn ? ' is-on' : ''}`;
-      cell.textContent = isOn ? '空き' : '';
+      cell.textContent = isOn ? '○' : '×';
+      cell.title = isOn ? 'クリックで「空きなし」に変更' : 'クリックで「空きあり」に変更';
       cell.setAttribute('aria-pressed', String(isOn));
       cell.addEventListener('click', async () => {
         cell.disabled = true;
@@ -3281,7 +3292,8 @@ function buildMatchingSection(member) {
         const ok = await toggleAvailability(member.nickname, day.key, slot.key, nextOn);
         if (ok) {
           cell.classList.toggle('is-on', nextOn);
-          cell.textContent = nextOn ? '空き' : '';
+          cell.textContent = nextOn ? '○' : '×';
+          cell.title = nextOn ? 'クリックで「空きなし」に変更' : 'クリックで「空きあり」に変更';
           cell.setAttribute('aria-pressed', String(nextOn));
         }
         cell.disabled = false;
@@ -3291,6 +3303,10 @@ function buildMatchingSection(member) {
     });
   });
   section.appendChild(grid);
+  const legend = document.createElement('div');
+  legend.className = 'availability-legend';
+  legend.textContent = 'マスをクリックすると ○（空きあり）/ ×（空きなし）が切り替わります。';
+  section.appendChild(legend);
   section.appendChild(status);
 
   return section;

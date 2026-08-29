@@ -1,4 +1,4 @@
--- Member matching (プチおせっかい): availability-based random matching.
+-- Member matching (ゆるマッチング): availability-based random matching.
 -- See GitHub issue #76 for the design background. Unlike member_tags/member_links
 -- (fully open write), matching participation is opt-in and stores a per-member
 -- schedule, so writes are scoped to just the columns/rows each member needs to
@@ -19,7 +19,7 @@ create table if not exists public.member_matching_settings (
 );
 
 comment on table public.member_matching_settings is
-  'Per-member opt-in flag and matching interval for the availability-based random matching (プチおせっかい) feature.';
+  'Per-member opt-in flag and matching interval for the availability-based random matching (ゆるマッチング) feature.';
 comment on column public.member_matching_settings.interval_days is
   'How often this member wants to be matched, in days. A member is eligible again once interval_days have passed since last_matched_at.';
 comment on column public.member_matching_settings.last_matched_at is
@@ -79,7 +79,7 @@ create table if not exists public.member_availability (
 );
 
 comment on table public.member_availability is
-  'Self-reported weekday x time-of-day availability slots for the availability-based random matching (プチおせっかい) feature. Not tied to similarity/tags.';
+  'Self-reported weekday x time-of-day availability slots for the availability-based random matching (ゆるマッチング) feature. Not tied to similarity/tags.';
 
 create index if not exists member_availability_member_nickname_idx
   on public.member_availability (member_nickname);

@@ -375,11 +375,11 @@ python3 scripts/generate_note_activity_draft.py \
 
 自動実行する場合は、毎月15日05:30に `--half first`、月末05:30に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
 
-## メンバーマッチング（プチおせっかい機能）
+## ゆるマッチング
 
 タグ・自己紹介文の類似度は使わず、メンバーが登録した「空いている曜日・時間帯」を手がかりにランダムでペアを提案する機能です（背景は [Issue #76](https://github.com/kazu098/fire-community-map/issues/76) 参照）。
 
-- 登録: メンバー詳細ページの「マッチング（プチおせっかい）」セクションで、参加オプトイン・マッチング頻度（3日に1回/週1回/隔週/月1回）・空き時間帯（曜日 × 午前/午後/夜）を各自登録します。
+- 登録: メンバー詳細ページの「ゆるマッチング」セクションで、参加オプトイン・マッチング頻度（3日に1回/週1回/隔週/月1回）・空き時間帯（曜日 × 午前/午後/夜）を各自登録します。
 - スキーマ: `supabase/member_matching.sql`（`member_matching_settings` / `member_availability` / `member_matches`）。他のテーブルと同じくSupabase SQL editorで手動適用します。
 - マッチング実行: `scripts/run_member_matching.py` が、頻度が到来したオプトイン済みメンバーの中から空き時間帯が重なる相手をランダムに抽選し、直近マッチ済みのペアはクールダウン（60日）で除外します。
 

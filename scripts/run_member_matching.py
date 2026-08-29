@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Availability-based random matching batch (プチおせっかい機能).
+"""Availability-based random matching batch (ゆるマッチング).
 
 Pairs up opted-in members whose availability (weekday x time-of-day slot)
 overlaps, at random -- no tag/embedding similarity involved. See GitHub
