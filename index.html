@@ -1301,6 +1301,49 @@
       min-height: 16px;
       margin-top: 8px;
     }
+    .matching-opt-in-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .matching-frequency-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .matching-frequency-row label {
+      font-size: 12px; color: #374151;
+    }
+    .matching-frequency-select {
+      font-size: 12px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px;
+      background: white;
+    }
+    .availability-grid {
+      display: grid;
+      grid-template-columns: 36px repeat(3, 1fr);
+      gap: 4px;
+      max-width: 360px;
+    }
+    .availability-grid .availability-head {
+      font-size: 11px; color: #9ca3af; text-align: center; font-weight: bold;
+    }
+    .availability-grid .availability-day-label {
+      font-size: 12px; color: #374151; display: flex; align-items: center;
+    }
+    .availability-cell {
+      border: 1px solid #d1d5db; border-radius: 6px; background: white;
+      font-size: 11px; padding: 8px 0; cursor: pointer; color: #9ca3af;
+    }
+    .availability-cell.is-on {
+      background: #2563eb; border-color: #2563eb; color: white; font-weight: bold;
+    }
+    .availability-cell:disabled { cursor: progress; opacity: 0.6; }
+    .matching-status {
+      font-size: 11px; color: #2563eb; min-height: 16px; margin-top: 8px;
+    }
     .external-intro-editor {
       display: block;
     }
@@ -2625,8 +2668,38 @@ async function fetchLocalCommunityEvents() {
   }
 }
 
+async function fetchMatchingSettings() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) {
+      console.warn('member_matching_settings fetch failed (table may not exist yet).', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('member_matching_settings fetch failed.', err);
+    return [];
+  }
+}
+
+async function fetchMemberAvailability() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?select=member_nickname,day_of_week,time_slot`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) {
+      console.warn('member_availability fetch failed (table may not exist yet).', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('member_availability fetch failed.', err);
+    return [];
+  }
+}
+
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData] = await Promise.all([
+  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData, matchingSettings, availability] = await Promise.all([
     fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -2636,6 +2709,8 @@ async function loadDirectory() {
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetchCommunityPosts(),
     fetchCommunityEvents(),
+    fetchMatchingSettings(),
+    fetchMemberAvailability(),
   ]);
   const tags = await tagsRes.json();
   const links = await linksRes.json();
@@ -2658,11 +2733,21 @@ async function loadDirectory() {
   const locationByNickname = {};
   locations.forEach(l => { locationByNickname[l.nickname] = l; });
 
+  const matchingSettingsByNickname = {};
+  matchingSettings.forEach(s => { matchingSettingsByNickname[s.member_nickname] = s; });
+
+  const availabilityByNickname = {};
+  availability.forEach(a => {
+    (availabilityByNickname[a.member_nickname] ??= []).push({ day_of_week: a.day_of_week, time_slot: a.time_slot });
+  });
+
   directoryMembers = profiles.map(p => ({
     ...p,
     tags: tagsByNickname[p.nickname] || {},
     links: linksByNickname[p.nickname] || [],
     location: locationByNickname[p.nickname] || null,
+    matching: matchingSettingsByNickname[p.nickname] || { opted_in: false, interval_days: 7, last_matched_at: null },
+    availability: availabilityByNickname[p.nickname] || [],
   }));
   directoryLoaded = true;
 
@@ -3008,6 +3093,207 @@ async function saveExternalIntro(nickname, text) {
     preservePublicSettingsStatus: '保存しました',
     scrollToTop: false,
   });
+}
+
+const MATCHING_DAYS = [
+  { key: 'mon', label: '月' },
+  { key: 'tue', label: '火' },
+  { key: 'wed', label: '水' },
+  { key: 'thu', label: '木' },
+  { key: 'fri', label: '金' },
+  { key: 'sat', label: '土' },
+  { key: 'sun', label: '日' },
+];
+const MATCHING_SLOTS = [
+  { key: 'morning', label: '午前' },
+  { key: 'afternoon', label: '午後' },
+  { key: 'evening', label: '夜' },
+];
+const MATCHING_INTERVAL_OPTIONS = [
+  { days: 3, label: '3日に1回' },
+  { days: 7, label: '週1回' },
+  { days: 14, label: '隔週' },
+  { days: 30, label: '月1回' },
+];
+
+async function upsertMatchingSettings(nickname, patch) {
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  const current = (member && member.matching) || { opted_in: false, interval_days: 7 };
+  const body = {
+    member_nickname: nickname,
+    opted_in: current.opted_in,
+    interval_days: current.interval_days,
+    ...patch,
+  };
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_matching_settings`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify([body]),
+  });
+  if (!res.ok) {
+    const message = await res.text();
+    console.error('matching settings save failed', res.status, message);
+    window.alert('マッチング設定を保存できませんでした。');
+    return false;
+  }
+  if (member) member.matching = { ...current, ...patch };
+  return true;
+}
+
+async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
+  if (enable) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify([{ member_nickname: nickname, day_of_week: dayOfWeek, time_slot: timeSlot }]),
+    });
+    if (!res.ok) {
+      console.error('availability save failed', res.status, await res.text());
+      return false;
+    }
+  } else {
+    const params = new URLSearchParams({
+      member_nickname: `eq.${nickname}`,
+      day_of_week: `eq.${dayOfWeek}`,
+      time_slot: `eq.${timeSlot}`,
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?${params.toString()}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    if (!res.ok) {
+      console.error('availability delete failed', res.status, await res.text());
+      return false;
+    }
+  }
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (member) {
+    member.availability = member.availability.filter(a => !(a.day_of_week === dayOfWeek && a.time_slot === timeSlot));
+    if (enable) member.availability.push({ day_of_week: dayOfWeek, time_slot: timeSlot });
+  }
+  return true;
+}
+
+function buildMatchingSection(member) {
+  const section = document.createElement('div');
+  section.className = 'detail-section';
+  const title = document.createElement('div');
+  title.className = 'detail-section-title';
+  title.textContent = 'マッチング（プチおせっかい）';
+  section.appendChild(title);
+
+  const hint = document.createElement('div');
+  hint.className = 'detail-field-hint';
+  hint.style.marginBottom = '10px';
+  hint.textContent = '空いている曜日・時間帯を登録しておくと、参加中の他メンバーとランダムでマッチングされ、専用チャンネルで紹介されます。開催するかどうかは当人同士で決めてください。';
+  section.appendChild(hint);
+
+  const status = document.createElement('div');
+  status.className = 'matching-status';
+
+  const optInRow = document.createElement('div');
+  optInRow.className = 'matching-opt-in-row';
+  const optInCopy = document.createElement('div');
+  optInCopy.className = 'public-toggle-copy';
+  const optInLabel = document.createElement('div');
+  optInLabel.className = 'public-toggle-label';
+  optInLabel.textContent = 'マッチングに参加する';
+  optInCopy.appendChild(optInLabel);
+  optInRow.appendChild(optInCopy);
+  const optInToggle = document.createElement('button');
+  optInToggle.type = 'button';
+  const isOptedIn = Boolean(member.matching.opted_in);
+  optInToggle.className = `public-toggle${isOptedIn ? ' is-on' : ''}`;
+  optInToggle.setAttribute('aria-pressed', String(isOptedIn));
+  const optInState = document.createElement('span');
+  optInState.textContent = isOptedIn ? 'ON' : 'OFF';
+  optInToggle.appendChild(optInState);
+  optInToggle.addEventListener('click', async () => {
+    optInToggle.disabled = true;
+    status.textContent = '保存中...';
+    const nextValue = !isOptedIn;
+    const ok = await upsertMatchingSettings(member.nickname, { opted_in: nextValue });
+    status.textContent = ok ? '保存しました' : '';
+    openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
+  });
+  optInRow.appendChild(optInToggle);
+  section.appendChild(optInRow);
+
+  const frequencyRow = document.createElement('div');
+  frequencyRow.className = 'matching-frequency-row';
+  const frequencyLabel = document.createElement('label');
+  frequencyLabel.textContent = 'マッチング頻度';
+  frequencyLabel.setAttribute('for', 'matching-frequency-select');
+  const frequencySelect = document.createElement('select');
+  frequencySelect.id = 'matching-frequency-select';
+  frequencySelect.className = 'matching-frequency-select';
+  MATCHING_INTERVAL_OPTIONS.forEach(opt => {
+    const option = document.createElement('option');
+    option.value = String(opt.days);
+    option.textContent = opt.label;
+    if (member.matching.interval_days === opt.days) option.selected = true;
+    frequencySelect.appendChild(option);
+  });
+  frequencySelect.addEventListener('change', async () => {
+    status.textContent = '保存中...';
+    const ok = await upsertMatchingSettings(member.nickname, { interval_days: Number(frequencySelect.value) });
+    status.textContent = ok ? '保存しました' : '';
+  });
+  frequencyRow.appendChild(frequencyLabel);
+  frequencyRow.appendChild(frequencySelect);
+  section.appendChild(frequencyRow);
+
+  const grid = document.createElement('div');
+  grid.className = 'availability-grid';
+  grid.appendChild(document.createElement('div'));
+  MATCHING_SLOTS.forEach(slot => {
+    const head = document.createElement('div');
+    head.className = 'availability-head';
+    head.textContent = slot.label;
+    grid.appendChild(head);
+  });
+  MATCHING_DAYS.forEach(day => {
+    const dayLabel = document.createElement('div');
+    dayLabel.className = 'availability-day-label';
+    dayLabel.textContent = day.label;
+    grid.appendChild(dayLabel);
+    MATCHING_SLOTS.forEach(slot => {
+      const isOn = member.availability.some(a => a.day_of_week === day.key && a.time_slot === slot.key);
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = `availability-cell${isOn ? ' is-on' : ''}`;
+      cell.textContent = isOn ? '空き' : '';
+      cell.setAttribute('aria-pressed', String(isOn));
+      cell.addEventListener('click', async () => {
+        cell.disabled = true;
+        status.textContent = '保存中...';
+        const nextOn = !cell.classList.contains('is-on');
+        const ok = await toggleAvailability(member.nickname, day.key, slot.key, nextOn);
+        if (ok) {
+          cell.classList.toggle('is-on', nextOn);
+          cell.textContent = nextOn ? '空き' : '';
+          cell.setAttribute('aria-pressed', String(nextOn));
+        }
+        cell.disabled = false;
+        status.textContent = ok ? '保存しました' : '保存できませんでした';
+      });
+      grid.appendChild(cell);
+    });
+  });
+  section.appendChild(grid);
+  section.appendChild(status);
+
+  return section;
 }
 
 const PUBLIC_FIELD_CONFIG = [
@@ -3578,6 +3864,7 @@ function openMemberDetail(nickname, {
   });
 
   content.appendChild(buildLocationSection(member));
+  content.appendChild(buildMatchingSection(member));
 
   function buildLinkItem(label, url) {
     const wrap = document.createElement('span');
