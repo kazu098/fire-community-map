@@ -1,0 +1,49 @@
+name: Notify YouTube comments
+
+on:
+  schedule:
+    # Every hour. GitHub schedules use UTC.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notify-youtube-comments
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Notify Discord about new YouTube comments
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          DISCORD_DM_USER_ID: ${{ secrets.DISCORD_DM_USER_ID }}
+          DISCORD_NOTIFY_USER_ID: ${{ secrets.DISCORD_NOTIFY_USER_ID }}
+        run: python3 scripts/notify_youtube_comments.py
+
+      - name: Commit notification state
+        run: |
+          changed="$(git status --porcelain -- data/youtube_comment_notify_state.json)"
+          if [ -z "$changed" ]; then
+            echo "No YouTube comment notification state changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/youtube_comment_notify_state.json
+          git commit -m "Advance YouTube comment notification state"
+          git pull --rebase origin main
+          git push origin HEAD:main
