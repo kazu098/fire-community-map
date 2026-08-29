@@ -1,5 +1,48 @@
 [
   {
+    "discord_message_id": "1543058043397341274",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1543058043397341274",
+    "discord_channel_name": "旅行",
+    "nickname": "めめと",
+    "avatar_path": "data/travel-avatars/a27e3fc1c017.png",
+    "avatarColor": "#f97316",
+    "init": "め",
+    "prefecture": "愛知県",
+    "municipality_optional": null,
+    "lat": 35.18028,
+    "lng": 136.90667,
+    "date": "2026/08/29",
+    "posted_at": "2026-08-29T00:41:46.178000+00:00",
+    "comment": "神戸から愛知まで早朝から一泊で深海魚を見に行っています(笑)",
+    "photos": [
+      "data/travel-photos/1543058043397341274-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1542789573132816436",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1542789573132816436",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "推し旅トラベラー０",
+    "avatar_path": "data/travel-avatars/cc27014e43a9.png",
+    "avatarColor": "#f97316",
+    "init": "推",
+    "prefecture": "千葉県",
+    "municipality_optional": "君津市",
+    "lat": 35.297907,
+    "lng": 139.967738,
+    "date": "2026/08/28",
+    "posted_at": "2026-08-28T06:54:57.879000+00:00",
+    "comment": "千葉県君津市の久留里駅前にあるタイ料理店で、シーフードガパオのランチセット。サラダとデザートがついてきます。サラダはエスニックなソースがおいしかったし、ガパオライスも絶品でした。デザートはなんとなく台湾風かな(^^;",
+    "photos": [
+      "data/travel-photos/1542789573132816436-1.jpg",
+      "data/travel-photos/1542789573132816436-2.jpg",
+      "data/travel-photos/1542789573132816436-3.jpg",
+      "data/travel-photos/1542789573132816436-4.jpg"
+    ],
+    "location_source": "geolonia"
+  },
+  {
     "discord_message_id": "1542457072820420669",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1542457072820420669",
     "discord_channel_name": "旅行",
