@@ -1488,6 +1488,31 @@
 const SUPABASE_URL = 'https://hchlqnsretsbhumeojdk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjaGxxbnNyZXRzYmh1bWVvamRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDAxNjcsImV4cCI6MjA5ODAxNjE2N30.iy0Fg7izs1DKonTGcMuORCiWilCujVfd3b_dwUlYyLM';
 
+// member_matching_settings / member_availability don't exist in Supabase yet
+// (schema reviewed, not applied). On localhost only, fall back to localStorage
+// so the UI is click-through-testable before the tables are created. Remove
+// this fallback once the schema is applied for real.
+const IS_LOCAL_PREVIEW = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+const LOCAL_MATCHING_SETTINGS_KEY = 'fcm_local_matching_settings';
+const LOCAL_AVAILABILITY_KEY = 'fcm_local_availability';
+
+function readLocalStore(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  } catch (err) {
+    console.warn(`Failed to read local preview store ${key}.`, err);
+    return {};
+  }
+}
+
+function writeLocalStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.warn(`Failed to write local preview store ${key}.`, err);
+  }
+}
+
 function avatarUrl(path) {
   if (!path) return null;
   return `${SUPABASE_URL}/storage/v1/object/public/${path}`;
@@ -2679,33 +2704,49 @@ async function fetchLocalCommunityEvents() {
 }
 
 async function fetchMatchingSettings() {
+  let remote = [];
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
     if (!res.ok) {
       console.warn('member_matching_settings fetch failed (table may not exist yet).', res.status);
-      return [];
+    } else {
+      remote = await res.json();
     }
-    return await res.json();
   } catch (err) {
     console.warn('member_matching_settings fetch failed.', err);
-    return [];
   }
+  if (!IS_LOCAL_PREVIEW) return remote;
+
+  const byNickname = {};
+  remote.forEach(s => { byNickname[s.member_nickname] = s; });
+  Object.entries(readLocalStore(LOCAL_MATCHING_SETTINGS_KEY)).forEach(([nickname, settings]) => {
+    byNickname[nickname] = { member_nickname: nickname, ...settings };
+  });
+  return Object.values(byNickname);
 }
 
 async function fetchMemberAvailability() {
+  let remote = [];
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?select=member_nickname,day_of_week,time_slot`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
     if (!res.ok) {
       console.warn('member_availability fetch failed (table may not exist yet).', res.status);
-      return [];
+    } else {
+      remote = await res.json();
     }
-    return await res.json();
   } catch (err) {
     console.warn('member_availability fetch failed.', err);
-    return [];
   }
+  if (!IS_LOCAL_PREVIEW) return remote;
+
+  const local = readLocalStore(LOCAL_AVAILABILITY_KEY);
+  const merged = [...remote];
+  Object.entries(local).forEach(([nickname, rows]) => {
+    rows.forEach(row => merged.push({ member_nickname: nickname, ...row }));
+  });
+  return merged;
 }
 
 async function loadDirectory() {
@@ -3147,15 +3188,25 @@ async function upsertMatchingSettings(nickname, patch) {
   });
   if (!res.ok) {
     const message = await res.text();
-    console.error('matching settings save failed', res.status, message);
-    window.alert('マッチング設定を保存できませんでした。');
-    return false;
+    console.warn('matching settings save failed', res.status, message);
+    if (!IS_LOCAL_PREVIEW) {
+      window.alert('マッチング設定を保存できませんでした。');
+      return false;
+    }
+    const store = readLocalStore(LOCAL_MATCHING_SETTINGS_KEY);
+    store[nickname] = {
+      opted_in: body.opted_in,
+      interval_days: body.interval_days,
+      last_matched_at: store[nickname]?.last_matched_at ?? null,
+    };
+    writeLocalStore(LOCAL_MATCHING_SETTINGS_KEY, store);
   }
   if (member) member.matching = { ...current, ...patch };
   return true;
 }
 
 async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
+  let ok;
   if (enable) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability`, {
       method: 'POST',
@@ -3167,10 +3218,8 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
       },
       body: JSON.stringify([{ member_nickname: nickname, day_of_week: dayOfWeek, time_slot: timeSlot }]),
     });
-    if (!res.ok) {
-      console.error('availability save failed', res.status, await res.text());
-      return false;
-    }
+    ok = res.ok;
+    if (!ok) console.warn('availability save failed', res.status, await res.text());
   } else {
     const params = new URLSearchParams({
       member_nickname: `eq.${nickname}`,
@@ -3181,11 +3230,20 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
       method: 'DELETE',
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     });
-    if (!res.ok) {
-      console.error('availability delete failed', res.status, await res.text());
-      return false;
-    }
+    ok = res.ok;
+    if (!ok) console.warn('availability delete failed', res.status, await res.text());
   }
+
+  if (!ok) {
+    if (!IS_LOCAL_PREVIEW) return false;
+    const store = readLocalStore(LOCAL_AVAILABILITY_KEY);
+    const rows = (store[nickname] ??= []);
+    const index = rows.findIndex(r => r.day_of_week === dayOfWeek && r.time_slot === timeSlot);
+    if (enable && index === -1) rows.push({ day_of_week: dayOfWeek, time_slot: timeSlot });
+    if (!enable && index !== -1) rows.splice(index, 1);
+    writeLocalStore(LOCAL_AVAILABILITY_KEY, store);
+  }
+
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (member) {
     member.availability = member.availability.filter(a => !(a.day_of_week === dayOfWeek && a.time_slot === timeSlot));
