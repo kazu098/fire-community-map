@@ -2,8 +2,8 @@ name: Notify YouTube comments
 
 on:
   schedule:
-    # Every hour. GitHub schedules use UTC.
-    - cron: "0 * * * *"
+    # Every hour. Avoid :00 because GitHub schedules are often delayed or dropped at the top of the hour.
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:

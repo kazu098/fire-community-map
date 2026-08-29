@@ -203,26 +203,17 @@ def truncate(value: str, limit: int) -> str:
 
 def build_discord_payload(
     comment: dict[str, Any],
-    notify_user_id: str | None,
-    *,
-    include_mention: bool,
 ) -> dict[str, Any]:
-    mention = f"<@{notify_user_id}>\n" if notify_user_id and include_mention else ""
     kind = "返信" if comment["is_reply"] else "コメント"
     url = youtube_watch_url(comment["video_id"], comment["id"])
     text = truncate(comment["text"] or "(本文なし)", 700)
     content = (
-        f"{mention}YouTubeに新しい{kind}が付きました\n"
+        f"YouTubeに新しい{kind}が付きました\n"
         f"投稿者: {comment['author']}\n"
         f"コメント: {text}\n"
         f"{url}"
     )
-    payload: dict[str, Any] = {"content": truncate(content, DISCORD_MESSAGE_LIMIT)}
-    if notify_user_id and include_mention:
-        payload["allowed_mentions"] = {"users": [notify_user_id], "parse": []}
-    else:
-        payload["allowed_mentions"] = {"parse": []}
-    return payload
+    return {"content": truncate(content, DISCORD_MESSAGE_LIMIT), "allowed_mentions": {"parse": []}}
 
 
 def main() -> int:
@@ -245,7 +236,6 @@ def main() -> int:
     discord_bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip() or None
     discord_channel_id = os.environ.get("DISCORD_CHANNEL_ID", "").strip() or None
     discord_dm_user_id = os.environ.get("DISCORD_DM_USER_ID", "").strip() or None
-    notify_user_id = os.environ.get("DISCORD_NOTIFY_USER_ID", "").strip() or None
     if not webhook_url and not (discord_bot_token and (discord_channel_id or discord_dm_user_id)):
         raise SystemExit(
             "Missing notification target: set DISCORD_WEBHOOK_URL, or set both "
@@ -270,11 +260,7 @@ def main() -> int:
         new_comments = []
 
     for comment in new_comments:
-        payload = build_discord_payload(
-            comment,
-            notify_user_id,
-            include_mention=bool(webhook_url or discord_channel_id),
-        )
+        payload = build_discord_payload(comment)
         if args.dry_run:
             print(json.dumps(payload, ensure_ascii=False))
         elif webhook_url:
