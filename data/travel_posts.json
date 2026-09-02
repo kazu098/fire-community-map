@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1544538326038741036",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1544538326038741036",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/0dce8d1c07e7.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "京都府",
+    "municipality_optional": null,
+    "lat": 35.02139,
+    "lng": 135.75556,
+    "date": "2026/09/02",
+    "posted_at": "2026-09-02T02:43:53.062000+00:00",
+    "comment": "今日のランチは京急川崎のラーメン二郎。\n\n小ラーメン950円🍜コールはニンニクヤサイ！\n\nごちそうさまでした😅",
+    "photos": [
+      "data/travel-photos/1544538326038741036-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1543058043397341274",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1543058043397341274",
     "discord_channel_name": "旅行",
