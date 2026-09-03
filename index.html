@@ -1369,6 +1369,22 @@
       font-family: inherit; padding: 10px 12px; border: 1px solid #d1d5db;
       border-radius: 8px; resize: vertical;
     }
+
+    #mascot-fainya {
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      width: 100px;
+      height: auto;
+      z-index: 400;
+      pointer-events: none;
+      opacity: 0.92;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+      display: none;
+    }
+    @media (max-width: 600px) {
+      #mascot-fainya { width: 68px; left: 6px; bottom: 6px; }
+    }
   </style>
 </head>
 <body>
@@ -1426,6 +1442,8 @@
 <div id="usage-view">
   <div id="usage-body"></div>
 </div>
+
+<img id="mascot-fainya" src="assets/fainya-mascot.png" alt="" aria-hidden="true">
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -2187,6 +2205,7 @@ function selectView(view) {
   document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
   document.getElementById('events-view').style.display = isEvents ? 'block' : 'none';
   document.getElementById('usage-view').style.display = isUsage ? 'block' : 'none';
+  document.getElementById('mascot-fainya').style.display = (isMap || isDirectory || isEvents) ? 'block' : 'none';
 
   if (isMap) {
     if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
