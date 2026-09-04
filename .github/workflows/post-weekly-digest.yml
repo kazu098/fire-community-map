@@ -44,7 +44,8 @@ jobs:
             --reset-state \
             --since "${{ steps.since.outputs.since }}" \
             --output tmp/community_posts_raw.json \
-            --state-file tmp/community_posts_sync_state.json
+            --state-file tmp/community_posts_sync_state.json \
+            --include-digest-channels
 
       - name: Generate and post weekly digest
         env:
