@@ -64,13 +64,21 @@ def select_top_posts(
     start: datetime,
     end: datetime,
     limit: int,
-    display_limit: int = 140,
+    display_limit: int = 280,
+    max_per_channel: int = 1,
 ) -> list[dict[str, Any]]:
     """The most-reacted-to posts in the window, each with a clean_content field.
 
     Ranked by reaction_count (Discord's own "this got attention" signal, already
     present on fetched messages -- no extra API call needed) with post length as
     a tiebreaker for posts nobody reacted to yet.
+
+    A high-traffic channel (e.g. 雑談) tends to rack up the most reactions purely
+    from volume, which would otherwise fill every highlight slot and make the
+    other ~28 scanned channels invisible even though they were considered. So
+    the first pass takes at most `max_per_channel` post(s) per channel_name;
+    only if that leaves slots unfilled (fewer distinct channels than `limit`)
+    does a second post from the same channel get in.
     """
     candidates: list[dict[str, Any]] = []
     for item in posts:
@@ -87,7 +95,21 @@ def select_top_posts(
             "content_length": len(full_content),
         })
     candidates.sort(key=lambda item: (item["reaction_count"], item["content_length"]), reverse=True)
-    return candidates[:limit]
+
+    selected: list[dict[str, Any]] = []
+    leftover: list[dict[str, Any]] = []
+    per_channel_count: dict[str, int] = {}
+    for item in candidates:
+        channel = str(item.get("channel_name") or "")
+        if per_channel_count.get(channel, 0) < max_per_channel:
+            selected.append(item)
+            per_channel_count[channel] = per_channel_count.get(channel, 0) + 1
+        else:
+            leftover.append(item)
+        if len(selected) >= limit:
+            return selected[:limit]
+    selected.extend(leftover[: limit - len(selected)])
+    return selected[:limit]
 
 
 def read_json(path: Path, fallback: Any) -> Any:
@@ -116,7 +138,7 @@ def build_digest_content(
     # the most-reacted-to channel posts fill whatever highlight slots remain.
     highlights: list[tuple[str, str, str | None]] = []
     for activity in activities:
-        summary = trim_to_sentence(activity.summary, 90)
+        summary = trim_to_sentence(activity.summary, 150)
         if not summary or not activity.permalink:
             continue
         highlights.append((activity.title, summary, activity.permalink))
