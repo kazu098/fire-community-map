@@ -29,7 +29,7 @@ from generate_note_activity_draft import (
     Activity,
     clean_text,
     collect_events,
-    collect_post_topics,
+    parse_dt,
 )
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -37,13 +37,36 @@ USER_AGENT = "fire-community-map-weekly-digest/0.1"
 DEFAULT_EVENT_RAW = "tmp/community_events_raw.json"
 DEFAULT_EVENT_CURATED = "data/community_events_curated.json"
 DEFAULT_POSTS_RAW = "tmp/community_posts_raw.json"
+MIN_POST_LENGTH = 20  # shorter than this reads as a one-line reaction, not a topic worth digesting
 
-# Same rendering order as generate_note_activity_draft's editorial template,
-# minus the section headings -- here each just becomes one digest line.
-TOPIC_ORDER = (
-    "book", "travel", "question_consultation", "money_consultation",
-    "note", "care_medical", "parenting", "real_estate",
-)
+
+def select_top_posts(
+    posts: list[dict[str, Any]],
+    start: datetime,
+    end: datetime,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """The most-reacted-to posts in the window, each with a clean_content field.
+
+    Ranked by reaction_count (Discord's own "this got attention" signal, already
+    present on fetched messages -- no extra API call needed) with post length as
+    a tiebreaker for posts nobody reacted to yet.
+    """
+    candidates: list[dict[str, Any]] = []
+    for item in posts:
+        dt = parse_dt(item.get("posted_at"))
+        if dt is None or not (start <= dt <= end):
+            continue
+        content = clean_text(str(item.get("content") or ""), 100)
+        if len(content) < MIN_POST_LENGTH:
+            continue
+        candidates.append({
+            **item,
+            "clean_content": content,
+            "reaction_count": int(item.get("reaction_count") or 0),
+        })
+    candidates.sort(key=lambda item: (item["reaction_count"], len(item["clean_content"])), reverse=True)
+    return candidates[:limit]
 
 
 def read_json(path: Path, fallback: Any) -> Any:
@@ -60,34 +83,34 @@ def period_label(start: datetime, end: datetime) -> str:
 
 def build_digest_content(
     activities: list[Activity],
-    post_topics: dict[str, list[dict[str, Any]]],
+    top_posts: list[dict[str, Any]],
     start: datetime,
     end: datetime,
-    max_lines: int,
+    max_highlights: int,
 ) -> str:
     period = period_label(start, end)
     lines = [f"🐾 {period}のF研を、のんびりのぞいてみたにゃ。今週はこんな話題があったよ。", ""]
 
-    highlight_lines: list[str] = []
+    # Real gatherings first (they're already curated/deduped by collect_events), then
+    # the most-reacted-to channel posts fill whatever highlight slots remain.
+    highlights: list[tuple[str, str, str | None]] = []
     for activity in activities:
-        summary = clean_text(activity.summary, 50)
-        if not summary:
+        summary = clean_text(activity.summary, 60)
+        if not summary or not activity.permalink:
             continue
-        highlight_lines.append(f"・{activity.title}：{summary}")
+        highlights.append((activity.title, summary, activity.permalink))
 
-    for content_type in TOPIC_ORDER:
-        items = post_topics.get(content_type)
-        if not items:
-            continue
-        label = POST_TYPE_LABELS.get(content_type, content_type)
-        example = clean_text(str(items[0].get("clean_content") or ""), 40)
-        count = len(items)
-        highlight_lines.append(f"・{label}：{count}件の投稿があったにゃ（例:「{example}」）")
+    for post in top_posts:
+        label = POST_TYPE_LABELS.get(str(post.get("content_type") or ""), "話題")
+        highlights.append((label, post["clean_content"], post.get("discord_permalink")))
 
-    if not highlight_lines:
+    if not highlights:
         lines.append("今週は大きな動きは少なめだったけど、いつも通りのんびりした空気が流れていたにゃ。")
     else:
-        lines.extend(highlight_lines[:max_lines])
+        for title, summary, permalink in highlights[:max_highlights]:
+            lines.append(f"・{title}：{summary}")
+            if permalink:
+                lines.append(f"  → {permalink}")
 
     lines.append("")
     lines.append("気になる話題があったら、ぜひチャンネルをのぞいてみてね。また来週、のんびりまとめるにゃ。")
@@ -136,8 +159,7 @@ def main() -> int:
     parser.add_argument("--events-curated", default=DEFAULT_EVENT_CURATED)
     parser.add_argument("--posts-raw", default=DEFAULT_POSTS_RAW)
     parser.add_argument("--max-images-per-item", type=int, default=0)
-    parser.add_argument("--post-topic-limit", type=int, default=8)
-    parser.add_argument("--max-lines", type=int, default=8, help="Max highlight bullets in the digest.")
+    parser.add_argument("--max-highlights", type=int, default=4, help="Max highlight bullets in the digest.")
     parser.add_argument("--post-to-discord", action="store_true", help="Post to DISCORD_DIGEST_CHANNEL_ID. No-op with a warning if unset.")
     args = parser.parse_args()
 
@@ -151,11 +173,11 @@ def main() -> int:
     posts_raw = read_json(Path(args.posts_raw), [])
 
     activities = collect_events(raw_events, curated_events, start, end, args.max_images_per_item)
-    post_topics = collect_post_topics(posts_raw, start, end, args.post_topic_limit)
+    top_posts = select_top_posts(posts_raw, start, end, args.max_highlights)
 
-    content = build_digest_content(activities, post_topics, start, end, args.max_lines)
+    content = build_digest_content(activities, top_posts, start, end, args.max_highlights)
     print(content)
-    print(f"\n--- {len(activities)} activities, {sum(len(v) for v in post_topics.values())} topic candidates ---")
+    print(f"\n--- {len(activities)} activities, {len(top_posts)} top posts considered ---")
 
     if not args.post_to_discord:
         return 0
