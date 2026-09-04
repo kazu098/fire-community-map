@@ -2,6 +2,12 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 敦賀,福井県,敦賀市,municipality,35.649211,136.071349,manual_alias,敦賀鉄道資料館の投稿から福井県敦賀市として扱う
 氣比神宮,福井県,敦賀市,municipality,35.649211,136.071349,manual_alias,氣比神宮は福井県敦賀市に所在
 東京,東京都,,prefecture,35.68944,139.69167,manual_alias,東京都として扱う
+福井県で2拠点居住,福井県,,prefecture,36.06528,136.22194,manual_alias,福井県として扱う
+中国地方,,中国地方,region,34.7,133.3,manual_alias,地方名の概略代表点
+関東,,関東,region,36.0,139.5,manual_alias,地方名の概略代表点
+関東（関西へ移住予定）,,関東,region,36.0,139.5,manual_alias,現在の居住地を関東地方として扱う
+首都圏,,首都圏,region,35.68944,139.69167,manual_alias,首都圏の概略代表点
+40半ば 首都圏,,首都圏,region,35.68944,139.69167,manual_alias,居住地部分を首都圏として扱う
 東京都区部,東京都,23区,area,35.68944,139.69167,manual_alias,東京都区部の代表点は東京都代表点
 東京都23区内,東京都,23区,area,35.68944,139.69167,manual_alias,東京都23区内の代表点は東京都代表点
 東京都、神奈川県,神奈川県,,prefecture,35.44778,139.6425,manual_alias,本人確認により神奈川県として扱う

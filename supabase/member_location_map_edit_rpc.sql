@@ -1,6 +1,9 @@
 -- Allow the browser to update map coordinates only when a member edits
 -- their self-reported residence from the member detail screen.
 
+create unique index if not exists member_locations_nickname_key
+  on public.member_locations (nickname);
+
 create or replace function public.update_member_location_map(
   p_nickname text,
   p_location_text text,
@@ -18,6 +21,8 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  profile_exists boolean;
 begin
   if p_location_text is null or btrim(p_location_text) = '' then
     raise exception 'location_text is required';
@@ -43,18 +48,51 @@ begin
     raise exception 'lat/lng and map_lat/map_lng are required';
   end if;
 
-  update public.member_locations
+  select exists (
+    select 1
+    from public.member_profiles
+    where nickname = p_nickname
+  ) into profile_exists;
+
+  if not profile_exists then
+    raise exception 'Member profile not found: %', p_nickname;
+  end if;
+
+  insert into public.member_locations (
+    nickname,
+    location_text,
+    prefecture,
+    municipality_optional,
+    location_level,
+    lat,
+    lng,
+    map_lat,
+    map_lng,
+    geocode_source
+  )
+  values (
+    p_nickname,
+    btrim(p_location_text),
+    nullif(btrim(coalesce(p_prefecture, '')), ''),
+    nullif(btrim(coalesce(p_municipality_optional, '')), ''),
+    p_location_level,
+    p_lat,
+    p_lng,
+    p_map_lat,
+    p_map_lng,
+    p_geocode_source
+  )
+  on conflict (nickname) do update
   set
-    location_text = btrim(p_location_text),
-    prefecture = nullif(btrim(coalesce(p_prefecture, '')), ''),
-    municipality_optional = nullif(btrim(coalesce(p_municipality_optional, '')), ''),
-    location_level = p_location_level,
-    lat = p_lat,
-    lng = p_lng,
-    map_lat = p_map_lat,
-    map_lng = p_map_lng,
-    geocode_source = p_geocode_source
-  where nickname = p_nickname;
+    location_text = excluded.location_text,
+    prefecture = excluded.prefecture,
+    municipality_optional = excluded.municipality_optional,
+    location_level = excluded.location_level,
+    lat = excluded.lat,
+    lng = excluded.lng,
+    map_lat = excluded.map_lat,
+    map_lng = excluded.map_lng,
+    geocode_source = excluded.geocode_source;
 end;
 $$;
 
@@ -65,4 +103,3 @@ revoke execute on function public.update_member_location_map(
 grant execute on function public.update_member_location_map(
   text, text, text, text, text, double precision, double precision, double precision, double precision, text
 ) to anon, authenticated;
-

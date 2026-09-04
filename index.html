@@ -1772,8 +1772,13 @@ function updateMapMemberLocationLabel(nickname, locationText) {
 }
 
 function updateMapMemberLocation(nickname, location) {
-  const mapMember = allMembers.find(m => m.nickname === nickname);
-  if (!mapMember || !location) return;
+  if (!location) return;
+  let mapMember = allMembers.find(m => m.nickname === nickname);
+  if (!mapMember) {
+    mapMember = { nickname };
+    allMembers.push(mapMember);
+    profileNicknames.add(nickname);
+  }
   Object.assign(mapMember, {
     location_text: location.location_text,
     prefecture: location.prefecture,
@@ -1784,6 +1789,10 @@ function updateMapMemberLocation(nickname, location) {
   if (mapMember._marker && location.map_lat != null && location.map_lng != null) {
     mapMember._marker.setLatLng([location.map_lat, location.map_lng]);
     mapMember._marker.setPopupContent(makeMemberPopup(mapMember));
+  } else if (location.map_lat != null && location.map_lng != null) {
+    mapMember._marker = L.marker([location.map_lat, location.map_lng], { icon: makeMemberIcon(mapMember) })
+      .bindPopup(makeMemberPopup(mapMember))
+      .addTo(memberLayer);
   }
 }
 
