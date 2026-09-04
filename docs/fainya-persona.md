@@ -29,4 +29,6 @@ F研のマスコットキャラクター「ふぁいにゃ」の話し方ルー�
 ## 適用範囲
 
 - F研通信(note下書き): [docs/note-activity-draft.md](./note-activity-draft.md) / `prompts/fken_tsushin_note_draft.md` から参照
-- 今後、ふぁいにゃbotによるゆるマッチングの文面など、ふぁいにゃの一人称で発言する機能全般に適用する
+- ゆるマッチングの文面: [docs/yuru-matching.md](./yuru-matching.md)
+- 週次ダイジェスト: [docs/weekly-digest.md](./weekly-digest.md)
+- 今後、ふぁいにゃbotの一人称で発言する機能全般に適用する

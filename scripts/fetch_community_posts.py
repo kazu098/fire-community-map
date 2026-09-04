@@ -161,6 +161,7 @@ def build_raw_entry(
     author_name = display_name(author, member)
     content = str(message.get("content") or "").strip()
     posted_at = datetime.fromisoformat(str(message["timestamp"]).replace("Z", "+00:00"))
+    reaction_count = sum(int(r.get("count") or 0) for r in (message.get("reactions") or []))
     return {
         "discord_message_id": str(message["id"]),
         "channel_name": channel_name,
@@ -168,6 +169,7 @@ def build_raw_entry(
         "discord_author_display_name": author_name,
         "member_nickname": name_map.get(author_name, author_name),
         "content": content,
+        "reaction_count": reaction_count,
         "attachments": [
             {
                 "filename": item.get("filename"),
