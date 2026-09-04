@@ -2,8 +2,11 @@ name: Run member matching (ゆるマッチング)
 
 on:
   schedule:
-    # 20:30 UTC = 05:30 JST
-    - cron: "30 20 * * *"
+    # 朝5:30 JSTだと寝ている人に通知が届いてしまうため、日中の3回に分散。
+    # 各回、その時点でマッチング対象(interval_days経過済み)がいなければ何も投稿しない(no-op)。
+    - cron: "0 0 * * *"   # 00:00 UTC = 09:00 JST
+    - cron: "0 3 * * *"   # 03:00 UTC = 12:00 JST
+    - cron: "0 10 * * *"  # 10:00 UTC = 19:00 JST
   workflow_dispatch:
 
 permissions:
