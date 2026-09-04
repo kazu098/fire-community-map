@@ -1173,6 +1173,8 @@
       padding: 2px 8px;
       margin-top: 6px;
     }
+    .shared-tag-block-label { color: #1e40af; }
+    .shared-tag-chip { box-shadow: inset 0 0 0 1.5px #3b82f6; }
 
     #member-list-layout { display: none; align-items: flex-start; gap: 16px; padding: 16px; }
     #member-list { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -3000,16 +3002,16 @@ function clearMyNickname() {
   renderMemberGrid();
 }
 
-function sharedTagCount(member) {
+function sharedTags(member) {
   if (!myNickname) return null;
   const me = directoryMembers.find(m => m.nickname === myNickname);
   if (!me || me.nickname === member.nickname) return null;
-  let count = 0;
+  const result = [];
   CATEGORY_ORDER.forEach(cat => {
     const mine = new Set(me.tags[cat] || []);
-    (member.tags[cat] || []).forEach(v => { if (mine.has(v)) count++; });
+    (member.tags[cat] || []).forEach(v => { if (mine.has(v)) result.push({ value: v, meta: CATEGORY_META[cat] }); });
   });
-  return count;
+  return result;
 }
 
 function renderMyIdentityBar() {
@@ -3357,12 +3359,33 @@ function renderMemberList(filtered) {
     }
     main.appendChild(nameRow);
 
-    const sharedCount = sharedTagCount(m);
-    if (sharedCount !== null) {
-      const badge = document.createElement('div');
-      badge.className = 'shared-tag-badge';
-      badge.textContent = sharedCount > 0 ? `共通タグ ${sharedCount}件` : '共通タグなし';
-      main.appendChild(badge);
+    const shared = sharedTags(m);
+    if (shared !== null) {
+      if (shared.length > 0) {
+        const block = document.createElement('div');
+        block.className = 'list-tag-block';
+        const label = document.createElement('div');
+        label.className = 'list-tag-block-label shared-tag-block-label';
+        label.textContent = `共通タグ ${shared.length}件`;
+        block.appendChild(label);
+        const row = document.createElement('div');
+        row.className = 'list-tag-row';
+        shared.forEach(({ value, meta }) => {
+          const chip = document.createElement('span');
+          chip.className = 'mini-tag shared-tag-chip';
+          chip.style.background = meta.bg;
+          chip.style.color = meta.text;
+          chip.textContent = value;
+          row.appendChild(chip);
+        });
+        block.appendChild(row);
+        main.appendChild(block);
+      } else {
+        const badge = document.createElement('div');
+        badge.className = 'shared-tag-badge';
+        badge.textContent = '共通タグなし';
+        main.appendChild(badge);
+      }
     }
 
     const introText = m.self_intro_text || m.external_self_intro_text;
