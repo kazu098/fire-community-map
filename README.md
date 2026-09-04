@@ -13,6 +13,7 @@ FIRE研究所コミュニティの運営を支える静的サイト＋自動化�
 - **イベント記録**: Discordのイベント告知・サーバーイベントを開催記録として蓄積 → [docs/community-events.md](./docs/community-events.md)
 - **本棚**: FIRE研究所公式本とメンバーが出版した本を本棚レイアウトで表示 → [docs/bookshelf.md](./docs/bookshelf.md)
 - **ゆるマッチング**: 空き時間が合うメンバー同士をランダムにペアリングし、Discordで紹介 → [docs/yuru-matching.md](./docs/yuru-matching.md)
+- **相談してみる**: 気になった相手への連絡下書きを生成し、DiscordのDMを開くリンクを提示(自動送信なし) → [docs/consultation-dm.md](./docs/consultation-dm.md)
 
 いずれも限定URLを知っている人だけが閲覧する前提で、ログイン機能やWordPress会員制プラグインは使わない。
 
@@ -73,3 +74,4 @@ GitHub Actionsで動く定期バッチ(コミュニティ投稿同期・イベ�
 | [docs/bookshelf.md](./docs/bookshelf.md) | 本棚タブ(F研公式本・メンバー著書)のデータ管理 |
 | [docs/fainya-persona.md](./docs/fainya-persona.md) | マスコット「ふぁいにゃ」の話し方ガイド |
 | [docs/yuru-matching.md](./docs/yuru-matching.md) | ゆるマッチング(空き時間ベースのランダムマッチング)のデータモデル・バッチ |
+| [docs/consultation-dm.md](./docs/consultation-dm.md) | 相談してみる(DM下書き生成)・Discordユーザーid同期バッチ |
