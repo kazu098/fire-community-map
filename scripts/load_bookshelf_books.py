@@ -150,6 +150,17 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "drive_pdf_url": "https://drive.google.com/file/d/1FhkcYosM3N7-hja53y1Cso2mkT6F4Esa/view",
         "sort_order": 8,
     },
+    {
+        # ドライブのPDF「【きらまりん】ほんとうのプレゼントってなんだろう.pdf」に対応。
+        # member_links にAmazonタグの登録がなかったため、Amazon内検索で本人の絵本と判明し追加。
+        "member_nickname": "きらまりん",
+        "title": "ほんとうのプレゼントってなんだろう？",
+        "author_name": "きらまりん",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0GY1LKRG1",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GY1LKRG1.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1-Z5fsjHXbxA24LE5Q5VEiag1w4eR65n1/view",
+        "sort_order": 9,
+    },
 ]
 
 
