@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """Availability-based random matching batch (ゆるマッチング).
 
-Pairs up opted-in members whose availability (weekday x time-of-day slot)
+Groups opted-in members whose availability (weekday x time-of-day slot)
 overlaps, at random -- no tag/embedding similarity involved. See GitHub
-issue #76 for the design background.
+issue #76 for the design background. Groups are up to GROUP_SIZE members
+(default 3); a member who can't be slotted into a full group still gets
+paired with just one other compatible member rather than being dropped.
 
 For each member whose matching interval has elapsed (member_matching_settings
 .last_matched_at + interval_days <= today, or never matched):
   1. Collect their registered availability slots (member_availability).
-  2. Randomly pair eligible members who share at least one slot, skipping
-     pairs matched within the cooldown window (member_matches).
-  3. Record the match in member_matches and bump last_matched_at for both
-     members.
+  2. Randomly group eligible members who all share at least one slot,
+     skipping any pair that was grouped together within the cooldown
+     window (member_match_groups / member_match_group_members).
+  3. Record the group in member_match_groups(+member_match_group_members)
+     and bump last_matched_at for every member in it.
   4. Post an announcement to the Discord matching channel, if configured.
 
 The announcement is written in the voice of the community mascot ふぁいにゃ
-(see docs/fainya-persona.md) and includes a conversation-starter suggestion
-derived from the pair's shared tags (member_tags) and self-introductions
-(member_profiles.self_intro_text), so the match feels less like a cold
-random pairing.
+(see docs/fainya-persona.md) and includes conversation-starter suggestions
+derived from the group's shared tags (member_tags) and self-introductions
+(member_profiles.self_intro_text): one for the whole group, plus one for
+each 2-member combination within it (shown by default alongside the group
+topic, not only as a fallback -- two members hitting it off while a third
+listens in is part of the fun), so the match feels less like a cold random
+pairing.
 
 The dedicated Discord matching channel does not exist yet (pending
 agreement), so --post-to-discord is opt-in and the script no-ops the
@@ -30,6 +36,7 @@ without writing to Supabase or posting to Discord.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
 import random
@@ -42,7 +49,8 @@ from urllib.request import Request, urlopen
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
 USER_AGENT = "fire-community-map-member-matching/0.1"
-COOLDOWN_DAYS = 60  # avoid re-matching the same pair within this window
+COOLDOWN_DAYS = 60  # avoid re-grouping the same pair within this window
+GROUP_SIZE = 3  # target group size; falls back to a pair when a third can't be found
 
 DAY_LABELS = {
     "mon": "月", "tue": "火", "wed": "水", "thu": "木",
@@ -252,14 +260,34 @@ def build_slot_index(availability: list[dict[str, Any]]) -> dict[str, set[tuple[
     return index
 
 
-def recent_pairs(matches: list[dict[str, Any]], now: datetime) -> set[frozenset[str]]:
-    cutoff = now - timedelta(days=COOLDOWN_DAYS)
-    pairs = set()
-    for m in matches:
-        created_at = datetime.fromisoformat(m["created_at"].replace("Z", "+00:00"))
-        if created_at >= cutoff:
-            pairs.add(frozenset((m["member_a"], m["member_b"])))
+def excluded_pairs_from_recent_groups(group_members: list[dict[str, Any]]) -> set[frozenset[str]]:
+    """Every 2-member combination that has appeared together in the same recent group.
+
+    `group_members` should already be filtered to groups created within the cooldown window
+    (rows of {"group_id": ..., "member_nickname": ...}).
+    """
+    by_group: dict[str, list[str]] = {}
+    for row in group_members:
+        by_group.setdefault(row["group_id"], []).append(row["member_nickname"])
+    pairs: set[frozenset[str]] = set()
+    for members in by_group.values():
+        for a, b in itertools.combinations(members, 2):
+            pairs.add(frozenset((a, b)))
     return pairs
+
+
+def pairwise_topics(members: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
+    """Topic suggestions for every 2-member combination within the group.
+
+    Shown by default alongside the group-wide topic (not only when the group has none) --
+    two members hitting it off while a third listens in is part of the fun.
+    """
+    results = []
+    for a, b in itertools.combinations(members, 2):
+        topic = build_topic_suggestion([a, b])
+        if topic:
+            results.append((a["nickname"], b["nickname"], topic))
+    return results
 
 
 def run_matching(
@@ -267,8 +295,16 @@ def run_matching(
     slot_index: dict[str, set[tuple[str, str]]],
     excluded_pairs: set[frozenset[str]],
     rng: random.Random,
+    group_size: int = GROUP_SIZE,
 ) -> list[dict[str, Any]]:
-    """Randomly pair eligible members who share an availability slot."""
+    """Randomly group eligible members (up to group_size) who all share an availability slot.
+
+    Greedy: shuffle the pool, then for each still-unmatched member, greedily add compatible
+    candidates (a slot shared with everyone already in the group, and no recent-cooldown pair
+    with anyone already in the group) until group_size is reached or candidates run out. A
+    member who can't be slotted into a full group of group_size still gets matched with just
+    one other compatible member rather than being dropped for the round.
+    """
     pool = [n for n in eligible_nicknames if slot_index.get(n)]
     rng.shuffle(pool)
     matched: set[str] = set()
@@ -286,32 +322,62 @@ def run_matching(
         ]
         if not candidates:
             continue
-        partner = rng.choice(candidates)
-        shared = sorted(slot_index[nickname] & slot_index[partner])
-        day_of_week, time_slot = rng.choice(shared)
+        rng.shuffle(candidates)
+
+        group = [nickname]
+        common_slots = set(slot_index[nickname])
+        for candidate in candidates:
+            if len(group) >= group_size:
+                break
+            overlap = common_slots & slot_index[candidate]
+            if not overlap:
+                continue
+            if any(frozenset((candidate, member)) in excluded_pairs for member in group):
+                continue
+            group.append(candidate)
+            common_slots = overlap
+
+        day_of_week, time_slot = rng.choice(sorted(common_slots))
         results.append({
-            "member_a": nickname,
-            "member_b": partner,
+            "members": group,
             "day_of_week": day_of_week,
             "time_slot": time_slot,
         })
-        matched.add(nickname)
-        matched.add(partner)
+        matched.update(group)
 
     return results
 
 
-def format_announcement(match: dict[str, Any], topic: str | None) -> str:
+def format_announcement(
+    match: dict[str, Any],
+    group_topic: str | None,
+    pair_topics: list[tuple[str, str, str]],
+) -> str:
     """Render the Discord announcement in ふぁいにゃ's voice (docs/fainya-persona.md)."""
+    members = match["members"]
     day = DAY_LABELS.get(match["day_of_week"], match["day_of_week"])
     slot = SLOT_LABELS.get(match["time_slot"], match["time_slot"])
+    names = "、".join(f"**{n}** さん" for n in members)
+    subject = "お二人" if len(members) == 2 else "みなさん"
     lines = [
-        f"🐾 **{match['member_a']}** さん、**{match['member_b']}** さんがマッチしたにゃ！",
-        f"お二人とも「{day}曜{slot}」が空いているみたいだから、🙏 よければ一度お話ししてみてほしいにゃ。"
-        "（開催するかどうかはお二人にお任せするにゃ）",
+        f"🐾 {names}がマッチしたにゃ！",
+        f"{subject}とも「{day}曜{slot}」が空いているみたいだから、🙏 よければ集まってお話ししてみてほしいにゃ。"
+        f"（開催するかどうかは{subject}にお任せするにゃ）",
     ]
-    if topic:
-        lines.append(f"\n💡 盛り上がりそうな話題: {topic}")
+
+    topic_lines = []
+    if group_topic:
+        label = "(全員) " if len(members) > 2 else ""
+        topic_lines.append(f"{label}{group_topic}")
+    for a, b, topic in pair_topics:
+        if topic == group_topic:
+            continue  # already covered by the (全員) line above
+        topic_lines.append(f"({a}さん×{b}さん) {topic}")
+    if topic_lines:
+        lines.append("")
+        lines.append("💡 盛り上がりそうな話題:")
+        lines.extend(f"- {t}" for t in topic_lines)
+
     return "\n".join(lines)
 
 
@@ -339,8 +405,13 @@ def main() -> int:
 
     settings = get("/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at&opted_in=eq.true")
     availability = get("/rest/v1/member_availability?select=member_nickname,day_of_week,time_slot")
-    recent_matches = get(
-        f"/rest/v1/member_matches?select=member_a,member_b,created_at&created_at=gte.{quote((now - timedelta(days=COOLDOWN_DAYS)).isoformat())}"
+    recent_groups = get(
+        f"/rest/v1/member_match_groups?select=id&created_at=gte.{quote((now - timedelta(days=COOLDOWN_DAYS)).isoformat())}"
+    )
+    recent_group_ids = [g["id"] for g in recent_groups]
+    recent_group_members = (
+        get(f"/rest/v1/member_match_group_members?select=group_id,member_nickname&group_id=in.({','.join(recent_group_ids)})")
+        if recent_group_ids else []
     )
     member_tags = get("/rest/v1/member_tags?select=member_nickname,category,value")
     profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url")
@@ -349,7 +420,7 @@ def main() -> int:
 
     due_nicknames = [s["member_nickname"] for s in settings if is_due(s, now)]
     slot_index = build_slot_index(availability)
-    excluded_pairs = recent_pairs(recent_matches, now)
+    excluded_pairs = excluded_pairs_from_recent_groups(recent_group_members)
 
     tags_by_nickname: dict[str, dict[str, list[str]]] = {}
     for row in member_tags:
@@ -373,16 +444,18 @@ def main() -> int:
 
     matches = run_matching(due_nicknames, slot_index, excluded_pairs, rng)
     for match in matches:
-        match["topic"] = build_topic_suggestion([
-            member_topic_input(match["member_a"]),
-            member_topic_input(match["member_b"]),
-        ])
+        member_inputs = [member_topic_input(n) for n in match["members"]]
+        match["group_topic"] = build_topic_suggestion(member_inputs)
+        match["pair_topics"] = pairwise_topics(member_inputs) if len(member_inputs) > 2 else []
 
     print(f"Opted-in & due: {len(due_nicknames)} / matched this run: {len(matches)}")
     for match in matches:
-        print(f"  {match['member_a']} <-> {match['member_b']}  ({DAY_LABELS[match['day_of_week']]}曜{SLOT_LABELS[match['time_slot']]})")
-        if match.get("topic"):
-            print(f"    topic: {match['topic']}")
+        names = " / ".join(match["members"])
+        print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{SLOT_LABELS[match['time_slot']]})")
+        if match.get("group_topic"):
+            print(f"    group topic: {match['group_topic']}")
+        for a, b, topic in match.get("pair_topics", []):
+            print(f"    {a} x {b}: {topic}")
 
     if args.dry_run:
         print("--dry-run: no writes to Supabase, no Discord post.")
@@ -399,7 +472,8 @@ def main() -> int:
         posted_at = None
         if args.post_to_discord:
             if channel_id and bot_token:
-                message_id = discord_post(channel_id, bot_token, format_announcement(match, match.get("topic")))
+                content = format_announcement(match, match.get("group_topic"), match.get("pair_topics", []))
+                message_id = discord_post(channel_id, bot_token, content)
                 posted_at = datetime.now(timezone.utc).isoformat()
             else:
                 print(
@@ -407,25 +481,32 @@ def main() -> int:
                     "Skipping Discord post; the match is still recorded.",
                 )
 
-        supabase_request(
+        group_res = supabase_request(
             "POST",
-            f"{supabase_url}/rest/v1/member_matches",
+            f"{supabase_url}/rest/v1/member_match_groups",
             service_role_key,
             body=[{
-                "member_a": match["member_a"],
-                "member_b": match["member_b"],
                 "day_of_week": match["day_of_week"],
                 "time_slot": match["time_slot"],
                 "discord_message_id": message_id,
                 "posted_at": posted_at,
             }],
+            prefer="return=representation",
+        )
+        group_id = group_res[0]["id"]
+
+        supabase_request(
+            "POST",
+            f"{supabase_url}/rest/v1/member_match_group_members",
+            service_role_key,
+            body=[{"group_id": group_id, "member_nickname": n} for n in match["members"]],
             prefer="return=minimal",
         )
 
-        for nickname in (match["member_a"], match["member_b"]):
+        for nickname in match["members"]:
             supabase_request(
                 "PATCH",
-                f"{supabase_url}/rest/v1/member_matching_settings?member_nickname=eq.{nickname}",
+                f"{supabase_url}/rest/v1/member_matching_settings?member_nickname=eq.{quote(nickname)}",
                 service_role_key,
                 body={"last_matched_at": now.isoformat()},
                 prefer="return=minimal",

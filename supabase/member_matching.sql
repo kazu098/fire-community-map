@@ -122,11 +122,14 @@ using (true);
 -- ================================================================
 -- Written only by the matching batch via the service role key. No
 -- insert/update/delete policies for anon/authenticated.
+--
+-- One row per matched group (default size 3, falls back to 2) plus a join
+-- table for its members, rather than fixed member_a/member_b columns, so
+-- the batch can group more than two people without a schema change every
+-- time the target group size changes.
 
-create table if not exists public.member_matches (
+create table if not exists public.member_match_groups (
   id uuid primary key default gen_random_uuid(),
-  member_a text not null,
-  member_b text not null,
   day_of_week text not null check (
     day_of_week in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
   ),
@@ -135,22 +138,38 @@ create table if not exists public.member_matches (
   ),
   discord_message_id text,
   posted_at timestamptz,
-  created_at timestamptz not null default now(),
-  constraint member_matches_distinct_members check (member_a <> member_b)
+  created_at timestamptz not null default now()
 );
 
-comment on table public.member_matches is
-  'History of matched pairs from the availability-based random matching batch. Used to compute the re-match cooldown and as an audit trail. Written by the batch script with the service role key only.';
+comment on table public.member_match_groups is
+  'A matched group (default size 3, falls back to 2) from the availability-based random matching batch. Used to compute the re-match cooldown (via member_match_group_members) and as an audit trail. Written by the batch script with the service role key only.';
 
-create index if not exists member_matches_member_a_idx on public.member_matches (member_a);
-create index if not exists member_matches_member_b_idx on public.member_matches (member_b);
-create index if not exists member_matches_created_at_idx on public.member_matches (created_at);
+create index if not exists member_match_groups_created_at_idx on public.member_match_groups (created_at);
 
-alter table public.member_matches enable row level security;
+create table if not exists public.member_match_group_members (
+  group_id uuid not null references public.member_match_groups (id) on delete cascade,
+  member_nickname text not null,
+  primary key (group_id, member_nickname)
+);
 
-drop policy if exists "member matches are publicly readable" on public.member_matches;
-create policy "member matches are publicly readable"
-on public.member_matches
+comment on table public.member_match_group_members is
+  'Members belonging to each member_match_groups row. Every 2-member combination within a group counts toward the re-match cooldown, not just the pair that happened to be grouped together this time.';
+
+create index if not exists member_match_group_members_nickname_idx on public.member_match_group_members (member_nickname);
+
+alter table public.member_match_groups enable row level security;
+alter table public.member_match_group_members enable row level security;
+
+drop policy if exists "member match groups are publicly readable" on public.member_match_groups;
+create policy "member match groups are publicly readable"
+on public.member_match_groups
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "member match group members are publicly readable" on public.member_match_group_members;
+create policy "member match group members are publicly readable"
+on public.member_match_group_members
 for select
 to anon, authenticated
 using (true);
