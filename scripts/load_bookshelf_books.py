@@ -48,6 +48,7 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "author_name": "FIRE研究所ほか3名",
         "amazon_url": "https://www.amazon.co.jp/dp/B0H33SS9MK",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H33SS9MK.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1mWxGTdnT27tHxT7FVIr6RstHkda7OKTQ/view",
         "sort_order": 0,
     },
     {
@@ -55,6 +56,7 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "author_name": "FIRE研究所ほか5名",
         "amazon_url": "https://amzn.to/4tdjPEL",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GPGP298R.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1zFeXzITrPxNMQxF9O6lKn9R9z7z3Lo5j/view",
         "sort_order": 1,
     },
     {
@@ -62,6 +64,7 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "author_name": "FIRE研究所ほか5名",
         "amazon_url": "https://www.amazon.co.jp/dp/B0HC5P552S",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0HC5P552S.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1bSVmmb_i1W5S4VOBevmiwyDi3zYw9ARm/view",
         "sort_order": 2,
     },
     {
@@ -69,6 +72,7 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "author_name": "FIRE研究所ほか4名",
         "amazon_url": "https://amzn.to/4nxvgWo",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H1DGJM48.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1tdNV2yDRk4mA9lN1Laxwwlj1448Q0yX4/view",
         "sort_order": 3,
     },
 ]
@@ -82,6 +86,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "author_name": "FIREサラリーマン みかん",
         "amazon_url": "https://link.amazon/B0447PWrT",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0G1Z9XK1B.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1zNFR1ctnk7YZryhgqVFIHPqUJIO7gPV5/view",
         "sort_order": 0,
     },
     {
@@ -90,6 +95,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "author_name": "みかん",
         "amazon_url": "https://link.amazon/B0eubD159",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GTTPFZ5Z.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1pXlBeAOT4-S_3v82dPYFX6voTvKl_1R_/view",
         "sort_order": 1,
     },
     {
@@ -98,6 +104,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "author_name": "みかん",
         "amazon_url": "https://link.amazon/B0iNEZL5w",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0G4D385X3.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1S0hyA4F2lJ7WcqiIeK79wxJSYLGf42RS/view",
         "sort_order": 2,
     },
     {
@@ -106,6 +113,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "author_name": "みかん",
         "amazon_url": "https://link.amazon/B00nK1wju",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0FR22WB2D.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/16piU8UsjnkKoD3kWG33LsltAkL2suhu5/view",
         "sort_order": 3,
     },
     {
@@ -114,6 +122,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "author_name": "ノコ",
         "amazon_url": "https://amzn.to/3OAwtPQ",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GFCFVS7D.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1_pfzuLP2Oxf4vq2utBXi2WXwA49s06uS/view",
         "sort_order": 4,
     },
     {
@@ -122,6 +131,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "author_name": "ノコ",
         "amazon_url": "https://amzn.to/48b96D2",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GQPX3GMV.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1foliVBN2XUcPbuPzqVVhZfgDC63MnEr6/view",
         "sort_order": 5,
     },
     {
@@ -160,6 +170,62 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GY1LKRG1.jpg",
         "drive_pdf_url": "https://drive.google.com/file/d/1-Z5fsjHXbxA24LE5Q5VEiag1w4eR65n1/view",
         "sort_order": 9,
+    },
+    {
+        "member_nickname": "あんぱんだ",
+        "title": "行動を視える化して夢に近づく 時間の家計簿",
+        "author_name": "あんぱんだ",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0B3SLKVHC",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0B3SLKVHC.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1QcXefsUZ0gJC40fzTWoIhJPLYr1tCGgK/view",
+        "sort_order": 10,
+    },
+    {
+        "member_nickname": "あんぱんだ",
+        "title": "それ、朝イチでやりたいこと？",
+        "author_name": "あんぱんだ",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0FFKX3SWZ",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0FFKX3SWZ.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/11iwIF4FRtLTbOWLY-XRum1cSW9TNMRR8/view",
+        "sort_order": 11,
+    },
+    {
+        "member_nickname": "どーやん",
+        "title": "窓際FIRE",
+        "author_name": "どーやん",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0H4KWNC2C",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H4KWNC2C.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1dbzx9UE2UwM1A3a-ulB5TTkZVBRZwB3M/view",
+        "sort_order": 12,
+    },
+    {
+        "member_nickname": "浮雲",
+        "title": "脱ミッドライフクライシス 何もしたくない40代へ",
+        "author_name": "浮雲",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0GNYZ4Y1W",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GNYZ4Y1W.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1V0Y_gSqLHAi0cbxFL5Nba0iwFbK9sqAV/view",
+        "sort_order": 13,
+    },
+    {
+        # ドライブのファイル名は「浮雲」だが、この本のペンネームは「浮影」。
+        # member_nickname はコミュニティのメンバー名(浮雲)に合わせ、著者表記は本の実際の記載(浮影)にする。
+        "member_nickname": "浮雲",
+        "title": "エキストラ道",
+        "author_name": "浮影",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0G5GT75H9",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0G5GT75H9.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/16bYV1H4F3bN6qax-ADiiM1614dCnTS22/view",
+        "sort_order": 14,
+    },
+    {
+        "member_nickname": "浮雲",
+        "title": "47歳で退職し 無職を経て開業した100日",
+        "author_name": "浮雲",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0H2LT2B9D",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H2LT2B9D.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1Pzw4a6Bsclf_h5m4-Q4n-66FiQXjNN1Q/view",
+        "sort_order": 15,
     },
 ]
 
