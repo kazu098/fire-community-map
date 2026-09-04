@@ -399,6 +399,47 @@ python3 scripts/fire_lab_shorts.py examples/fire-lab-shorts/0iL8dh6PdUI.clips.js
 - 既定モデルは`large-v3`。速度優先で試すときは`--whisper-model small`などに切り替えられるが、句読点の再現精度が落ちるため最終出力には向かない
 - `faster-whisper`は本体プロジェクトのPython依存関係に含めていない。検証用に別venv(`/private/tmp/fire-lab-shorts-venv`など、Gitに含めない場所)を作って使う
 
+## YouTubeへの予約投稿(アップロード自動化)
+
+方針の当初案(投稿までの完全自動化は後回し)から一歩進めて、レンダリング済みの動画をYouTube Data API経由で予約投稿するところまで自動化した。
+
+### 使うスクリプト
+
+- `scripts/youtube_oauth_setup.py` — 初回だけ実行するOAuth認証。ブラウザでチャンネル所有者アカウントにログインし、`data/.youtube_oauth_token.json`(gitignore対象)にリフレッシュトークンを保存する
+- `scripts/upload_youtube_short.py` — 動画ファイル・タイトル・概要欄・タグ・予約公開日時(`--publish-at`)を渡してアップロードする。`--publish-at`を指定すると非公開でアップロードされ、指定時刻にYouTube側が自動公開する
+- `scripts/update_youtube_video_title.py` — アップロード後にタイトル(や概要欄・タグ)を修正する。ショート動画は確実性のため、タイトル末尾に`#Shorts`を入れる運用にした
+
+### 事前準備(初回のみ、人間が行う)
+
+1. Google Cloud Consoleでプロジェクトを用意し、YouTube Data API v3を有効化する
+2. OAuth同意画面でテストユーザーにチャンネル所有アカウントのメールアドレスを追加する
+3. 認証情報 → OAuthクライアントID → アプリケーションの種類「デスクトップアプリ」で作成し、JSONをダウンロード
+4. そのJSONを`data/.youtube_oauth_client.json`として保存する(gitignore対象、コミットされない)
+5. `python3 scripts/youtube_oauth_setup.py`を実行し、ブラウザでログイン・許可する
+
+Fire研究所チャンネルでは`firelab`(プロジェクトID: `snapmeal-496901`)のOAuthクライアントを使っている。プロジェクトの表示名(Cloud Console上の名前)とOAuth同意画面のアプリ名は別々に設定できるため、認証時にGoogleの同意画面に表示されるアプリ名が想定と違っても、プロジェクトが正しければ問題ない。
+
+### 毎回のアップロード手順
+
+```bash
+python3 scripts/upload_youtube_short.py \
+  --file /path/to/short.mp4 \
+  --title "タイトル #Shorts" \
+  --description-file /path/to/description.txt \
+  --tags FIRE 早期リタイア 資産形成 セミリタイア \
+  --publish-at "2026-09-04T19:00:00+09:00"
+```
+
+`--dry-run`を付けると実際にアップロードせず内容だけ確認できる。動画ファイルはGit管理下に置かず、作業ディレクトリ(例: `/private/tmp/fire-lab-shorts/{video_id}/outputs/`)から直接参照する。
+
+### アカウント・認証まわりの運用上の注意
+
+- **リフレッシュトークンが7日で失効する可能性がある**: OAuth同意画面が「テスト」ステータスのままだと、Googleの仕様でリフレッシュトークンの有効期限が7日に制限される。1週間以上間隔が空くと次回アップロード時に認証エラーになるので、その場合は`scripts/youtube_oauth_setup.py`を再実行してブラウザ許可をやり直す
+  - アプリを「公開」ステータスにすればこの制限は外れるが、`youtube`スコープは制限付きスコープでGoogleの審査が必要になり、個人チャンネル運用では過剰な手間になるため非推奨。頻度が週1〜月1程度なら都度再認証で十分
+- **APIクォータ**: 1日10,000ユニットが上限で、動画アップロード1本につき1,600ユニット消費(コメント通知連携など他のYouTube API利用と合算される)。1日3〜5本程度のアップロードなら余裕がある
+- **投稿ペース**: 短期間に大量投稿するとスパム判定やアルゴリズム的な抑制のリスクがあるため、1本の元動画から3〜5本を数日おきに投稿するくらいが無難
+- **認証情報のバックアップ**: `data/.youtube_oauth_client.json`と`data/.youtube_oauth_token.json`はgitignore対象。ローカル環境が変わる場合はCloud Consoleでクライアント情報を再取得すれば作り直せる
+
 ## 注意点
 
 投資・資産形成系の動画では、表現に注意する。
