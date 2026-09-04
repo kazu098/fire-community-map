@@ -32,7 +32,7 @@
 
 ## ワークフロー(`.github/workflows/post-weekly-digest.yml`)
 
-毎週月曜 06:00 JST に、`fetch_community_events.py`/`fetch_community_posts.py` で直近8日分(バッファ込み)を取得し直してから `generate_weekly_digest.py --post-to-discord` を実行する。[generate-note-draft.yml](../.github/workflows/generate-note-draft.yml) と同じく `--reset-state`+`tmp/`配下の一時state fileを使い、本番の同期state(`data/community_*_sync_state.json`)には触れない。
+毎週日曜 20:00 JST に、その週(月曜0時始まり)の動きをまとめて投稿する。`TZ=Asia/Tokyo date -d 'last monday'`でその週の月曜0時を計算し、`fetch_community_events.py`/`fetch_community_posts.py`で取得し直してから、同じ日時を`generate_weekly_digest.py --since`に渡す(`--days`の相対日数指定ではなく、月曜0時から実行時点までを厳密に対象にするため)。[generate-note-draft.yml](../.github/workflows/generate-note-draft.yml) と同じく `--reset-state`+`tmp/`配下の一時state fileを使い、本番の同期state(`data/community_*_sync_state.json`)には触れない。
 
 ## 文体
 

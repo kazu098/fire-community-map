@@ -29,6 +29,7 @@ from generate_note_activity_draft import (
     Activity,
     clean_text,
     collect_events,
+    parse_date,
     parse_dt,
 )
 
@@ -198,7 +199,8 @@ def load_dotenv(path: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate (and optionally post) the weekly F研 digest.")
     parser.add_argument("--env-file", default=".env")
-    parser.add_argument("--days", type=int, default=7, help="Number of trailing days to summarize.")
+    parser.add_argument("--days", type=int, default=7, help="Number of trailing days to summarize. Ignored if --since is given.")
+    parser.add_argument("--since", help="Explicit start date/datetime (e.g. a Monday), summarized through now. Overrides --days.")
     parser.add_argument("--events-raw", default=DEFAULT_EVENT_RAW)
     parser.add_argument("--events-curated", default=DEFAULT_EVENT_CURATED)
     parser.add_argument("--posts-raw", default=DEFAULT_POSTS_RAW)
@@ -210,7 +212,7 @@ def main() -> int:
     load_dotenv(Path(args.env_file))
 
     end = datetime.now(JST)
-    start = end - timedelta(days=args.days)
+    start = parse_date(args.since) if args.since else end - timedelta(days=args.days)
 
     raw_events = read_json(Path(args.events_raw), [])
     curated_events = read_json(Path(args.events_curated), [])
