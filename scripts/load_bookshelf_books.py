@@ -144,11 +144,13 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "sort_order": 6,
     },
     {
+        # ドライブのPDF「【第三環境】58歳サラリーマンがFIREするまでの100日.pdf」に対応(元はdrive_pdf_url未設定だった)。
         "member_nickname": "第三環境",
         "title": "58歳サラリーマンがFIREするまでの100日",
         "author_name": "第三環境",
         "amazon_url": "https://amzn.asia/d/fXKiarz",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0FRZDJYT1.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1fcbRg1KL5KLWVKgAqerye1zDHS_fw7y_/view",
         "sort_order": 7,
     },
     {
@@ -199,13 +201,25 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "sort_order": 12,
     },
     {
+        # ドライブのPDF「【どーやん】定年まで、その働き方を続けますか？.pdf」に対応。
+        # member_links にAmazonタグの登録がなかったため、本人のnote(note.com/lucky_prawn6539)に
+        # 掲載されていたAmazonリンクから採用。
+        "member_nickname": "どーやん",
+        "title": "定年まで、その働き方を続けますか？",
+        "author_name": "どーやん",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0HGL56WK1",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0HGL56WK1.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/10qdNvVlVx2H91QvtLtfBF4jfF3F4wjlw/view",
+        "sort_order": 13,
+    },
+    {
         "member_nickname": "浮雲",
         "title": "脱ミッドライフクライシス 何もしたくない40代へ",
         "author_name": "浮雲",
         "amazon_url": "https://www.amazon.co.jp/dp/B0GNYZ4Y1W",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GNYZ4Y1W.jpg",
         "drive_pdf_url": "https://drive.google.com/file/d/1V0Y_gSqLHAi0cbxFL5Nba0iwFbK9sqAV/view",
-        "sort_order": 13,
+        "sort_order": 14,
     },
     {
         # ドライブのファイル名は「浮雲」だが、この本のペンネームは「浮影」。
@@ -216,7 +230,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "amazon_url": "https://www.amazon.co.jp/dp/B0G5GT75H9",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0G5GT75H9.jpg",
         "drive_pdf_url": "https://drive.google.com/file/d/16bYV1H4F3bN6qax-ADiiM1614dCnTS22/view",
-        "sort_order": 14,
+        "sort_order": 15,
     },
     {
         "member_nickname": "浮雲",
@@ -225,7 +239,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "amazon_url": "https://www.amazon.co.jp/dp/B0H2LT2B9D",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H2LT2B9D.jpg",
         "drive_pdf_url": "https://drive.google.com/file/d/1Pzw4a6Bsclf_h5m4-Q4n-66FiQXjNN1Q/view",
-        "sort_order": 15,
+        "sort_order": 16,
     },
 ]
 
