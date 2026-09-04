@@ -36,15 +36,17 @@ without writing to Supabase or posting to Discord.
 from __future__ import annotations
 
 import argparse
+import csv
 import itertools
 import json
 import os
 import random
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -221,10 +223,14 @@ def supabase_request(
         raise RuntimeError(f"Supabase API request failed for {method} {url}: {exc}") from exc
 
 
-def discord_post(channel_id: str, token: str, content: str) -> str | None:
+def discord_post(channel_id: str, token: str, content: str, mentioned_user_ids: list[str] | None = None) -> str | None:
+    body: dict[str, Any] = {"content": content}
+    # Explicit allowlist: only the matched members' <@id> mentions in the content actually
+    # ping, nothing else in the text (e.g. an accidental @everyone-looking substring) does.
+    body["allowed_mentions"] = {"parse": [], "users": mentioned_user_ids or []}
     req = Request(
         f"{DISCORD_API_BASE}/channels/{channel_id}/messages",
-        data=json.dumps({"content": content}).encode("utf-8"),
+        data=json.dumps(body).encode("utf-8"),
         headers={
             "Authorization": f"Bot {token}",
             "User-Agent": USER_AGENT,
@@ -237,10 +243,90 @@ def discord_post(channel_id: str, token: str, content: str) -> str | None:
             payload = json.loads(res.read().decode("utf-8"))
             return payload.get("id")
     except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Discord API error {exc.code} posting to channel {channel_id}: {body}") from exc
+        body_text = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Discord API error {exc.code} posting to channel {channel_id}: {body_text}") from exc
     except URLError as exc:
         raise RuntimeError(f"Discord API request failed posting to channel {channel_id}: {exc}") from exc
+
+
+def fetch_guild_member_ids_by_display_name(token: str, guild_id: str) -> dict[str, str]:
+    """Discord display name (nickname, else global display name, else username) -> user id.
+
+    A name that resolves to more than one member is dropped rather than guessed at, since a
+    wrong @mention pings the wrong person -- same caution as scripts/match_discord_avatars.py.
+    """
+    by_name: dict[str, list[str]] = {}
+    after = "0"
+    headers = {"Authorization": f"Bot {token}", "User-Agent": USER_AGENT}
+    while True:
+        req = Request(
+            f"{DISCORD_API_BASE}/guilds/{guild_id}/members?{urlencode({'limit': '1000', 'after': after})}",
+            headers=headers,
+        )
+        with urlopen(req, timeout=30) as res:
+            payload = json.loads(res.read().decode("utf-8"))
+        if not payload:
+            break
+        for item in payload:
+            user = item.get("user") or {}
+            user_id = str(user.get("id") or "")
+            if not user_id:
+                continue
+            display_name = str(item.get("nick") or user.get("global_name") or user.get("username") or "").strip()
+            if display_name:
+                by_name.setdefault(display_name, []).append(user_id)
+        after = str((payload[-1].get("user") or {}).get("id") or after)
+        if len(payload) < 1000:
+            break
+    return {name: ids[0] for name, ids in by_name.items() if len(ids) == 1}
+
+
+# Site nicknames often carry a trailing emoji/decoration (e.g. "みかん🍊") that a member's
+# actual Discord display name doesn't (e.g. "みかん０"), which breaks an exact-match lookup.
+# Strip anything after the last run of word/kana/kanji characters so "みかん🍊" -> "みかん".
+_TRAILING_DECORATION_RE = re.compile(r"[^\w぀-ヿ㐀-鿿]+$")
+
+
+def _strip_trailing_decoration(name: str) -> str:
+    return _TRAILING_DECORATION_RE.sub("", name).strip()
+
+
+def load_discord_name_overrides(path: Path) -> dict[str, str]:
+    """De-decorated site nickname -> curated Discord display name, from config/member_discord_name_map.csv.
+
+    That CSV already exists for scripts/match_discord_avatars.py's exact same problem (site
+    nickname vs. actual Discord display name mismatches); reusing it here means one fix in one
+    place instead of maintaining the mapping twice.
+    """
+    if not path.exists():
+        return {}
+    overrides: dict[str, str] = {}
+    with path.open(encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            form_nickname = (row.get("form_nickname") or "").strip()
+            discord_display_name = (row.get("discord_display_name") or "").strip()
+            if not form_nickname or not discord_display_name:
+                continue
+            overrides.setdefault(_strip_trailing_decoration(form_nickname), discord_display_name)
+    return overrides
+
+
+def resolve_discord_user_ids(
+    nicknames: list[str],
+    guild_display_name_ids: dict[str, str],
+    name_overrides: dict[str, str],
+) -> dict[str, str]:
+    """Site nickname -> Discord user id, trying an exact match first, then the curated override map."""
+    resolved: dict[str, str] = {}
+    for nickname in nicknames:
+        user_id = guild_display_name_ids.get(nickname)
+        if not user_id:
+            override_display_name = name_overrides.get(_strip_trailing_decoration(nickname))
+            if override_display_name:
+                user_id = guild_display_name_ids.get(override_display_name)
+        if user_id:
+            resolved[nickname] = user_id
+    return resolved
 
 
 def is_due(setting: dict[str, Any], now: datetime) -> bool:
@@ -352,12 +438,23 @@ def format_announcement(
     match: dict[str, Any],
     group_topic: str | None,
     pair_topics: list[tuple[str, str, str]],
+    discord_user_ids: dict[str, str] | None = None,
 ) -> str:
-    """Render the Discord announcement in ふぁいにゃ's voice (docs/fainya-persona.md)."""
+    """Render the Discord announcement in ふぁいにゃ's voice (docs/fainya-persona.md).
+
+    discord_user_ids maps member nickname -> Discord user id; a member found there gets an
+    actual <@id> @mention (so they're notified), others fall back to a plain bold name.
+    """
     members = match["members"]
     day = DAY_LABELS.get(match["day_of_week"], match["day_of_week"])
     slot = SLOT_LABELS.get(match["time_slot"], match["time_slot"])
-    names = "、".join(f"**{n}** さん" for n in members)
+    discord_user_ids = discord_user_ids or {}
+
+    def mention(nickname: str) -> str:
+        user_id = discord_user_ids.get(nickname)
+        return f"<@{user_id}>" if user_id else f"**{nickname}** さん"
+
+    names = "、".join(mention(n) for n in members)
     subject = "お二人" if len(members) == 2 else "みなさん"
     lines = [
         f"🐾 {names}がマッチしましたにゃ！",
@@ -466,14 +563,24 @@ def main() -> int:
 
     channel_id = os.environ.get("DISCORD_MATCHING_CHANNEL_ID")
     bot_token = os.environ.get("DISCORD_BOT_TOKEN")
+    guild_id = os.environ.get("DISCORD_GUILD_ID")
+
+    discord_user_ids: dict[str, str] = {}
+    if args.post_to_discord and bot_token and guild_id:
+        guild_display_name_ids = fetch_guild_member_ids_by_display_name(bot_token, guild_id)
+        name_overrides = load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
+        discord_user_ids = resolve_discord_user_ids(due_nicknames, guild_display_name_ids, name_overrides)
 
     for match in matches:
         message_id = None
         posted_at = None
         if args.post_to_discord:
             if channel_id and bot_token:
-                content = format_announcement(match, match.get("group_topic"), match.get("pair_topics", []))
-                message_id = discord_post(channel_id, bot_token, content)
+                mentioned_ids = [discord_user_ids[n] for n in match["members"] if n in discord_user_ids]
+                content = format_announcement(
+                    match, match.get("group_topic"), match.get("pair_topics", []), discord_user_ids,
+                )
+                message_id = discord_post(channel_id, bot_token, content, mentioned_ids)
                 posted_at = datetime.now(timezone.utc).isoformat()
             else:
                 print(

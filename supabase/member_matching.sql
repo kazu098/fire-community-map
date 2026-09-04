@@ -12,7 +12,7 @@
 create table if not exists public.member_matching_settings (
   member_nickname text primary key references public.member_profiles (nickname) on delete cascade,
   opted_in boolean not null default false,
-  interval_days integer not null default 7 check (interval_days in (3, 7, 14, 30)),
+  interval_days integer not null default 7 check (interval_days in (2, 3, 7, 14, 30)),
   last_matched_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

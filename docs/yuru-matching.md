@@ -4,7 +4,7 @@
 
 ## データモデル(`supabase/member_matching.sql`)
 
-- `member_matching_settings`: メンバーごとの参加フラグ(`opted_in`)とマッチング頻度(`interval_days`: 3/7/14/30日)。`last_matched_at` はバッチ(service role)のみが更新する。
+- `member_matching_settings`: メンバーごとの参加フラグ(`opted_in`)とマッチング頻度(`interval_days`: 2/3/7/14/30日)。`last_matched_at` はバッチ(service role)のみが更新する。
 - `member_availability`: 曜日(`day_of_week`)×時間帯(`morning`/`afternoon`/`evening`)の自己申告スロット。
 - `member_match_groups` / `member_match_group_members`: マッチング結果の履歴。1グループ1行(`member_match_groups`)+所属メンバーの中間テーブル(`member_match_group_members`)という構成にしているのは、固定の`member_a`/`member_b`列だとグループサイズを変える度にスキーマ変更が必要になるため。再マッチングのクールダウン判定(60日、グループ内の全2人組み合わせが対象)と、Discordへの投稿状況(`discord_message_id`)の監査ログを兼ねる。
 
@@ -24,7 +24,7 @@
 
 ### アナウンス文と話題のヒント
 
-アナウンス文はマスコット「ふぁいにゃ」の一人称で書く([docs/fainya-persona.md](./fainya-persona.md)参照)。3人グループの場合の例:
+アナウンス文はマスコット「ふぁいにゃ」の一人称で書く([docs/fainya-persona.md](./fainya-persona.md)参照)。名前部分は実際にDiscordの通知が飛ぶ`<@user_id>`メンションにしている(`fetch_guild_member_ids_by_display_name`でギルドメンバーの表示名を取得し、サイトのニックネームと突き合わせる。絵文字などの装飾差分で一致しない場合は`config/member_discord_name_map.csv`(scripts/match_discord_avatars.pyと共用)でのフォールバック解決も試みる。それでも解決できなければ通知なしの太字表示にフォールバックする)。3人グループの場合の例:
 
 ```
 🐾 かず さん、みかん さん、さとりーまん さんがマッチしましたにゃ！
