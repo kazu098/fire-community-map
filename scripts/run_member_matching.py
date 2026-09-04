@@ -64,50 +64,108 @@ TOPIC_CATEGORY_LABELS = {
     "mbti": "MBTI",
     "fire_status": "FIREタイプ",
 }
-INTRO_SNIPPET_LENGTH = 40
+# Free-text keywords to scan self_intro_text for, as a fallback when tags
+# don't overlap. Deliberately broad/casual -- these surface a shared theme
+# even when nobody bothered to tag it, at the cost of being a plain substring
+# match rather than real language understanding.
+INTRO_TOPIC_KEYWORDS = [
+    "投資", "資産運用", "米国株", "インデックス投資", "高配当", "副業", "起業", "独立", "経営",
+    "転職", "退職", "休職", "育休", "育児", "子育て", "妊活", "結婚", "移住", "多拠点生活", "海外",
+    "旅行", "節約", "保険", "資格", "ブログ", "note", "YouTube", "執筆", "出版", "写真",
+    "コミュニティ", "ボランティア", "筋トレ", "ランニング", "マラソン", "登山", "キャンプ", "ゴルフ",
+    "読書", "ゲーム", "料理", "カフェ", "猫", "犬", "ペット", "音楽", "映画", "アニメ", "マンガ",
+]
 
 
-def build_topic_suggestion(
-    tags_a: dict[str, list[str]],
-    tags_b: dict[str, list[str]],
-    intro_a: str | None,
-    intro_b: str | None,
-) -> str | None:
-    """Suggest a conversation topic from shared tags / self-intros. Returns None if nothing stands out."""
-    consultation_a = set(tags_a.get("consultation", []))
-    wants_a = set(tags_a.get("wants_to_know", []))
-    consultation_b = set(tags_b.get("consultation", []))
-    wants_b = set(tags_b.get("wants_to_know", []))
-
-    a_can_help_b = consultation_a & wants_b
-    b_can_help_a = consultation_b & wants_a
-    if a_can_help_b:
-        topic = sorted(a_can_help_b)[0]
-        return f"「{topic}」について、話してみたいことのお二人ではと思うにゃ"
-    if b_can_help_a:
-        topic = sorted(b_can_help_a)[0]
-        return f"「{topic}」について、話してみたいことのお二人ではと思うにゃ"
-
-    for category in TOPIC_TAG_CATEGORIES:
-        shared = set(tags_a.get(category, [])) & set(tags_b.get(category, []))
-        if shared:
-            topic = sorted(shared)[0]
-            label = TOPIC_CATEGORY_LABELS.get(category, category)
-            return f"共通の{label}「{topic}」の話で盛り上がれそうにゃ"
-
-    if intro_a and intro_b:
-        return "お互いの自己紹介を読んでみると、意外な共通点が見つかるかもにゃ"
-
+def _consultation_wants_cross_topic(members: list[dict[str, Any]]) -> str | None:
+    """Any member's 相談できること matching another's 知りたいこと -- the strongest, most actionable hint."""
+    for a in members:
+        for b in members:
+            if a is b:
+                continue
+            overlap = set(a["tags"].get("consultation", [])) & set(b["tags"].get("wants_to_know", []))
+            if overlap:
+                return f"「{sorted(overlap)[0]}」について、{a['nickname']}さんが{b['nickname']}さんの力になれそうにゃ"
     return None
 
 
-def intro_snippet(text: str | None) -> str | None:
-    if not text:
+def _shared_tag_topic(members: list[dict[str, Any]]) -> str | None:
+    """A tag value every member in the group has in common, checked category by category."""
+    for category in TOPIC_TAG_CATEGORIES:
+        common: set[str] | None = None
+        for m in members:
+            values = set(m["tags"].get(category, []))
+            common = values if common is None else common & values
+        if common:
+            label = TOPIC_CATEGORY_LABELS.get(category, category)
+            return f"共通の{label}「{sorted(common)[0]}」の話で盛り上がれそうにゃ"
+    return None
+
+
+def _intro_keyword_topic(members: list[dict[str, Any]]) -> str | None:
+    """A casual keyword every member's self-intro text mentions, even if nobody tagged it."""
+    if not all(m.get("intro") for m in members):
         return None
-    snippet = text.strip().splitlines()[0].strip()
-    if len(snippet) > INTRO_SNIPPET_LENGTH:
-        snippet = snippet[:INTRO_SNIPPET_LENGTH] + "…"
-    return snippet or None
+    common: set[str] | None = None
+    for m in members:
+        matched = {kw for kw in INTRO_TOPIC_KEYWORDS if kw in m["intro"]}
+        common = matched if common is None else common & matched
+    if common:
+        return f"自己紹介を読むと「{sorted(common)[0]}」が共通の話題になりそうにゃ"
+    return None
+
+
+def _note_writers_topic(members: list[dict[str, Any]]) -> str | None:
+    """A light, low-stakes icebreaker: everyone in the group has a note link registered."""
+    if all(any("note.com" in (link.get("url") or "") for link in m.get("links", [])) for m in members):
+        return "みんなnoteをやっているみたいだから、記事を見せ合うのも面白そうにゃ"
+    return None
+
+
+def _same_prefecture_topic(members: list[dict[str, Any]]) -> str | None:
+    prefectures = {m.get("prefecture") for m in members}
+    if len(prefectures) == 1 and None not in prefectures:
+        return f"実は{next(iter(prefectures))}在住どうし、というのも面白い共通点にゃ"
+    return None
+
+
+def _no_avatar_twins_topic(members: list[dict[str, Any]]) -> str | None:
+    """Purely for a laugh: nobody in the group has set a profile photo yet."""
+    if len(members) >= 2 and all(not m.get("has_avatar") for m in members):
+        return "ちなみにお二人ともアイコン未設定どうし、というのもちょっとおもしろいにゃ"
+    return None
+
+
+# Evaluated in order; the first generator to return something wins. Roughly
+# most-actionable -> most-lighthearted, so a real conversation hook beats a
+# coincidence when both are available.
+TOPIC_GENERATORS = [
+    _consultation_wants_cross_topic,
+    _shared_tag_topic,
+    _intro_keyword_topic,
+    _note_writers_topic,
+    _same_prefecture_topic,
+    _no_avatar_twins_topic,
+]
+
+
+def build_topic_suggestion(members: list[dict[str, Any]]) -> str | None:
+    """Suggest a conversation topic for a matched group.
+
+    Each member dict: {"nickname": str, "tags": dict[str, list[str]],
+    "intro": str | None, "links": list[dict], "prefecture": str | None,
+    "has_avatar": bool}. Tries actionable hints (consultation x wants_to_know,
+    shared tags, shared self-intro keywords) before falling back to
+    lighter/coincidental ones (both write on note, same prefecture, neither
+    has set an avatar). Returns None if nothing at all stood out.
+    """
+    for generator in TOPIC_GENERATORS:
+        topic = generator(members)
+        if topic:
+            return topic
+    if all(m.get("intro") for m in members):
+        return "お互いの自己紹介を読んでみると、意外な共通点が見つかるかもにゃ"
+    return None
 
 
 def load_dotenv(path: Path) -> None:
@@ -285,7 +343,9 @@ def main() -> int:
         f"/rest/v1/member_matches?select=member_a,member_b,created_at&created_at=gte.{quote((now - timedelta(days=COOLDOWN_DAYS)).isoformat())}"
     )
     member_tags = get("/rest/v1/member_tags?select=member_nickname,category,value")
-    profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text")
+    profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url")
+    member_links = get("/rest/v1/member_links?select=member_nickname,label,url")
+    member_locations = get("/rest/v1/member_locations?select=nickname,prefecture")
 
     due_nicknames = [s["member_nickname"] for s in settings if is_due(s, now)]
     slot_index = build_slot_index(availability)
@@ -294,16 +354,29 @@ def main() -> int:
     tags_by_nickname: dict[str, dict[str, list[str]]] = {}
     for row in member_tags:
         tags_by_nickname.setdefault(row["member_nickname"], {}).setdefault(row["category"], []).append(row["value"])
-    intro_by_nickname = {p["nickname"]: p.get("self_intro_text") for p in profiles}
+    profile_by_nickname = {p["nickname"]: p for p in profiles}
+    links_by_nickname: dict[str, list[dict[str, Any]]] = {}
+    for row in member_links:
+        links_by_nickname.setdefault(row["member_nickname"], []).append(row)
+    prefecture_by_nickname = {loc["nickname"]: loc.get("prefecture") for loc in member_locations}
+
+    def member_topic_input(nickname: str) -> dict[str, Any]:
+        profile = profile_by_nickname.get(nickname, {})
+        return {
+            "nickname": nickname,
+            "tags": tags_by_nickname.get(nickname, {}),
+            "intro": profile.get("self_intro_text"),
+            "links": links_by_nickname.get(nickname, []),
+            "prefecture": prefecture_by_nickname.get(nickname),
+            "has_avatar": bool(profile.get("avatar_url")),
+        }
 
     matches = run_matching(due_nicknames, slot_index, excluded_pairs, rng)
     for match in matches:
-        match["topic"] = build_topic_suggestion(
-            tags_by_nickname.get(match["member_a"], {}),
-            tags_by_nickname.get(match["member_b"], {}),
-            intro_snippet(intro_by_nickname.get(match["member_a"])),
-            intro_snippet(intro_by_nickname.get(match["member_b"])),
-        )
+        match["topic"] = build_topic_suggestion([
+            member_topic_input(match["member_a"]),
+            member_topic_input(match["member_b"]),
+        ])
 
     print(f"Opted-in & due: {len(due_nicknames)} / matched this run: {len(matches)}")
     for match in matches:
