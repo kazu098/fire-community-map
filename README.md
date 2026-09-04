@@ -11,6 +11,7 @@ FIRE研究所コミュニティの運営を支える静的サイト＋自動化�
 - **公開メンバー一覧** (`public.html`): WordPress埋め込み想定の限定共有ページ → [docs/wordpress-embed.md](./docs/wordpress-embed.md)
 - **コミュニティ投稿一覧**: 読んだ本・旅行・お金の相談・介護医療・子育て・不動産などのDiscord投稿を収集・整理 → [docs/community-content.md](./docs/community-content.md)
 - **イベント記録**: Discordのイベント告知・サーバーイベントを開催記録として蓄積 → [docs/community-events.md](./docs/community-events.md)
+- **本棚**: FIRE研究所公式本とメンバーが出版した本を本棚レイアウトで表示 → [docs/bookshelf.md](./docs/bookshelf.md)
 
 いずれも限定URLを知っている人だけが閲覧する前提で、ログイン機能やWordPress会員制プラグインは使わない。
 
@@ -68,3 +69,5 @@ GitHub Actionsで動く定期バッチ(コミュニティ投稿同期・イベ�
 | [docs/youtube-comment-notifications.md](./docs/youtube-comment-notifications.md) | YouTubeコメント通知(Discordへ) |
 | [docs/fire-lab-shorts-strategy.md](./docs/fire-lab-shorts-strategy.md) | YouTubeショート動画の切り抜き〜予約投稿自動化 |
 | [docs/wordpress-embed.md](./docs/wordpress-embed.md) | WordPressへのメンバー一覧埋め込み |
+| [docs/bookshelf.md](./docs/bookshelf.md) | 本棚タブ(F研公式本・メンバー著書)のデータ管理 |
+| [docs/fainya-persona.md](./docs/fainya-persona.md) | マスコット「ふぁいにゃ」の話し方ガイド |

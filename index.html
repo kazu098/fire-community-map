@@ -246,9 +246,68 @@
     #map { top: 90px; }
     @media (max-width: 600px) { #map { top: 118px; } }
 
+    /* ---- Bookshelf view (F研公式本・メンバー著書) ---- */
+    #bookshelf-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 10px 16px;
+      z-index: 10;
+    }
+    #bookshelf-header h2 { font-size: 15px; margin: 0 0 2px; color: #1f2937; }
+    #bookshelf-header p { font-size: 12px; color: #6b7280; margin: 0; }
+    #bookshelf-body { max-width: 1600px; margin: 0 auto; padding: 20px 24px 40px; }
+    .bookshelf-section-title {
+      font-size: 13px; font-weight: bold; color: #374151;
+      margin: 24px 0 12px;
+    }
+    .bookshelf-section-title:first-child { margin-top: 0; }
+    .bookshelf-shelf {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 24px 18px;
+    }
+    .bookshelf-book {
+      display: flex;
+      flex-direction: column;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 10px 10px 12px;
+    }
+    .bookshelf-cover {
+      width: 100%;
+      aspect-ratio: 3 / 4.2;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      box-sizing: border-box;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+    .bookshelf-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .bookshelf-book-title { font-size: 12px; font-weight: bold; color: #1f2937; margin-top: 8px; line-height: 1.4; }
+    .bookshelf-book-author { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .bookshelf-book-author a { color: inherit; text-decoration: none; }
+    .bookshelf-book-author a:hover { text-decoration: underline; }
+    .bookshelf-book-links { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .bookshelf-book-links a {
+      font-size: 11px; color: #2563eb; text-decoration: none; font-weight: bold;
+    }
+    .bookshelf-book-links a:hover { text-decoration: underline; }
+    #bookshelf-empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 40px 0; }
+
     /* ---- Community posts view (書籍・旅行・相談などのストック型コンテンツ) ---- */
     #community-view,
     #events-view,
+    #bookshelf-view,
     #usage-view {
       position: fixed;
       top: 38px; left: 0; right: 0; bottom: 0;
@@ -1399,6 +1458,7 @@
   <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
   <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
+  <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">本棚</button>
   <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
 </div>
 
@@ -1442,6 +1502,14 @@
 <div id="events-view">
   <div id="events-header"></div>
   <div id="events-body"></div>
+</div>
+
+<div id="bookshelf-view">
+  <div id="bookshelf-header">
+    <h2>📚 本棚</h2>
+    <p>FIRE研究所のメンバーが出版した本と、FIRE研究所の公式本をまとめています。</p>
+  </div>
+  <div id="bookshelf-body"></div>
 </div>
 
 <div id="usage-view">
@@ -2196,13 +2264,15 @@ function selectView(view) {
   const isMap = view === 'map';
   const isCommunity = view === 'community';
   const isEvents = view === 'events';
+  const isBookshelf = view === 'bookshelf';
   const isUsage = view === 'usage';
-  const isDirectory = !isMap && !isCommunity && !isEvents && !isUsage;
+  const isDirectory = !isMap && !isCommunity && !isEvents && !isBookshelf && !isUsage;
 
   document.getElementById('tab-map').classList.toggle('active', isMap);
   document.getElementById('tab-directory').classList.toggle('active', isDirectory);
   document.getElementById('tab-community').classList.toggle('active', isCommunity);
   document.getElementById('tab-events').classList.toggle('active', isEvents);
+  document.getElementById('tab-bookshelf').classList.toggle('active', isBookshelf);
   document.getElementById('tab-usage').classList.toggle('active', isUsage);
 
   document.getElementById('header').style.display = isMap ? 'flex' : 'none';
@@ -2210,6 +2280,7 @@ function selectView(view) {
   document.getElementById('directory-view').style.display = isDirectory ? 'block' : 'none';
   document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
   document.getElementById('events-view').style.display = isEvents ? 'block' : 'none';
+  document.getElementById('bookshelf-view').style.display = isBookshelf ? 'block' : 'none';
   document.getElementById('usage-view').style.display = isUsage ? 'block' : 'none';
   const showMascot = (isMap || isEvents || isCommunity) ? 'block' : 'none';
   document.getElementById('mascot-fainya').style.display = showMascot;
@@ -2232,6 +2303,10 @@ function selectView(view) {
     ensureDirectoryLoaded().then(renderEventsView);
     return;
   }
+  if (isBookshelf) {
+    ensureDirectoryLoaded().then(renderBookshelfView);
+    return;
+  }
   ensureDirectoryLoaded().then(() => {
     const match = location.hash.match(/^#member\/(.+)$/);
     if (match) openMemberDetail(decodeURIComponent(match[1]), { updateHash: false });
@@ -2240,7 +2315,7 @@ function selectView(view) {
 }
 
 const INITIAL_VIEW = new URLSearchParams(location.search).get('view');
-selectView(['directory', 'map', 'events', 'community', 'usage'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
+selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 
 function usageFigure(src, title, caption) {
   return `
@@ -2640,6 +2715,22 @@ async function fetchCommunityEvents() {
   }
 }
 
+async function fetchBookshelfBooks() {
+  const select = 'id,source,member_nickname,title,author_name,amazon_url,thumbnail_url,drive_pdf_url,sort_order';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookshelf_books?select=${select}&order=source,sort_order`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) {
+      console.warn('bookshelf_books fetch failed (table may not exist yet). Bookshelf tab will be empty.', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('bookshelf_books fetch failed. Bookshelf tab will be empty.', err);
+    return [];
+  }
+}
+
 async function fetchLocalCommunityEvents() {
   try {
     const res = await fetch('data/community_events_curated.json', { cache: 'no-store' });
@@ -2653,7 +2744,7 @@ async function fetchLocalCommunityEvents() {
 }
 
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData] = await Promise.all([
+  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData, bookshelfBooksData] = await Promise.all([
     fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -2663,6 +2754,7 @@ async function loadDirectory() {
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetchCommunityPosts(),
     fetchCommunityEvents(),
+    fetchBookshelfBooks(),
   ]);
   const tags = await tagsRes.json();
   const links = await linksRes.json();
@@ -2670,6 +2762,7 @@ async function loadDirectory() {
   communityPosts = communityPostsData;
   communityEvents = communityEventsData.rows;
   communityEventsUnavailable = communityEventsData.unavailable;
+  bookshelfBooks = bookshelfBooksData;
 
   const tagsByNickname = {};
   tags.forEach(t => {
@@ -3719,6 +3812,7 @@ function openMemberDetail(nickname, {
 
 let communityEvents = [];
 let communityEventsUnavailable = false;
+let bookshelfBooks = [];
 let activeEventsSection = 'calendar';
 const EVENT_PAGE_SIZE = 10;
 const eventPages = { calendar: 1, upcoming: 1, past: 1 };
@@ -4279,6 +4373,112 @@ function renderEventsView() {
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+}
+
+// ================================================================
+// 本棚(F研公式本・メンバー著書)
+// bookshelf_books テーブルから読み込む。掲載本の追加・削除は運営が
+// scripts/load_bookshelf_books.py で管理し、サイト側は表示のみ。
+// ================================================================
+
+const BOOKSHELF_SPINE_COLORS = ['#3b5c78', '#7a4e3a', '#4a6741', '#7a3b52', '#5b4a7a', '#7a6b3b'];
+
+function bookshelfSpineColor(title) {
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) hash = (hash * 31 + title.charCodeAt(i)) >>> 0;
+  return BOOKSHELF_SPINE_COLORS[hash % BOOKSHELF_SPINE_COLORS.length];
+}
+
+function buildBookshelfCard(book) {
+  const wrap = document.createElement('div');
+  wrap.className = 'bookshelf-book';
+
+  const cover = document.createElement('div');
+  cover.className = 'bookshelf-cover';
+  if (book.thumbnail_url) {
+    const img = document.createElement('img');
+    img.src = book.thumbnail_url;
+    img.alt = book.title;
+    img.loading = 'lazy';
+    cover.appendChild(img);
+  } else {
+    cover.style.background = bookshelfSpineColor(book.title);
+    cover.textContent = book.title;
+  }
+  wrap.appendChild(cover);
+
+  const title = document.createElement('div');
+  title.className = 'bookshelf-book-title';
+  title.textContent = book.title;
+  wrap.appendChild(title);
+
+  if (book.author_name) {
+    const author = document.createElement('div');
+    author.className = 'bookshelf-book-author';
+    if (book.member_nickname && MEMBER_DIRECTORY_ENABLED) {
+      const authorLink = document.createElement('a');
+      authorLink.href = '#';
+      authorLink.textContent = book.author_name;
+      authorLink.addEventListener('click', e => {
+        e.preventDefault();
+        goToMemberDetail(book.member_nickname);
+      });
+      author.appendChild(authorLink);
+    } else {
+      author.textContent = book.author_name;
+    }
+    wrap.appendChild(author);
+  }
+
+  const linksRow = document.createElement('div');
+  linksRow.className = 'bookshelf-book-links';
+  const amazonLink = document.createElement('a');
+  amazonLink.href = book.amazon_url;
+  amazonLink.target = '_blank';
+  amazonLink.rel = 'noopener noreferrer';
+  amazonLink.textContent = 'Amazon';
+  linksRow.appendChild(amazonLink);
+  if (book.drive_pdf_url) {
+    const pdfLink = document.createElement('a');
+    pdfLink.href = book.drive_pdf_url;
+    pdfLink.target = '_blank';
+    pdfLink.rel = 'noopener noreferrer';
+    pdfLink.textContent = 'PDF';
+    linksRow.appendChild(pdfLink);
+  }
+  wrap.appendChild(linksRow);
+
+  return wrap;
+}
+
+function renderBookshelfView() {
+  const body = document.getElementById('bookshelf-body');
+  body.innerHTML = '';
+
+  if (bookshelfBooks.length === 0) {
+    const empty = document.createElement('div');
+    empty.id = 'bookshelf-empty';
+    empty.textContent = '本棚データの準備がまだ完了していません';
+    body.appendChild(empty);
+    return;
+  }
+
+  const sections = [
+    { source: 'fire_lab', label: 'FIRE研究所 公式本' },
+    { source: 'member', label: 'メンバーの著書' },
+  ];
+  sections.forEach(section => {
+    const books = bookshelfBooks.filter(b => b.source === section.source);
+    if (books.length === 0) return;
+    const title = document.createElement('div');
+    title.className = 'bookshelf-section-title';
+    title.textContent = section.label;
+    body.appendChild(title);
+    const shelf = document.createElement('div');
+    shelf.className = 'bookshelf-shelf';
+    books.forEach(book => shelf.appendChild(buildBookshelfCard(book)));
+    body.appendChild(shelf);
+  });
 }
 
 // ================================================================
