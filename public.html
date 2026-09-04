@@ -242,9 +242,10 @@ const CATEGORY_META = {
   mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
   skill:            { label: 'スキル', bg: '#ecfdf5', text: '#047857' },
   consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e' },
+  wants_to_know:    { label: '知りたいこと', bg: '#e0f2fe', text: '#0369a1' },
   interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
 };
-const PUBLIC_CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'interest'];
+const PUBLIC_CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'wants_to_know', 'interest'];
 
 let publicMembers = [];
 const EMBED_MODE = new URLSearchParams(location.search).get('embed') === '1';

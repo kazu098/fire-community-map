@@ -2171,10 +2171,14 @@ const CATEGORY_META = {
   mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
   skill:            { label: 'スキル', bg: '#ecfdf5', text: '#047857' },
   consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e' },
+  wants_to_know:    { label: '知りたいこと', bg: '#e0f2fe', text: '#0369a1' },
   interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
   affiliation:      { label: '所属活動・部活', bg: '#f1f5f9', text: '#334155' },
 };
-const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'interest', 'affiliation'];
+const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'wants_to_know', 'interest', 'affiliation'];
+// 「知りたいこと」の入力候補は「相談できること」の既存タグから出す(逆も同様)。
+// 表記を自然に揃えて、将来のマッチング精度を上げるため。
+const TAG_SUGGESTION_SOURCE_CATEGORY = { wants_to_know: 'consultation', consultation: 'wants_to_know' };
 const CARD_TAG_CHAR_LIMIT = 90;
 
 // タグの合計文字数がCARD_TAG_CHAR_LIMITを超えない範囲で表示するタグを選ぶ
@@ -3679,7 +3683,10 @@ function openMemberDetail(nickname, {
     const datalistId = `tag-options-${cat}`;
     const datalist = document.createElement('datalist');
     datalist.id = datalistId;
-    tagOptionsForCategory(cat).forEach(value => {
+    const suggestionCategories = [cat, TAG_SUGGESTION_SOURCE_CATEGORY[cat]].filter(Boolean);
+    const suggestions = new Set();
+    suggestionCategories.forEach(c => tagOptionsForCategory(c).forEach(v => suggestions.add(v)));
+    [...suggestions].sort((a, b) => a.localeCompare(b, 'ja')).forEach(value => {
       const option = document.createElement('option');
       option.value = value;
       datalist.appendChild(option);
