@@ -1064,6 +1064,20 @@
     }
     #directory-register-link:hover { text-decoration: underline; }
 
+    #directory-view-mode { display: flex; gap: 4px; flex-shrink: 0; }
+    .view-mode-btn {
+      padding: 7px 12px;
+      border-radius: 16px;
+      border: 2px solid #d1d5db;
+      background: white;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .view-mode-btn.active { background: #1e293b; border-color: #1e293b; color: white; }
+
     #member-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1117,6 +1131,145 @@
     }
     .mini-tag-more:hover { background: #e5e7eb; }
     #no-results { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+
+    #my-identity-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 16px;
+      background: #eff6ff;
+      border-bottom: 1px solid #dbeafe;
+      font-size: 12px;
+      color: #1e40af;
+    }
+    #my-identity-bar input {
+      padding: 6px 10px;
+      border: 2px solid #bfdbfe;
+      border-radius: 14px;
+      font-size: 12px;
+      outline: none;
+      width: 200px;
+    }
+    #my-identity-bar input:focus { border-color: #3b82f6; }
+    #my-identity-bar button {
+      padding: 6px 12px;
+      border-radius: 14px;
+      border: 2px solid #3b82f6;
+      background: #3b82f6;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #my-identity-bar button.secondary { background: white; color: #3b82f6; }
+    .shared-tag-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: bold;
+      color: #1e40af;
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 2px 8px;
+      margin-top: 6px;
+    }
+    .shared-tag-block-label { color: #1e40af; }
+    .shared-tag-chip { box-shadow: inset 0 0 0 1.5px #3b82f6; }
+
+    #member-list-layout { display: none; align-items: flex-start; gap: 16px; padding: 16px; }
+    #member-list { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+    #member-filter-sidebar {
+      flex: 0 0 220px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 14px;
+      position: sticky;
+      top: 76px;
+      max-height: calc(100vh - 96px);
+      overflow-y: auto;
+    }
+    .filter-section { margin-bottom: 16px; }
+    .filter-section:last-child { margin-bottom: 0; }
+    .filter-section-title { font-size: 12px; font-weight: bold; color: #374151; margin-bottom: 6px; }
+    .filter-option {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: #4b5563;
+      padding: 3px 0;
+      cursor: pointer;
+    }
+    .filter-option input { flex-shrink: 0; cursor: pointer; }
+    .filter-option-count { color: #9ca3af; margin-left: auto; font-size: 11px; }
+    .filter-more-btn {
+      font-size: 11px; color: #2563eb; background: none; border: none;
+      cursor: pointer; padding: 3px 0;
+    }
+    .filter-more-btn:hover { text-decoration: underline; }
+    #filter-clear-btn {
+      width: 100%;
+      margin-top: 4px;
+      padding: 7px;
+      border-radius: 8px;
+      border: 2px solid #d1d5db;
+      background: white;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #filter-clear-btn:hover { background: #f3f4f6; }
+    @media (max-width: 800px) {
+      #member-list-layout { flex-direction: column; }
+      #member-filter-sidebar { flex: 1 1 auto; width: 100%; position: static; max-height: none; }
+    }
+    .member-list-row {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .list-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: white; font-size: 16px;
+    }
+    .list-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .list-main { flex: 1 1 280px; min-width: 220px; }
+    .list-name-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .list-nickname { font-weight: bold; font-size: 15px; color: #1f2937; }
+    .list-location { font-size: 11px; color: #6b7280; }
+    .list-intro { font-size: 12px; color: #4b5563; margin-top: 4px; line-height: 1.5; }
+    .list-tag-block { margin-top: 8px; }
+    .list-tag-block-label { font-size: 10px; color: #9ca3af; font-weight: bold; margin-bottom: 3px; }
+    .list-tag-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .list-actions {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-left: auto;
+      min-width: 140px;
+    }
+    .list-action-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid #d1d5db;
+      background: white;
+      color: #374151;
+    }
+    .list-action-btn:hover { background: #f3f4f6; }
+    .list-action-btn.primary { background: #3b82f6; border-color: #3b82f6; color: white; }
+    .list-action-btn.primary:hover { background: #2563eb; }
 
     /* ---- Member detail view ---- */
     #member-detail-view {
@@ -1482,9 +1635,18 @@
         <input id="directory-search" type="text" placeholder="ニックネーム・タグで検索…" autocomplete="off">
         <button id="directory-search-clear">✕</button>
       </div>
+      <div id="directory-view-mode">
+        <button type="button" class="view-mode-btn" id="mode-card" onclick="setDirectoryViewMode('card')">📇 ざっと見る</button>
+        <button type="button" class="view-mode-btn" id="mode-list" onclick="setDirectoryViewMode('list')">🔍 相手を探す</button>
+      </div>
       <a id="directory-register-link" href="https://docs.google.com/forms/d/e/1FAIpQLSflsiIc1Gj4hcapIqiAgnMeEdTvyw20-kKkFSvrrqdGANmleQ/viewform" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
     </div>
+    <div id="my-identity-bar"></div>
     <div id="member-grid"></div>
+    <div id="member-list-layout">
+      <div id="member-filter-sidebar"></div>
+      <div id="member-list"></div>
+    </div>
     <div id="no-results" style="display:none;">該当するメンバーが見つかりません</div>
   </div>
 
@@ -2808,12 +2970,222 @@ function matchesFilters(member, query) {
 
 const expandedCards = new Set();
 
+let directoryViewMode = 'card';
+try { directoryViewMode = localStorage.getItem('directoryViewMode') || 'card'; } catch (e) {}
+
+function setDirectoryViewMode(mode) {
+  directoryViewMode = mode;
+  try { localStorage.setItem('directoryViewMode', mode); } catch (e) {}
+  renderMemberGrid();
+}
+
+// 「あなたは誰か」をブラウザにだけ覚えておく仕組み(ログイン機能ではない)。
+// ログインなしで「共通タグ」を出すため、本人がニックネームを選ぶだけの軽量な自己申告。
+// なりすまし防止のガードはなく、既存のタグ編集(誰でも誰のタグでも編集可能)と同じ信頼モデル。
+let myNickname = null;
+try { myNickname = localStorage.getItem('myNickname') || null; } catch (e) {}
+
+function setMyNickname(nickname) {
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (!member) {
+    alert('その名前のメンバーが見つかりませんでした。一覧から選んでください。');
+    return;
+  }
+  myNickname = member.nickname;
+  try { localStorage.setItem('myNickname', myNickname); } catch (e) {}
+  renderMemberGrid();
+}
+
+function clearMyNickname() {
+  myNickname = null;
+  try { localStorage.removeItem('myNickname'); } catch (e) {}
+  renderMemberGrid();
+}
+
+function sharedTags(member) {
+  if (!myNickname) return null;
+  const me = directoryMembers.find(m => m.nickname === myNickname);
+  if (!me || me.nickname === member.nickname) return null;
+  const result = [];
+  CATEGORY_ORDER.forEach(cat => {
+    const mine = new Set(me.tags[cat] || []);
+    (member.tags[cat] || []).forEach(v => { if (mine.has(v)) result.push({ value: v, meta: CATEGORY_META[cat] }); });
+  });
+  return result;
+}
+
+function renderMyIdentityBar() {
+  const bar = document.getElementById('my-identity-bar');
+  bar.innerHTML = '';
+
+  if (myNickname) {
+    const label = document.createElement('span');
+    label.textContent = `👤 ${myNickname} として表示中(共通タグが分かります)`;
+    bar.appendChild(label);
+    const changeBtn = document.createElement('button');
+    changeBtn.type = 'button';
+    changeBtn.className = 'secondary';
+    changeBtn.textContent = '変更';
+    changeBtn.addEventListener('click', () => { myNickname = null; renderMemberGrid(); });
+    bar.appendChild(changeBtn);
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'secondary';
+    clearBtn.textContent = '解除';
+    clearBtn.addEventListener('click', clearMyNickname);
+    bar.appendChild(clearBtn);
+    return;
+  }
+
+  const label = document.createElement('span');
+  label.textContent = '👤 自分のニックネームを選ぶと、共通タグが分かります(この端末だけに記憶・ログイン不要):';
+  bar.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'ニックネームを入力…';
+  input.setAttribute('list', 'my-identity-options');
+  input.setAttribute('autocomplete', 'off');
+  const datalist = document.createElement('datalist');
+  datalist.id = 'my-identity-options';
+  directoryMembers.forEach(m => {
+    const option = document.createElement('option');
+    option.value = m.nickname;
+    datalist.appendChild(option);
+  });
+  const submit = () => setMyNickname(input.value.trim());
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  bar.appendChild(input);
+  bar.appendChild(datalist);
+
+  const setBtn = document.createElement('button');
+  setBtn.type = 'button';
+  setBtn.textContent = '設定';
+  setBtn.addEventListener('click', submit);
+  bar.appendChild(setBtn);
+}
+
+// 「相手を探す」表示専用の絞り込みサイドバー。
+const LIST_FILTER_SECTIONS = [
+  { key: 'location', label: '居住地', getValues: m => (m.location && m.location.prefecture) ? [m.location.prefecture] : [] },
+  { key: 'fire_status', label: 'FIREタイプ', getValues: m => m.tags.fire_status || [] },
+  { key: 'consultation', label: '相談できること', getValues: m => m.tags.consultation || [] },
+  { key: 'wants_to_know', label: '知りたいこと', getValues: m => m.tags.wants_to_know || [] },
+  { key: 'affiliation', label: '活動・部活', getValues: m => m.tags.affiliation || [] },
+  { key: 'tag', label: 'その他のタグ', getValues: m => ['investment_style', 'mbti', 'skill', 'interest'].flatMap(cat => m.tags[cat] || []) },
+];
+const SECTION_INITIAL_VISIBLE = 8;
+
+const listFilters = {};
+LIST_FILTER_SECTIONS.forEach(s => { listFilters[s.key] = new Set(); });
+const listFilterExpanded = new Set();
+
+function matchesListFilters(member) {
+  return LIST_FILTER_SECTIONS.every(section => {
+    const selected = listFilters[section.key];
+    if (selected.size === 0) return true;
+    const values = section.getValues(member);
+    return values.some(v => selected.has(v));
+  });
+}
+
+function toggleListFilter(key, value) {
+  const set = listFilters[key];
+  if (set.has(value)) set.delete(value); else set.add(value);
+  renderMemberGrid();
+}
+
+function clearListFilters() {
+  LIST_FILTER_SECTIONS.forEach(s => listFilters[s.key].clear());
+  renderMemberGrid();
+}
+
+function renderMemberFilterSidebar() {
+  const sidebar = document.getElementById('member-filter-sidebar');
+  sidebar.innerHTML = '';
+
+  LIST_FILTER_SECTIONS.forEach(section => {
+    const counts = new Map();
+    directoryMembers.forEach(m => {
+      const values = new Set(section.getValues(m));
+      values.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
+    });
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'));
+    if (sorted.length === 0) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'filter-section';
+    const title = document.createElement('div');
+    title.className = 'filter-section-title';
+    title.textContent = section.label;
+    wrap.appendChild(title);
+
+    const isExpanded = listFilterExpanded.has(section.key);
+    const visible = isExpanded ? sorted : sorted.slice(0, SECTION_INITIAL_VISIBLE);
+    visible.forEach(([value, count]) => {
+      const label = document.createElement('label');
+      label.className = 'filter-option';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = listFilters[section.key].has(value);
+      checkbox.addEventListener('change', () => toggleListFilter(section.key, value));
+      label.appendChild(checkbox);
+      const text = document.createElement('span');
+      text.textContent = value;
+      label.appendChild(text);
+      const countEl = document.createElement('span');
+      countEl.className = 'filter-option-count';
+      countEl.textContent = count;
+      label.appendChild(countEl);
+      wrap.appendChild(label);
+    });
+
+    if (sorted.length > SECTION_INITIAL_VISIBLE) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'filter-more-btn';
+      more.textContent = isExpanded ? '閉じる' : `もっと見る (+${sorted.length - SECTION_INITIAL_VISIBLE})`;
+      more.addEventListener('click', () => {
+        if (isExpanded) listFilterExpanded.delete(section.key); else listFilterExpanded.add(section.key);
+        renderMemberGrid();
+      });
+      wrap.appendChild(more);
+    }
+
+    sidebar.appendChild(wrap);
+  });
+
+  const hasActiveFilters = LIST_FILTER_SECTIONS.some(s => listFilters[s.key].size > 0);
+  if (hasActiveFilters) {
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.id = 'filter-clear-btn';
+    clearBtn.textContent = '絞り込みをクリア';
+    clearBtn.addEventListener('click', clearListFilters);
+    sidebar.appendChild(clearBtn);
+  }
+}
+
 function renderMemberGrid() {
   const query = document.getElementById('directory-search').value;
+  const filtered = directoryMembers.filter(m => matchesFilters(m, query) && (directoryViewMode !== 'list' || matchesListFilters(m)));
+  document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
+
+  document.getElementById('mode-card').classList.toggle('active', directoryViewMode === 'card');
+  document.getElementById('mode-list').classList.toggle('active', directoryViewMode === 'list');
+  document.getElementById('member-grid').style.display = directoryViewMode === 'card' ? 'grid' : 'none';
+  document.getElementById('member-list-layout').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
+  document.getElementById('my-identity-bar').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
+
+  if (directoryViewMode === 'list') {
+    renderMyIdentityBar();
+    renderMemberFilterSidebar();
+    renderMemberList(filtered);
+    return;
+  }
+
   const grid = document.getElementById('member-grid');
   grid.innerHTML = '';
-  const filtered = directoryMembers.filter(m => matchesFilters(m, query));
-  document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
 
   filtered.forEach(m => {
     const card = document.createElement('div');
@@ -2923,6 +3295,152 @@ function renderMemberGrid() {
     card.appendChild(head);
     card.appendChild(tagList);
     grid.appendChild(card);
+  });
+}
+
+// 「相手を探す」表示: 相談できること・知りたいことを前面に出した一行リスト。
+function buildMemberListTagBlock(label, values, meta) {
+  if (!values || values.length === 0) return null;
+  const block = document.createElement('div');
+  block.className = 'list-tag-block';
+  const blockLabel = document.createElement('div');
+  blockLabel.className = 'list-tag-block-label';
+  blockLabel.textContent = label;
+  block.appendChild(blockLabel);
+  const row = document.createElement('div');
+  row.className = 'list-tag-row';
+  values.forEach(value => {
+    const chip = document.createElement('span');
+    chip.className = 'mini-tag';
+    chip.style.background = meta.bg;
+    chip.style.color = meta.text;
+    chip.textContent = value;
+    row.appendChild(chip);
+  });
+  block.appendChild(row);
+  return block;
+}
+
+function renderMemberList(filtered) {
+  const list = document.getElementById('member-list');
+  list.innerHTML = '';
+
+  filtered.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'member-list-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'list-avatar';
+    avatar.style.background = memberColor(m.nickname);
+    if (m.avatar_url) {
+      const img = document.createElement('img');
+      img.src = m.avatar_url;
+      img.alt = '';
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = initials(m.nickname);
+    }
+    row.appendChild(avatar);
+
+    const main = document.createElement('div');
+    main.className = 'list-main';
+    const nameRow = document.createElement('div');
+    nameRow.className = 'list-name-row';
+    const name = document.createElement('span');
+    name.className = 'list-nickname';
+    name.textContent = m.nickname;
+    nameRow.appendChild(name);
+    const locationLabel = directoryLocationLabel(m);
+    if (locationLabel) {
+      const locationEl = document.createElement('span');
+      locationEl.className = 'list-location';
+      locationEl.textContent = locationLabel;
+      nameRow.appendChild(locationEl);
+    }
+    main.appendChild(nameRow);
+
+    const shared = sharedTags(m);
+    if (shared !== null) {
+      if (shared.length > 0) {
+        const block = document.createElement('div');
+        block.className = 'list-tag-block';
+        const label = document.createElement('div');
+        label.className = 'list-tag-block-label shared-tag-block-label';
+        label.textContent = `共通タグ ${shared.length}件`;
+        block.appendChild(label);
+        const row = document.createElement('div');
+        row.className = 'list-tag-row';
+        shared.forEach(({ value, meta }) => {
+          const chip = document.createElement('span');
+          chip.className = 'mini-tag shared-tag-chip';
+          chip.style.background = meta.bg;
+          chip.style.color = meta.text;
+          chip.textContent = value;
+          row.appendChild(chip);
+        });
+        block.appendChild(row);
+        main.appendChild(block);
+      } else {
+        const badge = document.createElement('div');
+        badge.className = 'shared-tag-badge';
+        badge.textContent = '共通タグなし';
+        main.appendChild(badge);
+      }
+    }
+
+    const introText = m.self_intro_text || m.external_self_intro_text;
+    if (introText) {
+      const intro = document.createElement('div');
+      intro.className = 'list-intro';
+      intro.textContent = introText.length > 60 ? `${introText.slice(0, 60)}…` : introText;
+      main.appendChild(intro);
+    }
+
+    const consultationBlock = buildMemberListTagBlock('相談できること', m.tags.consultation, CATEGORY_META.consultation);
+    if (consultationBlock) main.appendChild(consultationBlock);
+    const wantsToKnowBlock = buildMemberListTagBlock('知りたいこと', m.tags.wants_to_know, CATEGORY_META.wants_to_know);
+    if (wantsToKnowBlock) main.appendChild(wantsToKnowBlock);
+
+    const otherTags = [];
+    CATEGORY_ORDER.forEach(cat => {
+      if (cat === 'consultation' || cat === 'wants_to_know') return;
+      (m.tags[cat] || []).forEach(value => otherTags.push({ value, meta: CATEGORY_META[cat] }));
+    });
+    if (otherTags.length > 0) {
+      const tagsBlock = document.createElement('div');
+      tagsBlock.className = 'list-tag-block';
+      const row = document.createElement('div');
+      row.className = 'list-tag-row';
+      otherTags.forEach(({ value, meta }) => {
+        const chip = document.createElement('span');
+        chip.className = 'mini-tag';
+        chip.style.background = meta.bg;
+        chip.style.color = meta.text;
+        chip.textContent = value;
+        row.appendChild(chip);
+      });
+      tagsBlock.appendChild(row);
+      main.appendChild(tagsBlock);
+    }
+    row.appendChild(main);
+
+    const actions = document.createElement('div');
+    actions.className = 'list-actions';
+    const profileBtn = document.createElement('button');
+    profileBtn.type = 'button';
+    profileBtn.className = 'list-action-btn';
+    profileBtn.textContent = 'プロフィールを見る';
+    profileBtn.addEventListener('click', () => openMemberDetail(m.nickname));
+    actions.appendChild(profileBtn);
+    const talkBtn = document.createElement('button');
+    talkBtn.type = 'button';
+    talkBtn.className = 'list-action-btn primary';
+    talkBtn.textContent = '💬 話してみたい';
+    talkBtn.addEventListener('click', () => openMemberDetail(m.nickname));
+    actions.appendChild(talkBtn);
+    row.appendChild(actions);
+
+    list.appendChild(row);
   });
 }
 
