@@ -1,12 +1,56 @@
 # 🗾 fire-community-map
 
-コミュニティ会員マップ - 日本地図上に会員の居住地・旅行/グルメ情報を表示するプロジェクト
+FIRE研究所コミュニティの運営を支える静的サイト＋自動化スクリプト集。会員マップとして始まったが、現在は会員データ管理・コミュニティ投稿収集・イベント記録・note下書き生成・YouTubeショート動画の自動投稿まで含む、コミュニティ運営全般の裏側を担っている。
 
 ## 概要
 
 - **会員マップ**: Googleフォームで収集した会員の居住地（都道府県〜市区町村レベル）とアバターを日本地図上にピン表示
 - **旅行・グルメマップ**: Discordの旅行/グルメチャンネルへの投稿（画像・テキスト・投稿者）を日本地図上に表示。ピンをクリックすると投稿内容を確認可能
 - **限定共有**: WordPress会員ページは作らず、Vercel等にデプロイした限定URLを知っている人だけが閲覧
+- **コミュニティ投稿の収集・整理**: 読んだ本・旅行・お金の相談・介護医療・子育て・不動産などのDiscord投稿を収集し、一覧化(下記「コミュニティ投稿の収集」参照)
+- **イベント記録**: Discordのイベント告知・サーバーイベントを開催記録として蓄積(下記「Discordイベント開催記録」参照)
+- **note下書き生成**: 上記の蓄積データからF研通信(note記事)の下書きを自動生成(下記「note用のF研通信下書き生成」参照)
+- **YouTubeショート動画の自動化**: 長尺動画からの切り抜き制作〜予約投稿(下記「Fire研究所YouTubeショート動画」参照。詳細は [docs/fire-lab-shorts-strategy.md](./docs/fire-lab-shorts-strategy.md))
+- サイト本体(`index.html` / `public.html`等)はビルド不要の静的HTML。データ更新・自動化はすべて`scripts/`配下のPythonスクリプトとGitHub Actionsが担う
+
+## ローカルでの確認方法
+
+サイト本体はビルド不要の静的HTMLなので、ローカルで簡易サーバーを立てて開くだけで確認できる。
+
+```bash
+python3 -m http.server 8000
+```
+
+- 会員マップ: http://localhost:8000/index.html
+- 公開用一覧(埋め込み想定): http://localhost:8000/public.html
+- WordPress埋め込みプレビュー: http://localhost:8000/embed-preview.html
+
+Supabaseの接続情報(URL・anon key)は`index.html`/`public.html`に直書きされている(anon keyは公開前提でRLSにより保護されているため問題ない)。ローカル確認時に`.env`は不要。
+
+本番のBasic認証(`middleware.js`)はVercelのEdge Middlewareとしてのみ動作するため、ローカルの簡易サーバーでは認証なしで確認できる。
+
+## 本番ビルド・デプロイ
+
+ビルドステップは存在しない(静的HTML + Vercel Edge Middlewareのみ)。デプロイはVercelとのGit連携により、`main`ブランチへのpush/マージで自動的に本番反映される。手動でのビルドコマンドやデプロイコマンドの実行は不要。
+
+- 変更を試したい場合は、featureブランチでPRを作成するとVercelがプレビューデプロイを自動作成する
+- 本番URLへの反映は、そのPRを`main`にマージしたタイミング
+
+## 環境変数の設定
+
+`scripts/`配下のPythonスクリプトを実行するには、リポジトリ直下に`.env`が必要。テンプレートは[.env.example](./.env.example)を参照。
+
+```bash
+cp .env.example .env
+```
+
+`.env`はgitignore対象で、実際の値はコミットしない。値はプロジェクトオーナー(kazu098)から共有してもらう(Discord Bot Token、Supabase Service Role Keyなど機密情報を含むため、Slack/1Password等の安全な経路で受け取ること)。
+
+Vercel本番環境には、`.env`とは別に以下の環境変数をVercelプロジェクト設定(Environment Variables)側で設定する。
+
+- `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` — サイト全体のBasic認証(`middleware.js`が参照)
+
+GitHub Actionsで動く定期バッチ(コミュニティ投稿同期・イベント同期・YouTubeコメント通知など)は、リポジトリのRepository secretsに個別の環境変数を設定する。必要な変数は各機能のセクション、または各workflowファイル(`.github/workflows/`)を参照。
 
 ## 技術スタック
 
@@ -353,14 +397,14 @@ python3 scripts/fetch_community_posts.py
 月2回運用のnote貼り付け用下書き:
 
 ```bash
-# 1日0:00〜15日05:30分。毎月15日05:30に作成する想定。
+# 1日0:00〜15日12:00分。
 python3 scripts/generate_note_activity_draft.py \
   --month 2026-08 \
   --half first
 ```
 
 ```bash
-# 15日05:30直後〜月末05:30分。月末05:30に作成する想定。
+# 15日12:00直後〜月末12:00分。
 python3 scripts/generate_note_activity_draft.py \
   --month 2026-08 \
   --half second
@@ -381,7 +425,9 @@ python3 scripts/generate_note_activity_draft.py \
 
 上記は `--template editorial --delivery paste` がデフォルトです。noteに貼る最終成果物では、編集メモやDiscord参照リンクを出さないため `--include-source-links` は付けません。
 
-月2回運用では、イベント系だけでなく `tmp/community_posts_raw.json` の旅行・本・お金の話・介護/医療なども本文候補に含めます。Discord添付画像が取れる場合だけ `画像候補:` として残します。
+月2回運用では、イベント系だけでなく `tmp/community_posts_raw.json` の旅行・本・お金の話・介護/医療なども本文候補に含めます。Discord添付画像が取れる場合だけ `画像候補:` として残します。告知文・予定概要だけで開催後の具体情報が取れない活動は、薄い章になりやすいため自動的に落とすことがあります。
+
+`--template editorial --delivery paste` では、画像URLを除いた本文が5,000字未満、参加者数表記が残っている、カテゴリ名だけの見出しが残っている、などの場合に `Quality warning:` を出して終了コード2で失敗します。警告が出た場合は、取得データが足りないか、材料のある章を深掘りするための curated 情報が不足している可能性があります。調査用に未達でもファイルだけ作りたい場合は `--allow-quality-warnings` を付けます。
 
 作成ルールは `prompts/fken_tsushin_note_draft.md` に固定しています。
 
@@ -399,4 +445,17 @@ python3 scripts/generate_note_activity_draft.py \
 
 画像はDiscord添付画像のURLを「画像候補」として出します。Discord CDNのURLは期限切れになることがあるため、noteに載せる写真は下書き確認時に早めに保存・アップロードしてください。
 
-自動実行する場合は、毎月15日05:30に `--half first`、月末05:30に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
+自動実行する場合は、毎月15日12:00以降に `--half first`、月末12:00以降に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
+
+## Fire研究所YouTubeショート動画
+
+Fire研究所の長尺YouTube動画から、字幕付き縦動画のショートを切り抜いて予約投稿する半自動パイプライン。方針・手順・アカウント管理の詳細は [docs/fire-lab-shorts-strategy.md](./docs/fire-lab-shorts-strategy.md) を参照してください。
+
+概要:
+
+1. `scripts/fire_lab_shorts.py` で長尺動画のダウンロード・文字起こし・候補抽出用トランスクリプト作成・レンダリングを行う
+2. 切り抜き候補の採否は人間がレビューする(AIの「盛り上がり」判定と「正確性」判定は別物のため)
+3. `scripts/upload_youtube_short.py` で予約投稿(`--publish-at`)する
+4. 必要に応じて `scripts/update_youtube_video_title.py` でタイトル・概要欄を後から修正する
+
+YouTubeへのアップロードにはOAuth認証が必要で、初回のみ`scripts/youtube_oauth_setup.py`でブラウザ認証を行う。認証情報(`data/.youtube_oauth_client.json` / `data/.youtube_oauth_token.json`)はgitignore対象。

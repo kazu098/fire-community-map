@@ -4,3 +4,5 @@
 tmp/
 __pycache__/
 .env*.local
+data/.youtube_oauth_client.json
+data/.youtube_oauth_token.json
