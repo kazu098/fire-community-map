@@ -38,6 +38,25 @@ DEFAULT_EVENT_RAW = "tmp/community_events_raw.json"
 DEFAULT_EVENT_CURATED = "data/community_events_curated.json"
 DEFAULT_POSTS_RAW = "tmp/community_posts_raw.json"
 MIN_POST_LENGTH = 20  # shorter than this reads as a one-line reaction, not a topic worth digesting
+SENTENCE_END_CHARS = "。！？"
+
+
+def trim_to_sentence(text: str, limit: int) -> str:
+    """Cut text to at most `limit` chars, preferring the last full sentence.
+
+    A plain text[:limit] slice (what clean_text's own `limit` arg does) often
+    lands mid-sentence, which reads as a broken fragment rather than a summary
+    -- e.g. "...ITチーム以外の人も興味があれば参...". Falls back to a hard cut
+    with "…" only when no sentence boundary is found in a reasonable span.
+    """
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    window = text[:limit]
+    best_idx = max((window.rfind(ch) for ch in SENTENCE_END_CHARS), default=-1)
+    if best_idx >= limit * 0.4:
+        return window[: best_idx + 1]
+    return window.rstrip() + "…"
 
 
 def select_top_posts(
@@ -45,6 +64,7 @@ def select_top_posts(
     start: datetime,
     end: datetime,
     limit: int,
+    display_limit: int = 140,
 ) -> list[dict[str, Any]]:
     """The most-reacted-to posts in the window, each with a clean_content field.
 
@@ -57,15 +77,16 @@ def select_top_posts(
         dt = parse_dt(item.get("posted_at"))
         if dt is None or not (start <= dt <= end):
             continue
-        content = clean_text(str(item.get("content") or ""), 100)
-        if len(content) < MIN_POST_LENGTH:
+        full_content = clean_text(str(item.get("content") or ""), limit=None)
+        if len(full_content) < MIN_POST_LENGTH:
             continue
         candidates.append({
             **item,
-            "clean_content": content,
+            "clean_content": trim_to_sentence(full_content, display_limit),
             "reaction_count": int(item.get("reaction_count") or 0),
+            "content_length": len(full_content),
         })
-    candidates.sort(key=lambda item: (item["reaction_count"], len(item["clean_content"])), reverse=True)
+    candidates.sort(key=lambda item: (item["reaction_count"], item["content_length"]), reverse=True)
     return candidates[:limit]
 
 
@@ -95,13 +116,14 @@ def build_digest_content(
     # the most-reacted-to channel posts fill whatever highlight slots remain.
     highlights: list[tuple[str, str, str | None]] = []
     for activity in activities:
-        summary = clean_text(activity.summary, 60)
+        summary = trim_to_sentence(activity.summary, 90)
         if not summary or not activity.permalink:
             continue
         highlights.append((activity.title, summary, activity.permalink))
 
     for post in top_posts:
-        label = POST_TYPE_LABELS.get(str(post.get("content_type") or ""), "話題")
+        content_type = str(post.get("content_type") or "")
+        label = POST_TYPE_LABELS.get(content_type) or str(post.get("channel_name") or "話題")
         highlights.append((label, post["clean_content"], post.get("discord_permalink")))
 
     if not highlights:

@@ -29,6 +29,9 @@ DISCORD_EPOCH = 1420070400000
 USER_AGENT = "fire-community-map-community-posts-sync/0.1"
 
 # Channel name -> content_type. Edit here to add more channels later.
+# These are the channels curated for public reuse (note draft, member profile
+# pages): keep this list to ones whose content_type is actually handled by
+# scripts/generate_note_activity_draft.py's per-category rendering.
 CHANNEL_CONTENT_TYPES = {
     "雑談": "question_consultation",
     "質問・相談コーナー": "question_consultation",
@@ -39,6 +42,33 @@ CHANNEL_CONTENT_TYPES = {
     "子育て": "parenting",
     "不動産": "real_estate",
 }
+
+# Additional public channels scanned only with --include-digest-channels, for
+# scripts/generate_weekly_digest.py's "what got reactions this week" scan --
+# not curated for note-draft reuse, so tagged with a generic content_type
+# rather than being added to CHANNEL_CONTENT_TYPES above (which would also
+# pull them into the F研通信 note draft's per-category sections). Public
+# ("チャット"/"お金"/"暮らし") channels not already covered above; excludes
+# 非公開/プライベート/FIRE研究所アカウント関連(運営) categories, announcement-only
+# channels (宣伝, 運営からのお知らせ, 重要なお知らせ), and bots' own posting
+# channels (今日の振り返り, ゆるマッチング) to avoid digesting the digest itself.
+DIGEST_EXTRA_CHANNEL_NAMES = (
+    "noteの話",
+    "株式投資",
+    "代替資産（暗号資産・不動産・金）",
+    "私のポートフォリオ",
+    "今日の運動",
+    "ゲーム",
+    "麻雀部",
+    "ハイキング倶楽部",
+    "バケットリスト",
+    "グルメ・料理",
+    "ガーデニング・畑",
+    "aiの話",
+    "ペット・動物",
+    "短歌・川柳",
+    "ダイエット",
+)
 
 
 def load_dotenv(path: Path) -> None:
@@ -197,6 +227,11 @@ def main() -> int:
         help="Initial fetch start time, applied to any channel with no existing sync state.",
     )
     parser.add_argument("--reset-state", action="store_true")
+    parser.add_argument(
+        "--include-digest-channels",
+        action="store_true",
+        help="Also scan DIGEST_EXTRA_CHANNEL_NAMES (tagged content_type=other), for generate_weekly_digest.py.",
+    )
     args = parser.parse_args()
 
     load_dotenv(Path(args.env_file))
@@ -217,7 +252,12 @@ def main() -> int:
     next_state = dict(state)
     summary: dict[str, Any] = {}
 
-    for channel_name, content_type in CHANNEL_CONTENT_TYPES.items():
+    channel_content_types = dict(CHANNEL_CONTENT_TYPES)
+    if args.include_digest_channels:
+        for channel_name in DIGEST_EXTRA_CHANNEL_NAMES:
+            channel_content_types.setdefault(channel_name, "other")
+
+    for channel_name, content_type in channel_content_types.items():
         channel_id = find_channel_id(channels, channel_name)
         channel_state = state.get(channel_name, {})
         last_scanned_message_id = channel_state.get("last_scanned_message_id")
