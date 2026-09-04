@@ -1132,6 +1132,48 @@
     .mini-tag-more:hover { background: #e5e7eb; }
     #no-results { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
 
+    #my-identity-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 16px;
+      background: #eff6ff;
+      border-bottom: 1px solid #dbeafe;
+      font-size: 12px;
+      color: #1e40af;
+    }
+    #my-identity-bar input {
+      padding: 6px 10px;
+      border: 2px solid #bfdbfe;
+      border-radius: 14px;
+      font-size: 12px;
+      outline: none;
+      width: 200px;
+    }
+    #my-identity-bar input:focus { border-color: #3b82f6; }
+    #my-identity-bar button {
+      padding: 6px 12px;
+      border-radius: 14px;
+      border: 2px solid #3b82f6;
+      background: #3b82f6;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #my-identity-bar button.secondary { background: white; color: #3b82f6; }
+    .shared-tag-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: bold;
+      color: #1e40af;
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 2px 8px;
+      margin-top: 6px;
+    }
+
     #member-list-layout { display: none; align-items: flex-start; gap: 16px; padding: 16px; }
     #member-list { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
@@ -1597,6 +1639,7 @@
       </div>
       <a id="directory-register-link" href="https://docs.google.com/forms/d/e/1FAIpQLSflsiIc1Gj4hcapIqiAgnMeEdTvyw20-kKkFSvrrqdGANmleQ/viewform" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
     </div>
+    <div id="my-identity-bar"></div>
     <div id="member-grid"></div>
     <div id="member-list-layout">
       <div id="member-filter-sidebar"></div>
@@ -2934,6 +2977,92 @@ function setDirectoryViewMode(mode) {
   renderMemberGrid();
 }
 
+// 「あなたは誰か」をブラウザにだけ覚えておく仕組み(ログイン機能ではない)。
+// ログインなしで「共通タグ」を出すため、本人がニックネームを選ぶだけの軽量な自己申告。
+// なりすまし防止のガードはなく、既存のタグ編集(誰でも誰のタグでも編集可能)と同じ信頼モデル。
+let myNickname = null;
+try { myNickname = localStorage.getItem('myNickname') || null; } catch (e) {}
+
+function setMyNickname(nickname) {
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (!member) {
+    alert('その名前のメンバーが見つかりませんでした。一覧から選んでください。');
+    return;
+  }
+  myNickname = member.nickname;
+  try { localStorage.setItem('myNickname', myNickname); } catch (e) {}
+  renderMemberGrid();
+}
+
+function clearMyNickname() {
+  myNickname = null;
+  try { localStorage.removeItem('myNickname'); } catch (e) {}
+  renderMemberGrid();
+}
+
+function sharedTagCount(member) {
+  if (!myNickname) return null;
+  const me = directoryMembers.find(m => m.nickname === myNickname);
+  if (!me || me.nickname === member.nickname) return null;
+  let count = 0;
+  CATEGORY_ORDER.forEach(cat => {
+    const mine = new Set(me.tags[cat] || []);
+    (member.tags[cat] || []).forEach(v => { if (mine.has(v)) count++; });
+  });
+  return count;
+}
+
+function renderMyIdentityBar() {
+  const bar = document.getElementById('my-identity-bar');
+  bar.innerHTML = '';
+
+  if (myNickname) {
+    const label = document.createElement('span');
+    label.textContent = `👤 ${myNickname} として表示中(共通タグが分かります)`;
+    bar.appendChild(label);
+    const changeBtn = document.createElement('button');
+    changeBtn.type = 'button';
+    changeBtn.className = 'secondary';
+    changeBtn.textContent = '変更';
+    changeBtn.addEventListener('click', () => { myNickname = null; renderMemberGrid(); });
+    bar.appendChild(changeBtn);
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'secondary';
+    clearBtn.textContent = '解除';
+    clearBtn.addEventListener('click', clearMyNickname);
+    bar.appendChild(clearBtn);
+    return;
+  }
+
+  const label = document.createElement('span');
+  label.textContent = '👤 自分のニックネームを選ぶと、共通タグが分かります(この端末だけに記憶・ログイン不要):';
+  bar.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'ニックネームを入力…';
+  input.setAttribute('list', 'my-identity-options');
+  input.setAttribute('autocomplete', 'off');
+  const datalist = document.createElement('datalist');
+  datalist.id = 'my-identity-options';
+  directoryMembers.forEach(m => {
+    const option = document.createElement('option');
+    option.value = m.nickname;
+    datalist.appendChild(option);
+  });
+  const submit = () => setMyNickname(input.value.trim());
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  bar.appendChild(input);
+  bar.appendChild(datalist);
+
+  const setBtn = document.createElement('button');
+  setBtn.type = 'button';
+  setBtn.textContent = '設定';
+  setBtn.addEventListener('click', submit);
+  bar.appendChild(setBtn);
+}
+
 // 「相手を探す」表示専用の絞り込みサイドバー。
 const LIST_FILTER_SECTIONS = [
   { key: 'location', label: '居住地', getValues: m => (m.location && m.location.prefecture) ? [m.location.prefecture] : [] },
@@ -3044,8 +3173,10 @@ function renderMemberGrid() {
   document.getElementById('mode-list').classList.toggle('active', directoryViewMode === 'list');
   document.getElementById('member-grid').style.display = directoryViewMode === 'card' ? 'grid' : 'none';
   document.getElementById('member-list-layout').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
+  document.getElementById('my-identity-bar').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
 
   if (directoryViewMode === 'list') {
+    renderMyIdentityBar();
     renderMemberFilterSidebar();
     renderMemberList(filtered);
     return;
@@ -3225,6 +3356,14 @@ function renderMemberList(filtered) {
       nameRow.appendChild(locationEl);
     }
     main.appendChild(nameRow);
+
+    const sharedCount = sharedTagCount(m);
+    if (sharedCount !== null) {
+      const badge = document.createElement('div');
+      badge.className = 'shared-tag-badge';
+      badge.textContent = sharedCount > 0 ? `共通タグ ${sharedCount}件` : '共通タグなし';
+      main.appendChild(badge);
+    }
 
     const introText = m.self_intro_text || m.external_self_intro_text;
     if (introText) {
