@@ -4105,6 +4105,8 @@ const MATCHING_INTERVAL_OPTIONS = [
   { days: 14, label: '隔週' },
   { days: 30, label: '月1回' },
 ];
+// scripts/run_member_matching.py が投稿するDiscordのゆるマッチング専用チャンネル(DISCORD_MATCHING_CHANNEL_ID)へのリンク。
+const MATCHING_DISCORD_CHANNEL_URL = 'https://discord.com/channels/1389921372683112539/1545300537950470185';
 
 // 「相談してみる」の下書き文生成に使う共通の話題カテゴリ。
 // scripts/run_member_matching.py の TOPIC_TAG_CATEGORIES と同じ考え方(相談/知りたいことは
@@ -4317,7 +4319,14 @@ function buildMatchingSection(member) {
   const hint = document.createElement('div');
   hint.className = 'detail-field-hint';
   hint.style.marginBottom = '10px';
-  hint.textContent = '空いている曜日・時間帯を登録しておくと、参加中の他メンバーとランダムでマッチングされ、専用チャンネルで紹介されます。';
+  hint.appendChild(document.createTextNode('空いている曜日・時間帯を登録しておくと、参加中の他メンバーとランダムでマッチングされ、'));
+  const channelLink = document.createElement('a');
+  channelLink.href = MATCHING_DISCORD_CHANNEL_URL;
+  channelLink.target = '_blank';
+  channelLink.rel = 'noopener';
+  channelLink.textContent = 'ゆるマッチングチャンネル';
+  hint.appendChild(channelLink);
+  hint.appendChild(document.createTextNode('で紹介されます。'));
   section.appendChild(hint);
 
   const status = document.createElement('div');
