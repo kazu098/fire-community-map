@@ -93,7 +93,7 @@ def _consultation_wants_cross_topic(members: list[dict[str, Any]]) -> str | None
                 continue
             overlap = set(a["tags"].get("consultation", [])) & set(b["tags"].get("wants_to_know", []))
             if overlap:
-                return f"「{sorted(overlap)[0]}」について、{a['nickname']}さんが{b['nickname']}さんの力になれそうにゃ"
+                return f"「{sorted(overlap)[0]}」について、{a['nickname']}さんが{b['nickname']}さんの力になれそうです"
     return None
 
 
@@ -106,7 +106,7 @@ def _shared_tag_topic(members: list[dict[str, Any]]) -> str | None:
             common = values if common is None else common & values
         if common:
             label = TOPIC_CATEGORY_LABELS.get(category, category)
-            return f"共通の{label}「{sorted(common)[0]}」の話で盛り上がれそうにゃ"
+            return f"共通の{label}「{sorted(common)[0]}」の話で盛り上がれそうです"
     return None
 
 
@@ -119,28 +119,28 @@ def _intro_keyword_topic(members: list[dict[str, Any]]) -> str | None:
         matched = {kw for kw in INTRO_TOPIC_KEYWORDS if kw in m["intro"]}
         common = matched if common is None else common & matched
     if common:
-        return f"自己紹介を読むと「{sorted(common)[0]}」が共通の話題になりそうにゃ"
+        return f"自己紹介を読むと「{sorted(common)[0]}」が共通の話題になりそうです"
     return None
 
 
 def _note_writers_topic(members: list[dict[str, Any]]) -> str | None:
     """A light, low-stakes icebreaker: everyone in the group has a note link registered."""
     if all(any("note.com" in (link.get("url") or "") for link in m.get("links", [])) for m in members):
-        return "みんなnoteをやっているみたいだから、記事を見せ合うのも面白そうにゃ"
+        return "みんなnoteをやっているみたいなので、記事を見せ合うのも面白そうです"
     return None
 
 
 def _same_prefecture_topic(members: list[dict[str, Any]]) -> str | None:
     prefectures = {m.get("prefecture") for m in members}
     if len(prefectures) == 1 and None not in prefectures:
-        return f"実は{next(iter(prefectures))}在住どうし、というのも面白い共通点にゃ"
+        return f"実は{next(iter(prefectures))}在住どうし、というのも面白い共通点です"
     return None
 
 
 def _no_avatar_twins_topic(members: list[dict[str, Any]]) -> str | None:
     """Purely for a laugh: nobody in the group has set a profile photo yet."""
     if len(members) >= 2 and all(not m.get("has_avatar") for m in members):
-        return "ちなみにお二人ともアイコン未設定どうし、というのもちょっとおもしろいにゃ"
+        return "ちなみにお二人ともアイコン未設定どうし、というのもちょっとおもしろいです"
     return None
 
 
@@ -172,7 +172,7 @@ def build_topic_suggestion(members: list[dict[str, Any]]) -> str | None:
         if topic:
             return topic
     if all(m.get("intro") for m in members):
-        return "お互いの自己紹介を読んでみると、意外な共通点が見つかるかもにゃ"
+        return "お互いの自己紹介を読んでみると、意外な共通点が見つかるかもしれません"
     return None
 
 
@@ -360,9 +360,9 @@ def format_announcement(
     names = "、".join(f"**{n}** さん" for n in members)
     subject = "お二人" if len(members) == 2 else "みなさん"
     lines = [
-        f"🐾 {names}がマッチしたにゃ！",
-        f"{subject}とも「{day}曜{slot}」が空いているみたいだから、🙏 よければ集まってお話ししてみてほしいにゃ。"
-        f"（開催するかどうかは{subject}にお任せするにゃ）",
+        f"🐾 {names}がマッチしましたにゃ！",
+        f"{subject}とも「{day}曜{slot}」が空いているみたいなので、🙏 よければ集まってお話ししてみてください。"
+        f"（開催するかどうかは{subject}にお任せします）",
     ]
 
     topic_lines = []
