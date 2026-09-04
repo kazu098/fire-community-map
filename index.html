@@ -2879,7 +2879,7 @@ function ensureDirectoryLoaded() {
 
 async function fetchDirectoryProfiles() {
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
-  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
+  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public,discord_user_id';
   const baseSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text';
   const fullRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${fullSelect}&order=nickname`, { headers });
   if (fullRes.ok) return fullRes.json();
@@ -3397,6 +3397,8 @@ function renderMemberList(filtered) {
   filtered.forEach(m => {
     const row = document.createElement('div');
     row.className = 'member-list-row';
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => openMemberDetail(m.nickname));
 
     const avatar = document.createElement('div');
     avatar.className = 'list-avatar';
@@ -3499,13 +3501,16 @@ function renderMemberList(filtered) {
     profileBtn.type = 'button';
     profileBtn.className = 'list-action-btn';
     profileBtn.textContent = 'プロフィールを見る';
-    profileBtn.addEventListener('click', () => openMemberDetail(m.nickname));
+    profileBtn.addEventListener('click', e => { e.stopPropagation(); openMemberDetail(m.nickname); });
     actions.appendChild(profileBtn);
     const talkBtn = document.createElement('button');
     talkBtn.type = 'button';
     talkBtn.className = 'list-action-btn primary';
     talkBtn.textContent = '💬 話してみたい';
-    talkBtn.addEventListener('click', () => openMemberDetail(m.nickname));
+    talkBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      openMemberDetail(m.nickname, { openConsultation: true });
+    });
     actions.appendChild(talkBtn);
     row.appendChild(actions);
 
@@ -4100,6 +4105,141 @@ const MATCHING_INTERVAL_OPTIONS = [
   { days: 14, label: '隔週' },
   { days: 30, label: '月1回' },
 ];
+// scripts/run_member_matching.py が投稿するDiscordのゆるマッチング専用チャンネル(DISCORD_MATCHING_CHANNEL_ID)へのリンク。
+const MATCHING_DISCORD_CHANNEL_URL = 'https://discord.com/channels/1389921372683112539/1545300537950470185';
+
+// 「相談してみる」の下書き文生成に使う共通の話題カテゴリ。
+// scripts/run_member_matching.py の TOPIC_TAG_CATEGORIES と同じ考え方(相談/知りたいことは
+// 別枠で強めのヒントとして先に評価する)。
+const CONSULTATION_TOPIC_TAG_CATEGORIES = ['interest', 'investment_style', 'affiliation', 'skill', 'mbti', 'fire_status'];
+// タグ化されていない話題も拾えるよう自己紹介文をゆるくキーワード一致させる(scripts/run_member_matching.py
+// の INTRO_TOPIC_KEYWORDS を流用)。
+const CONSULTATION_INTRO_KEYWORDS = [
+  '投資', '資産運用', '米国株', 'インデックス投資', '高配当', '副業', '起業', '独立', '経営',
+  '転職', '退職', '休職', '育休', '育児', '子育て', '妊活', '結婚', '移住', '多拠点生活', '海外',
+  '旅行', '節約', '保険', '資格', 'ブログ', 'note', 'YouTube', '執筆', '出版', '写真',
+  'コミュニティ', 'ボランティア', '筋トレ', 'ランニング', 'マラソン', '登山', 'キャンプ', 'ゴルフ',
+  '読書', 'ゲーム', '料理', 'カフェ', '猫', '犬', 'ペット', '音楽', '映画', 'アニメ', 'マンガ',
+];
+
+// 相手のプロフィールから「相談してみる」の下書き文に使う理由(reason)を1つ選ぶ。myNickname が
+// 設定されていれば自分のタグとの重なりも見る。何も見つからなければ null。
+function buildConsultationReason(member) {
+  const me = myNickname ? directoryMembers.find(m => m.nickname === myNickname) : null;
+
+  if (me) {
+    const iCanHelp = (me.tags.consultation || []).find(v => (member.tags.wants_to_know || []).includes(v));
+    if (iCanHelp) return `「${iCanHelp}」について知りたいとのことだったので、力になれるかもと思いご連絡しました`;
+    const theyCanHelp = (member.tags.consultation || []).find(v => (me.tags.wants_to_know || []).includes(v));
+    if (theyCanHelp) return `「${theyCanHelp}」について相談できるとのことだったので、ぜひお話を伺いたいです`;
+    for (const cat of CONSULTATION_TOPIC_TAG_CATEGORIES) {
+      const shared = (me.tags[cat] || []).find(v => (member.tags[cat] || []).includes(v));
+      if (shared) return `共通の${CATEGORY_META[cat].label}「${shared}」つながりで、良ければお話ししてみたいです`;
+    }
+  }
+
+  const consultation = (member.tags.consultation || [])[0];
+  if (consultation) return `「${consultation}」について相談できるとのことだったので、お話を伺いたいです`;
+  const interest = (member.tags.interest || [])[0];
+  if (interest) return `「${interest}」に興味があるとのことだったので、その話を聞いてみたいです`;
+
+  const intro = member.self_intro_text || '';
+  const keyword = CONSULTATION_INTRO_KEYWORDS.find(kw => intro.includes(kw));
+  if (keyword) return `自己紹介で「${keyword}」について書かれていたので、その話を聞いてみたいです`;
+
+  return null;
+}
+
+function buildConsultationDraft(member) {
+  const reason = buildConsultationReason(member);
+  const reasonLine = reason ? `${reason}。` : 'プロフィールを拝見してご連絡しました。';
+  return `こんにちは、${member.nickname}さん。FIRE研究所のメンバー一覧から連絡しました。\n${reasonLine}よろしければ少しお話しさせてもらえると嬉しいです!`;
+}
+
+function buildConsultationSection(member, { autoOpen = false } = {}) {
+  const section = document.createElement('div');
+  section.className = 'detail-section';
+  const title = document.createElement('div');
+  title.className = 'detail-section-title';
+  title.textContent = '相談してみる';
+  section.appendChild(title);
+
+  const hint = document.createElement('div');
+  hint.className = 'detail-field-hint';
+  hint.style.marginBottom = '10px';
+  hint.textContent = 'メッセージの下書きをコピーして、DiscordのDMに貼り付けて送ってみてください(自動送信はされません)。';
+  section.appendChild(hint);
+
+  const openBtn = document.createElement('button');
+  openBtn.type = 'button';
+  openBtn.className = 'secondary';
+  openBtn.textContent = '💬 相談してみる';
+
+  const draftWrap = document.createElement('div');
+  draftWrap.style.display = autoOpen ? 'block' : 'none';
+  draftWrap.style.marginTop = '10px';
+  if (autoOpen) openBtn.textContent = '💬 相談してみる（閉じる）';
+
+  const textarea = document.createElement('textarea');
+  textarea.readOnly = true;
+  textarea.style.width = '100%';
+  textarea.style.minHeight = '110px';
+  textarea.style.fontFamily = 'inherit';
+  textarea.style.fontSize = '13px';
+  textarea.style.lineHeight = '1.6';
+  textarea.style.padding = '10px 12px';
+  textarea.style.border = '1px solid #d1d5db';
+  textarea.style.borderRadius = '8px';
+  textarea.style.resize = 'vertical';
+  textarea.value = buildConsultationDraft(member);
+  draftWrap.appendChild(textarea);
+
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.gap = '8px';
+  actions.style.marginTop = '8px';
+  actions.style.flexWrap = 'wrap';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.textContent = '📋 下書きをコピー';
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      copyBtn.textContent = 'コピーしました';
+      setTimeout(() => { copyBtn.textContent = '📋 下書きをコピー'; }, 2000);
+    }).catch(() => {
+      window.prompt('コピーできませんでした。下の文章を手動でコピーしてください', textarea.value);
+    });
+  });
+  actions.appendChild(copyBtn);
+
+  if (member.discord_user_id) {
+    const dmLink = document.createElement('a');
+    dmLink.href = `https://discord.com/users/${member.discord_user_id}`;
+    dmLink.target = '_blank';
+    dmLink.rel = 'noopener';
+    dmLink.className = 'secondary';
+    dmLink.textContent = 'DiscordのDMを開く ↗';
+    actions.appendChild(dmLink);
+  } else {
+    const noDm = document.createElement('span');
+    noDm.className = 'detail-field-hint';
+    noDm.textContent = 'このメンバーのDiscordアカウントとの紐付けがまだ済んでいないため、DMリンクは表示できません。Discord上でニックネームを検索してDMを送ってください。';
+    actions.appendChild(noDm);
+  }
+  draftWrap.appendChild(actions);
+
+  openBtn.addEventListener('click', () => {
+    const willOpen = draftWrap.style.display === 'none';
+    draftWrap.style.display = willOpen ? 'block' : 'none';
+    openBtn.textContent = willOpen ? '💬 相談してみる（閉じる）' : '💬 相談してみる';
+  });
+
+  section.appendChild(openBtn);
+  section.appendChild(draftWrap);
+
+  return section;
+}
 
 async function upsertMatchingSettings(nickname, patch) {
   const member = directoryMembers.find(m => m.nickname === nickname);
@@ -4179,7 +4319,14 @@ function buildMatchingSection(member) {
   const hint = document.createElement('div');
   hint.className = 'detail-field-hint';
   hint.style.marginBottom = '10px';
-  hint.textContent = '空いている曜日・時間帯を登録しておくと、参加中の他メンバーとランダムでマッチングされ、専用チャンネルで紹介されます。';
+  hint.appendChild(document.createTextNode('空いている曜日・時間帯を登録しておくと、参加中の他メンバーとランダムでマッチングされ、'));
+  const channelLink = document.createElement('a');
+  channelLink.href = MATCHING_DISCORD_CHANNEL_URL;
+  channelLink.target = '_blank';
+  channelLink.rel = 'noopener';
+  channelLink.textContent = 'ゆるマッチングチャンネル';
+  hint.appendChild(channelLink);
+  hint.appendChild(document.createTextNode('で紹介されます。'));
   section.appendChild(hint);
 
   const status = document.createElement('div');
@@ -4372,6 +4519,7 @@ function openMemberDetail(nickname, {
   publicSettingsOpen = false,
   externalIntroPreviewOpen = false,
   scrollToTop = true,
+  openConsultation = false,
 } = {}) {
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (!member) return;
@@ -4499,6 +4647,13 @@ function openMemberDetail(nickname, {
   });
 
   content.appendChild(buildLocationSection(member));
+  if (member.nickname !== myNickname) {
+    const consultationSection = buildConsultationSection(member, { autoOpen: openConsultation });
+    content.appendChild(consultationSection);
+    if (openConsultation) {
+      requestAnimationFrame(() => consultationSection.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  }
   content.appendChild(buildMatchingSection(member));
 
   function buildLinkItem(label, url) {
