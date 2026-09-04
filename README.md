@@ -70,3 +70,4 @@ GitHub Actionsで動く定期バッチ(コミュニティ投稿同期・イベ�
 | [docs/fire-lab-shorts-strategy.md](./docs/fire-lab-shorts-strategy.md) | YouTubeショート動画の切り抜き〜予約投稿自動化 |
 | [docs/wordpress-embed.md](./docs/wordpress-embed.md) | WordPressへのメンバー一覧埋め込み |
 | [docs/bookshelf.md](./docs/bookshelf.md) | 本棚タブ(F研公式本・メンバー著書)のデータ管理 |
+| [docs/fainya-persona.md](./docs/fainya-persona.md) | マスコット「ふぁいにゃ」の話し方ガイド |

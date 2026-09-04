@@ -5,9 +5,10 @@ source=fire_lab: FIRE研究所公式本(firekenkyujo.com/books/ より)。
 source=member: メンバー著書。member_links に登録されたAmazonリンクのうち、
 本人の著書と判断できるものを手作業で選定して転記している(自動抽出ではない)。
 
-サムネイル画像はAmazon側のbot対策でスクレイピングできないため、
-thumbnail_url は未設定のまま登録し、後日Supabase Storageにアップロードした
-画像URLを個別に更新する運用とする。
+サムネイル画像はAmazon商品ページ自体は自動スクレイピングできない(bot対策)が、
+Amazonの画像CDN(m.media-amazon.com)は直接取得できるため、ログイン済みブラウザで
+各商品ページの表紙画像URLを確認したうえでダウンロードし、Supabase Storageの
+bookshelf-coversバケットにアップロードした画像URLをthumbnail_urlに設定している。
 """
 
 from __future__ import annotations
@@ -39,29 +40,35 @@ def require_env(name: str) -> str:
     return value
 
 
+BOOKSHELF_COVERS_BASE = "https://hchlqnsretsbhumeojdk.supabase.co/storage/v1/object/public/bookshelf-covers"
+
 FIRE_LAB_BOOKS: list[dict[str, Any]] = [
     {
         "title": "FIRE図鑑 第0巻",
         "author_name": "FIRE研究所ほか3名",
         "amazon_url": "https://www.amazon.co.jp/dp/B0H33SS9MK",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H33SS9MK.jpg",
         "sort_order": 0,
     },
     {
         "title": "FIRE図鑑 第1巻",
         "author_name": "FIRE研究所ほか5名",
         "amazon_url": "https://amzn.to/4tdjPEL",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GPGP298R.jpg",
         "sort_order": 1,
     },
     {
         "title": "FIRE1年目の教科書",
         "author_name": "FIRE研究所ほか5名",
         "amazon_url": "https://www.amazon.co.jp/dp/B0HC5P552S",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0HC5P552S.jpg",
         "sort_order": 2,
     },
     {
         "title": "FIREめし",
         "author_name": "FIRE研究所ほか4名",
         "amazon_url": "https://amzn.to/4nxvgWo",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H1DGJM48.jpg",
         "sort_order": 3,
     },
 ]
@@ -74,6 +81,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "title": "100人のFIREコミュニティができるまで",
         "author_name": "FIREサラリーマン みかん",
         "amazon_url": "https://link.amazon/B0447PWrT",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0G1Z9XK1B.jpg",
         "sort_order": 0,
     },
     {
@@ -81,6 +89,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "title": "FIRE？無職？1年生！",
         "author_name": "みかん",
         "amazon_url": "https://link.amazon/B0eubD159",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GTTPFZ5Z.jpg",
         "sort_order": 1,
     },
     {
@@ -88,6 +97,7 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "title": "パワハラ。休職。投資。そしてFIREへ",
         "author_name": "みかん",
         "amazon_url": "https://link.amazon/B0iNEZL5w",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0G4D385X3.jpg",
         "sort_order": 2,
     },
     {
@@ -95,27 +105,32 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "title": "実はnoteで月3万円稼ぐのに1年かかりました",
         "author_name": "みかん",
         "amazon_url": "https://link.amazon/B00nK1wju",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0FR22WB2D.jpg",
         "sort_order": 3,
     },
     {
         "member_nickname": "ノコ",
-        "title": "世界一周旅行の作り方",
+        "title": "世界一周旅行の作り方 - 旅の手配と準備 完全ガイド",
         "author_name": "ノコ",
         "amazon_url": "https://amzn.to/3OAwtPQ",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GFCFVS7D.jpg",
         "sort_order": 4,
     },
     {
         "member_nickname": "ノコ",
-        "title": "世界一周旅行の作り方〜旅のフォトブック",
+        "title": "世界一周旅行の作り方 - 旅のフォトブック",
         "author_name": "ノコ",
         "amazon_url": "https://amzn.to/48b96D2",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GQPX3GMV.jpg",
         "sort_order": 5,
     },
     {
         "member_nickname": "ノコ",
-        "title": "ウズベキスタン旅行 フォトブック＆ガイド",
+        "title": "ウズベキスタン旅行 フォトブック＆旅ガイド",
         "author_name": "ノコ",
         "amazon_url": "https://link.amazon/B0fcGS2TI",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0HCL8ZV5Y.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1Sa5N0ihfQSo7av9BH6onH7TnvjOdJpHy/view",
         "sort_order": 6,
     },
     {
@@ -123,13 +138,16 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "title": "58歳サラリーマンがFIREするまでの100日",
         "author_name": "第三環境",
         "amazon_url": "https://amzn.asia/d/fXKiarz",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0FRZDJYT1.jpg",
         "sort_order": 7,
     },
     {
         "member_nickname": "きらまりん",
-        "title": None,  # タイトル未確認。label は「著書」のみだったため本人に確認要。
+        "title": "絵でつづるぼくらのFIRE物語",
         "author_name": "きらまりん",
         "amazon_url": "https://amzn.to/3PXMNu8",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0GMWXNTK6.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1FhkcYosM3N7-hja53y1Cso2mkT6F4Esa/view",
         "sort_order": 8,
     },
 ]
@@ -180,6 +198,8 @@ def main() -> int:
             "title": book["title"],
             "author_name": book["author_name"],
             "amazon_url": book["amazon_url"],
+            "thumbnail_url": book.get("thumbnail_url"),
+            "drive_pdf_url": book.get("drive_pdf_url"),
             "sort_order": book["sort_order"],
         })
     skipped = [b for b in MEMBER_BOOKS if not b["title"]]
@@ -192,6 +212,8 @@ def main() -> int:
             "title": book["title"],
             "author_name": book["author_name"],
             "amazon_url": book["amazon_url"],
+            "thumbnail_url": book.get("thumbnail_url"),
+            "drive_pdf_url": book.get("drive_pdf_url"),
             "sort_order": book["sort_order"],
         })
 
