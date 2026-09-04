@@ -140,7 +140,7 @@ Google Sheetsが認証必須の場合、まず回答シートをCSVとしてエ�
 
 ## YouTubeコメント通知
 
-YouTubeチャンネルの公開コメントを定期チェックし、新着コメントだけDiscordへ通知します。GitHub Actionsの `Notify YouTube comments` workflow が1時間おきに `scripts/notify_youtube_comments.py` を実行します。GitHub Actionsの毎時0分は遅延しやすいため、毎時17分に実行します。
+YouTubeチャンネルの公開コメントを定期チェックし、新着コメントだけDiscordへ通知します。GitHub Actionsの `Notify YouTube comments` workflow が1時間に1回 `scripts/notify_youtube_comments.py` を実行します。
 
 初回実行では既存コメントを通知せず、現在見えているコメントIDだけを `data/youtube_comment_notify_state.json` に記録します。2回目以降に新しく見つかったコメントだけDiscordへ投稿します。
 

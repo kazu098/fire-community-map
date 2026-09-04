@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FIRE研究所 コミュニティマップ</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1369,6 +1371,25 @@
       font-family: inherit; padding: 10px 12px; border: 1px solid #d1d5db;
       border-radius: 8px; resize: vertical;
     }
+
+    #mascot-fainya, #mascot-fainya-2 {
+      position: fixed;
+      bottom: 10px;
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      object-position: bottom;
+      z-index: 400;
+      pointer-events: none;
+      display: none;
+    }
+    #mascot-fainya { left: 10px; }
+    #mascot-fainya-2 { right: 10px; }
+    @media (max-width: 600px) {
+      #mascot-fainya, #mascot-fainya-2 { width: 46px; height: 46px; }
+      #mascot-fainya { left: 6px; }
+      #mascot-fainya-2 { right: 6px; }
+    }
   </style>
 </head>
 <body>
@@ -1426,6 +1447,9 @@
 <div id="usage-view">
   <div id="usage-body"></div>
 </div>
+
+<img id="mascot-fainya" src="assets/fainya-mascot.png" alt="" aria-hidden="true">
+<img id="mascot-fainya-2" src="assets/fainya2-mascot.png" alt="" aria-hidden="true">
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -2187,6 +2211,9 @@ function selectView(view) {
   document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
   document.getElementById('events-view').style.display = isEvents ? 'block' : 'none';
   document.getElementById('usage-view').style.display = isUsage ? 'block' : 'none';
+  const showMascot = (isMap || isEvents || isCommunity) ? 'block' : 'none';
+  document.getElementById('mascot-fainya').style.display = showMascot;
+  document.getElementById('mascot-fainya-2').style.display = showMascot;
 
   if (isMap) {
     if (location.hash.startsWith('#member/')) history.replaceState(null, '', location.pathname);
