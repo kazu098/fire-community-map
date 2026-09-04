@@ -3089,7 +3089,7 @@ function renderMyIdentityBar() {
 
   if (myNickname) {
     const label = document.createElement('span');
-    label.textContent = `👤 ${myNickname} として表示中(共通タグが分かります)`;
+    label.textContent = `👤 ${myNickname} として表示中(相手との共通タグが分かります)`;
     bar.appendChild(label);
     const changeBtn = document.createElement('button');
     changeBtn.type = 'button';
@@ -3107,7 +3107,7 @@ function renderMyIdentityBar() {
   }
 
   const label = document.createElement('span');
-  label.textContent = '👤 自分のニックネームを選ぶと、共通タグが分かります(この端末だけに記憶・ログイン不要):';
+  label.textContent = '👤 自分のニックネームを選ぶと、相手との共通タグが分かります:';
   bar.appendChild(label);
 
   const input = document.createElement('input');
