@@ -49,17 +49,27 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
 USER_AGENT = "fire-community-map-member-matching/0.1"
 COOLDOWN_DAYS = 60  # avoid re-grouping the same pair within this window
 GROUP_SIZE = 4  # fixed group size; no fallback to smaller groups, see run_matching
+SCHEDULE_CONFIRM_THRESHOLD = 3  # of 4 group members reacting to the same date option
+
+JST = ZoneInfo("Asia/Tokyo")
 
 DAY_LABELS = {
     "mon": "月", "tue": "火", "wed": "水", "thu": "木",
     "fri": "金", "sat": "土", "sun": "日",
 }
 SLOT_LABELS = {"morning": "午前", "afternoon": "午後", "evening": "夜"}
+# Weekday index (Monday=0, matching datetime.weekday()) for each day_of_week key.
+DAY_TO_WEEKDAY = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+# A concrete clock time (JST) to propose for each loose time_slot, since availability
+# is only ever collected as a slot, not an exact time.
+SLOT_TIMES = {"morning": (10, 0), "afternoon": (14, 0), "evening": (21, 0)}
+DATE_OPTION_EMOJI = ["1️⃣", "2️⃣", "3️⃣"]
 
 # Categories worth surfacing as a shared-interest conversation starter, in
 # priority order. consultation/wants_to_know are handled separately (as a
@@ -484,6 +494,52 @@ def format_announcement(
     return "\n".join(lines)
 
 
+def next_occurrences(day_of_week: str, time_slot: str, now: datetime, count: int = 3) -> list[datetime]:
+    """The next `count` occurrences of day_of_week at the slot's fixed clock time (JST), one
+    week apart, starting from the first one at least a day out (so there's notice to plan)."""
+    now_jst = now.astimezone(JST)
+    hour, minute = SLOT_TIMES[time_slot]
+    target_weekday = DAY_TO_WEEKDAY[day_of_week]
+    days_ahead = (target_weekday - now_jst.weekday()) % 7
+    first = now_jst.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=days_ahead)
+    if first <= now_jst + timedelta(days=1):
+        first += timedelta(days=7)
+    return [first + timedelta(weeks=i) for i in range(count)]
+
+
+WEEKDAY_KANJI = ["月", "火", "水", "木", "金", "土", "日"]
+OPTION_NUMBERS = ["①", "②", "③"]
+
+
+def format_schedule_proposal(day_of_week: str, time_slot: str, dates: list[datetime]) -> str:
+    day = DAY_LABELS.get(day_of_week, day_of_week)
+    slot = SLOT_LABELS.get(time_slot, time_slot)
+    lines = [f"🐾 {day}曜{slot}が共通しているみたいです！日程を決めましょう。", ""]
+    for number, date in zip(OPTION_NUMBERS, dates):
+        weekday_kanji = WEEKDAY_KANJI[date.weekday()]
+        lines.append(f"{number} {date.month}/{date.day}({weekday_kanji}) {date.hour:02d}:{date.minute:02d}〜")
+    lines.append("")
+    lines.append(f"行ける日にリアクションで教えてください🙏 {SCHEDULE_CONFIRM_THRESHOLD}人以上集まったら開催決定です🎉")
+    return "\n".join(lines)
+
+
+def discord_add_reaction(channel_id: str, message_id: str, token: str, emoji: str) -> None:
+    encoded_emoji = quote(emoji)
+    req = Request(
+        f"{DISCORD_API_BASE}/channels/{channel_id}/messages/{message_id}/reactions/{encoded_emoji}/@me",
+        headers={"Authorization": f"Bot {token}", "User-Agent": USER_AGENT},
+        method="PUT",
+    )
+    try:
+        with urlopen(req, timeout=30):
+            pass
+    except HTTPError as exc:
+        body_text = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Discord API error {exc.code} adding reaction {emoji} to {message_id}: {body_text}") from exc
+    except URLError as exc:
+        raise RuntimeError(f"Discord API request failed adding reaction {emoji} to {message_id}: {exc}") from exc
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the availability-based random matching batch.")
     parser.add_argument("--env-file", default=".env")
@@ -615,6 +671,24 @@ def main() -> int:
             body=[{"group_id": group_id, "member_nickname": n} for n in match["members"]],
             prefer="return=minimal",
         )
+
+        if args.post_to_discord and channel_id and bot_token and message_id:
+            dates = next_occurrences(match["day_of_week"], match["time_slot"], now)
+            schedule_content = format_schedule_proposal(match["day_of_week"], match["time_slot"], dates)
+            schedule_message_id = discord_post(channel_id, bot_token, schedule_content)
+            for emoji in DATE_OPTION_EMOJI[: len(dates)]:
+                discord_add_reaction(channel_id, schedule_message_id, bot_token, emoji)
+            supabase_request(
+                "POST",
+                f"{supabase_url}/rest/v1/member_match_schedules",
+                service_role_key,
+                body=[{
+                    "group_id": group_id,
+                    "proposed_dates": [d.isoformat() for d in dates],
+                    "discord_message_id": schedule_message_id,
+                }],
+                prefer="return=minimal",
+            )
 
         for nickname in match["members"]:
             supabase_request(
