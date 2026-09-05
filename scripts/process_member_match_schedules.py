@@ -170,7 +170,11 @@ def confirm_schedules(
         discord_user_ids = matching.resolve_discord_user_ids(nicknames, guild_display_name_ids, name_overrides)
         group_user_ids = set(discord_user_ids.values())
 
-        proposed_dates = [datetime.fromisoformat(d) for d in schedule["proposed_dates"]]
+        # Supabase/PostgREST always returns timestamptz as UTC; convert back to JST so the
+        # displayed date/time (confirmation message, voice channel name) matches what was
+        # originally proposed (next_occurrences works in JST) rather than showing UTC clock
+        # values like "01:00" for what was proposed as "10:00".
+        proposed_dates = [datetime.fromisoformat(d).astimezone(matching.JST) for d in schedule["proposed_dates"]]
         message_id = schedule["discord_message_id"]
 
         counts: list[tuple[datetime, int]] = []
