@@ -3,9 +3,10 @@
 
 Groups opted-in members whose availability (weekday x time-of-day slot)
 overlaps, at random -- no tag/embedding similarity involved. See GitHub
-issue #76 for the design background. Groups are up to GROUP_SIZE members
-(default 3); a member who can't be slotted into a full group still gets
-paired with just one other compatible member rather than being dropped.
+issue #76 for the design background. Groups are always exactly GROUP_SIZE
+members (4); if fewer than that many compatible members are found in a
+given run, no group is formed for them this round -- no fallback to a
+smaller group.
 
 For each member whose matching interval has elapsed (member_matching_settings
 .last_matched_at + interval_days <= today, or never matched):
@@ -52,7 +53,7 @@ from urllib.request import Request, urlopen
 DISCORD_API_BASE = "https://discord.com/api/v10"
 USER_AGENT = "fire-community-map-member-matching/0.1"
 COOLDOWN_DAYS = 60  # avoid re-grouping the same pair within this window
-GROUP_SIZE = 3  # target group size; falls back to a pair when a third can't be found
+GROUP_SIZE = 4  # fixed group size; no fallback to smaller groups, see run_matching
 
 DAY_LABELS = {
     "mon": "月", "tue": "火", "wed": "水", "thu": "木",
@@ -383,13 +384,17 @@ def run_matching(
     rng: random.Random,
     group_size: int = GROUP_SIZE,
 ) -> list[dict[str, Any]]:
-    """Randomly group eligible members (up to group_size) who all share an availability slot.
+    """Randomly group eligible members into exactly group_size-sized groups who all share an
+    availability slot.
 
     Greedy: shuffle the pool, then for each still-unmatched member, greedily add compatible
     candidates (a slot shared with everyone already in the group, and no recent-cooldown pair
-    with anyone already in the group) until group_size is reached or candidates run out. A
-    member who can't be slotted into a full group of group_size still gets matched with just
-    one other compatible member rather than being dropped for the round.
+    with anyone already in the group) until group_size is reached or candidates run out. No
+    fallback to a smaller group: if fewer than group_size compatible members are found this
+    round, the attempt is discarded (not added to results, members stay unmatched) rather than
+    posting an undersized group -- a member left over this round is still eligible as a
+    candidate for someone else's group later in the same pass, and remains a candidate for
+    the next scheduled run either way.
     """
     pool = [n for n in eligible_nicknames if slot_index.get(n)]
     rng.shuffle(pool)
@@ -423,6 +428,9 @@ def run_matching(
             group.append(candidate)
             common_slots = overlap
 
+        if len(group) < group_size:
+            continue
+
         day_of_week, time_slot = rng.choice(sorted(common_slots))
         results.append({
             "members": group,
@@ -455,11 +463,9 @@ def format_announcement(
         return f"<@{user_id}>" if user_id else f"**{nickname}** さん"
 
     names = "、".join(mention(n) for n in members)
-    subject = "お二人" if len(members) == 2 else "みなさん"
     lines = [
         f"🐾 {names}がマッチしましたにゃ！",
-        f"{subject}とも「{day}曜{slot}」が空いているみたいなので、🙏 よければ集まってお話ししてみてください。"
-        f"（開催するかどうかは{subject}にお任せします）",
+        f"みなさんとも「{day}曜{slot}」が空いているみたいです。",
     ]
 
     topic_lines = []
