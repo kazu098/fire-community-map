@@ -474,8 +474,8 @@ def format_announcement(
 
     names = "、".join(mention(n) for n in members)
     lines = [
-        f"🐾 {names}がマッチしましたにゃ！",
-        f"みなさんとも「{day}曜{slot}」が空いているみたいです。",
+        f"🐾 {names}がマッチしたにゃ♪",
+        f"みんな「{day}曜{slot}」が空いているみたい",
     ]
 
     topic_lines = []
