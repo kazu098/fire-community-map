@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -62,14 +63,24 @@ def require_env(name: str) -> str:
 
 def discord_get(url: str, token: str) -> Any:
     req = Request(url, headers={"Authorization": f"Bot {token}", "User-Agent": USER_AGENT})
-    try:
-        with urlopen(req, timeout=30) as res:
-            return json.loads(res.read().decode("utf-8"))
-    except HTTPError as exc:
-        body_text = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Discord API error {exc.code} for GET {url}: {body_text}") from exc
-    except URLError as exc:
-        raise RuntimeError(f"Discord API request failed for GET {url}: {exc}") from exc
+    while True:
+        try:
+            with urlopen(req, timeout=30) as res:
+                return json.loads(res.read().decode("utf-8"))
+        except HTTPError as exc:
+            if exc.code == 429:
+                retry_after = 1.0
+                try:
+                    payload = json.loads(exc.read().decode("utf-8"))
+                    retry_after = float(payload.get("retry_after", retry_after))
+                except Exception:
+                    pass
+                time.sleep(retry_after)
+                continue
+            body_text = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Discord API error {exc.code} for GET {url}: {body_text}") from exc
+        except URLError as exc:
+            raise RuntimeError(f"Discord API request failed for GET {url}: {exc}") from exc
 
 
 def fetch_reactors(channel_id: str, message_id: str, emoji: str, token: str) -> set[str]:
