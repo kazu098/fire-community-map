@@ -1,5 +1,28 @@
 [
   {
+    "discord_message_id": "1545962076986544239",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1545962076986544239",
+    "discord_channel_name": "旅行",
+    "nickname": "とみと",
+    "avatar_path": "data/travel-avatars/bf0f9f330ee6.png",
+    "avatarColor": "#f97316",
+    "init": "と",
+    "prefecture": "東京都",
+    "municipality_optional": null,
+    "lat": 35.68944,
+    "lng": 139.69167,
+    "date": "2026/09/06",
+    "posted_at": "2026-09-06T01:01:21.740000+00:00",
+    "comment": "旅行というかちょっとしたお出かけ記録\n\n私の近況（もめにもめてる離婚調停）を知る友達が、\n【板橋の縁切榎→東京大神宮\n〜悪いもん全てぶった切って開運するぞツアー！〜】\nを計画してくれました。\nこの参拝内容、清野とおるさん（壇蜜さんの夫さん）がおふたりがご結婚にいたる漫画にしていて、友達が見せてくれて、漫画自体とても面白いです。\n縁切榎のそばのお蕎麦屋さん「長寿庵」に清野さんと壇蜜さんのサインやイラストがいっぱいありなんだか仲良さそう🫶\n\n肝心のツアーご利益レポ\n早く着地してほしい！そして経緯を洗いざらいnoteに書きたいw\nこっちはまだまだかかりそうですが！\nご利益、あると思います〜\nそういうのがお好きな人、めちゃくちゃオススメします！",
+    "photos": [
+      "data/travel-photos/1545962076986544239-1.jpg",
+      "data/travel-photos/1545962076986544239-2.jpg",
+      "data/travel-photos/1545962076986544239-3.jpg",
+      "data/travel-photos/1545962076986544239-4.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1544972156704923739",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1544972156704923739",
     "discord_channel_name": "旅行",
