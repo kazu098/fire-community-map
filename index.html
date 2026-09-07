@@ -1176,6 +1176,50 @@
       cursor: pointer;
     }
     #my-identity-bar .sort-label { display: flex; align-items: center; gap: 4px; }
+    #my-identity-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #my-identity-modal {
+      background: white;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 100%;
+      padding: 28px 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    }
+    #my-identity-modal h3 { margin: 0 0 10px; font-size: 17px; color: #111827; }
+    #my-identity-modal p { margin: 0 0 18px; font-size: 13px; color: #4b5563; line-height: 1.6; }
+    #my-identity-modal input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 14px;
+      border: 2px solid #bfdbfe;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    #my-identity-modal input:focus { border-color: #3b82f6; }
+    #my-identity-modal .my-identity-modal-actions { display: flex; gap: 10px; }
+    #my-identity-modal button {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 2px solid #3b82f6;
+      background: #3b82f6;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      flex: 1;
+    }
+    #my-identity-modal button.secondary { background: white; color: #6b7280; border-color: #d1d5db; }
     #active-filter-chips {
       display: none;
       flex-wrap: wrap;
@@ -1735,6 +1779,9 @@
     </div>
     <div id="my-identity-bar"></div>
     <div id="active-filter-chips"></div>
+    <div id="my-identity-modal-overlay" onclick="if (event.target === this) dismissIdentityPrompt()">
+      <div id="my-identity-modal"></div>
+    </div>
     <div id="member-grid"></div>
     <div id="member-list-layout">
       <div id="member-filter-sidebar"></div>
@@ -3071,6 +3118,7 @@ async function loadDirectory() {
   directoryLoaded = true;
 
   renderMemberGrid();
+  maybeShowIdentityModal();
 }
 
 async function refreshDirectory() {
@@ -3146,10 +3194,73 @@ function isIdentityPromptDismissed() {
 
 function dismissIdentityPrompt() {
   try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
+  hideIdentityModal();
   renderMemberGrid();
 }
 
-function renderMyIdentityBar(dismissible) {
+function hideIdentityModal() {
+  document.getElementById('my-identity-modal-overlay').style.display = 'none';
+}
+
+// 初回訪問時、まだ自分を選んでいなければ画面中央に大きめのポップアップで一度だけ促す
+// (「相手を探す」表示に切り替えないと選択欄が見つからず、ゆるマッチングの参加設定などに
+// 本人がたどり着けなかったため)。強制はせず「あとで」で閉じられ、以後は再表示しない。
+function maybeShowIdentityModal() {
+  if (myNickname || isIdentityPromptDismissed()) return;
+
+  const overlay = document.getElementById('my-identity-modal-overlay');
+  const modal = document.getElementById('my-identity-modal');
+  modal.innerHTML = '';
+
+  const heading = document.createElement('h3');
+  heading.textContent = '👤 あなたのニックネームは？';
+  modal.appendChild(heading);
+
+  const desc = document.createElement('p');
+  desc.textContent = '選んでおくと、相手との共通タグが分かったり、ゆるマッチングの参加設定など自分のプロフィールをここから編集できるようになります。';
+  modal.appendChild(desc);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'ニックネームを入力…';
+  input.setAttribute('list', 'my-identity-modal-options');
+  input.setAttribute('autocomplete', 'off');
+  const datalist = document.createElement('datalist');
+  datalist.id = 'my-identity-modal-options';
+  directoryMembers.forEach(m => {
+    const option = document.createElement('option');
+    option.value = m.nickname;
+    datalist.appendChild(option);
+  });
+  const submit = () => {
+    if (!input.value.trim()) return;
+    setMyNickname(input.value.trim());
+    hideIdentityModal();
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  modal.appendChild(input);
+  modal.appendChild(datalist);
+
+  const actions = document.createElement('div');
+  actions.className = 'my-identity-modal-actions';
+  const laterBtn = document.createElement('button');
+  laterBtn.type = 'button';
+  laterBtn.className = 'secondary';
+  laterBtn.textContent = 'あとで';
+  laterBtn.addEventListener('click', dismissIdentityPrompt);
+  actions.appendChild(laterBtn);
+  const setBtn = document.createElement('button');
+  setBtn.type = 'button';
+  setBtn.textContent = '設定する';
+  setBtn.addEventListener('click', submit);
+  actions.appendChild(setBtn);
+  modal.appendChild(actions);
+
+  overlay.style.display = 'flex';
+  input.focus();
+}
+
+function renderMyIdentityBar(dismissible, showSort) {
   const bar = document.getElementById('my-identity-bar');
   bar.innerHTML = '';
 
@@ -3176,23 +3287,25 @@ function renderMyIdentityBar(dismissible) {
     clearBtn.addEventListener('click', clearMyNickname);
     bar.appendChild(clearBtn);
 
-    const sortLabel = document.createElement('label');
-    sortLabel.className = 'sort-label';
-    sortLabel.textContent = '並び替え:';
-    const sortSelect = document.createElement('select');
-    [
-      ['default', '登録順'],
-      ['sharedTags', 'おすすめ(共通タグが多い順)'],
-    ].forEach(([value, text]) => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = text;
-      if (listSortMode === value) option.selected = true;
-      sortSelect.appendChild(option);
-    });
-    sortSelect.addEventListener('change', () => { listSortMode = sortSelect.value; renderMemberGrid(); });
-    sortLabel.appendChild(sortSelect);
-    bar.appendChild(sortLabel);
+    if (showSort) {
+      const sortLabel = document.createElement('label');
+      sortLabel.className = 'sort-label';
+      sortLabel.textContent = '並び替え:';
+      const sortSelect = document.createElement('select');
+      [
+        ['default', '登録順'],
+        ['sharedTags', 'おすすめ(共通タグが多い順)'],
+      ].forEach(([value, text]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        if (listSortMode === value) option.selected = true;
+        sortSelect.appendChild(option);
+      });
+      sortSelect.addEventListener('change', () => { listSortMode = sortSelect.value; renderMemberGrid(); });
+      sortLabel.appendChild(sortSelect);
+      bar.appendChild(sortLabel);
+    }
     return;
   }
 
@@ -3384,11 +3497,11 @@ function renderMemberGrid() {
   document.getElementById('mode-list').classList.toggle('active', directoryViewMode === 'list');
   document.getElementById('member-grid').style.display = directoryViewMode === 'card' ? 'grid' : 'none';
   document.getElementById('member-list-layout').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
-  // 「相手を探す」では常時表示。「ざっと見る」では未識別の間だけ、閉じるまで表示する
-  // (メンバー詳細のゆるマッチング編集などが「相手を探す」を経由しないと見つからなかったため)。
-  const identityBarVisible = directoryViewMode === 'list' || (!myNickname && !isIdentityPromptDismissed());
+  // 識別済みなら「ざっと見る」でも「〇〇として表示中」を常に見せる(以前は「相手を探す」でしか
+  // 見えず分かりにくかった)。未識別なら、閉じる(スキップ)まではここにも選択欄を出しておく。
+  const identityBarVisible = directoryViewMode === 'list' || myNickname || !isIdentityPromptDismissed();
   document.getElementById('my-identity-bar').style.display = identityBarVisible ? 'flex' : 'none';
-  if (identityBarVisible) renderMyIdentityBar(directoryViewMode !== 'list');
+  if (identityBarVisible) renderMyIdentityBar(directoryViewMode !== 'list', directoryViewMode === 'list');
 
   if (directoryViewMode === 'list') {
     renderMemberFilterSidebar();
