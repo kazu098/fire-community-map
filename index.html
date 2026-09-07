@@ -3140,7 +3140,16 @@ function sharedTags(member) {
   return result;
 }
 
-function renderMyIdentityBar() {
+function isIdentityPromptDismissed() {
+  try { return localStorage.getItem('myIdentityPromptDismissed') === '1'; } catch (e) { return false; }
+}
+
+function dismissIdentityPrompt() {
+  try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
+  renderMemberGrid();
+}
+
+function renderMyIdentityBar(dismissible) {
   const bar = document.getElementById('my-identity-bar');
   bar.innerHTML = '';
 
@@ -3213,6 +3222,16 @@ function renderMyIdentityBar() {
   setBtn.textContent = '設定';
   setBtn.addEventListener('click', submit);
   bar.appendChild(setBtn);
+
+  if (dismissible) {
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'secondary';
+    closeBtn.textContent = '✕';
+    closeBtn.title = '閉じる（あとで「相手を探す」タブからも選べます）';
+    closeBtn.addEventListener('click', dismissIdentityPrompt);
+    bar.appendChild(closeBtn);
+  }
 }
 
 // 「相手を探す」表示専用の絞り込みサイドバー。
@@ -3365,10 +3384,13 @@ function renderMemberGrid() {
   document.getElementById('mode-list').classList.toggle('active', directoryViewMode === 'list');
   document.getElementById('member-grid').style.display = directoryViewMode === 'card' ? 'grid' : 'none';
   document.getElementById('member-list-layout').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
-  document.getElementById('my-identity-bar').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
+  // 「相手を探す」では常時表示。「ざっと見る」では未識別の間だけ、閉じるまで表示する
+  // (メンバー詳細のゆるマッチング編集などが「相手を探す」を経由しないと見つからなかったため)。
+  const identityBarVisible = directoryViewMode === 'list' || (!myNickname && !isIdentityPromptDismissed());
+  document.getElementById('my-identity-bar').style.display = identityBarVisible ? 'flex' : 'none';
+  if (identityBarVisible) renderMyIdentityBar(directoryViewMode !== 'list');
 
   if (directoryViewMode === 'list') {
-    renderMyIdentityBar();
     renderMemberFilterSidebar();
     renderActiveFilterChips();
     const sorted = myNickname && listSortMode === 'sharedTags'
