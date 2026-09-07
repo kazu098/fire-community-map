@@ -43,6 +43,7 @@ import json
 import os
 import random
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -524,20 +525,34 @@ def format_schedule_proposal(day_of_week: str, time_slot: str, dates: list[datet
 
 
 def discord_add_reaction(channel_id: str, message_id: str, token: str, emoji: str) -> None:
+    # 同じメッセージに1️⃣2️⃣3️⃣を立て続けに付けると、Discord側のレート制限(429)に
+    # 引っかかることがある。他のリクエストと同様にretry_afterぶん待って再試行する
+    # (以前はここで例外を投げてスクリプト全体がクラッシュし、残りの絵文字が付かない
+    # まま次のステップ(日程確定処理)も丸ごとスキップされていた)。
     encoded_emoji = quote(emoji)
     req = Request(
         f"{DISCORD_API_BASE}/channels/{channel_id}/messages/{message_id}/reactions/{encoded_emoji}/@me",
         headers={"Authorization": f"Bot {token}", "User-Agent": USER_AGENT},
         method="PUT",
     )
-    try:
-        with urlopen(req, timeout=30):
-            pass
-    except HTTPError as exc:
-        body_text = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Discord API error {exc.code} adding reaction {emoji} to {message_id}: {body_text}") from exc
-    except URLError as exc:
-        raise RuntimeError(f"Discord API request failed adding reaction {emoji} to {message_id}: {exc}") from exc
+    while True:
+        try:
+            with urlopen(req, timeout=30):
+                return
+        except HTTPError as exc:
+            if exc.code == 429:
+                retry_after = 1.0
+                try:
+                    payload = json.loads(exc.read().decode("utf-8"))
+                    retry_after = float(payload.get("retry_after", retry_after))
+                except Exception:
+                    pass
+                time.sleep(retry_after)
+                continue
+            body_text = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Discord API error {exc.code} adding reaction {emoji} to {message_id}: {body_text}") from exc
+        except URLError as exc:
+            raise RuntimeError(f"Discord API request failed adding reaction {emoji} to {message_id}: {exc}") from exc
 
 
 def main() -> int:
