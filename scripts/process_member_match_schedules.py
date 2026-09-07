@@ -94,8 +94,19 @@ def fetch_reactors(channel_id: str, message_id: str, emoji: str, token: str) -> 
     return {str(u["id"]) for u in users}
 
 
-def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], token: str) -> str:
-    overwrites = [{"id": guild_id, "type": 0, "allow": "0", "deny": str(VOICE_CHANNEL_PERMISSION_BITS)}]
+def fetch_bot_user_id(token: str) -> str:
+    return str(discord_get(f"{DISCORD_API_BASE}/users/@me", token)["id"])
+
+
+def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], bot_user_id: str, token: str) -> str:
+    # @everyoneをdenyしただけだと、Bot自身もそのroleでしか判定されず自分のチャンネルを
+    # 見られなくなる(サーバーイベントの紐付けや、期限後の自動削除がMissing Accessで
+    # 失敗する)。Botのuser idにも明示的にallowのoverwriteを付けて、自分自身は常に
+    # 見える/操作できるようにしておく。
+    overwrites = [
+        {"id": guild_id, "type": 0, "allow": "0", "deny": str(VOICE_CHANNEL_PERMISSION_BITS)},
+        {"id": bot_user_id, "type": 1, "allow": str(VOICE_CHANNEL_PERMISSION_BITS), "deny": "0"},
+    ]
     overwrites.extend(
         {"id": user_id, "type": 1, "allow": str(VOICE_CHANNEL_PERMISSION_BITS), "deny": "0"}
         for user_id in member_user_ids
@@ -197,6 +208,7 @@ def confirm_schedules(
 
     guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(bot_token, guild_id)
     name_overrides = matching.load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
+    bot_user_id = fetch_bot_user_id(bot_token)
 
     for schedule in schedules:
         group_id = schedule["group_id"]
@@ -225,7 +237,7 @@ def confirm_schedules(
             if not dry_run:
                 try:
                     voice_channel_id = create_voice_channel(
-                        guild_id, f"ゆるマッチング_{best_date.month}{best_date.day:02d}", list(group_user_ids), bot_token,
+                        guild_id, f"ゆるマッチング_{best_date.month}{best_date.day:02d}", list(group_user_ids), bot_user_id, bot_token,
                     )
                 except RuntimeError as exc:
                     # Missing "Manage Channels" permission for the bot role, most likely --
@@ -292,7 +304,13 @@ def cleanup_voice_channels(supabase_url: str, service_role_key: str, bot_token: 
             continue
         print(f"Deleting voice channel for schedule {schedule['id']} (event was {confirmed_date.isoformat()})")
         if not dry_run:
-            delete_channel(schedule["voice_channel_id"], bot_token)
+            try:
+                delete_channel(schedule["voice_channel_id"], bot_token)
+            except RuntimeError as exc:
+                # Don't let one channel's cleanup failure (e.g. permissions) crash the
+                # whole run and block cleanup of every other schedule after it.
+                print(f"  voice channel deletion failed, leaving it for next time: {exc}")
+                continue
             requests_patch(
                 supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
                 {"voice_channel_deleted_at": now.isoformat()},
