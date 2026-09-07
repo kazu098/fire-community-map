@@ -94,8 +94,19 @@ def fetch_reactors(channel_id: str, message_id: str, emoji: str, token: str) -> 
     return {str(u["id"]) for u in users}
 
 
-def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], token: str) -> str:
-    overwrites = [{"id": guild_id, "type": 0, "allow": "0", "deny": str(VOICE_CHANNEL_PERMISSION_BITS)}]
+def fetch_bot_user_id(token: str) -> str:
+    return str(discord_get(f"{DISCORD_API_BASE}/users/@me", token)["id"])
+
+
+def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], bot_user_id: str, token: str) -> str:
+    # @everyoneをdenyしただけだと、Bot自身もそのroleでしか判定されず自分のチャンネルを
+    # 見られなくなる(サーバーイベントの紐付けや、期限後の自動削除がMissing Accessで
+    # 失敗する)。Botのuser idにも明示的にallowのoverwriteを付けて、自分自身は常に
+    # 見える/操作できるようにしておく。
+    overwrites = [
+        {"id": guild_id, "type": 0, "allow": "0", "deny": str(VOICE_CHANNEL_PERMISSION_BITS)},
+        {"id": bot_user_id, "type": 1, "allow": str(VOICE_CHANNEL_PERMISSION_BITS), "deny": "0"},
+    ]
     overwrites.extend(
         {"id": user_id, "type": 1, "allow": str(VOICE_CHANNEL_PERMISSION_BITS), "deny": "0"}
         for user_id in member_user_ids
@@ -119,6 +130,41 @@ def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], t
         raise RuntimeError(f"Discord API error {exc.code} creating voice channel: {body_text}") from exc
     except URLError as exc:
         raise RuntimeError(f"Discord API request failed creating voice channel: {exc}") from exc
+
+
+def create_scheduled_event(
+    guild_id: str, channel_id: str, name: str, description: str, start: datetime, token: str,
+) -> str:
+    """Discordのサーバーイベント(予定されたイベント)を、開催決定した専用ボイスチャンネルに
+    紐づけて作成する。誰でも一覧に名前は見えるが、実際にそのボイスチャンネルへ入れるのは
+    permission_overwritesで許可された対象メンバーだけ(create_voice_channel参照)。"""
+    body = {
+        "name": name,
+        "description": description,
+        "privacy_level": 2,  # GUILD_ONLY (Discordで選べる唯一の値)
+        "scheduled_start_time": start.isoformat(),
+        "scheduled_end_time": (start + timedelta(hours=2)).isoformat(),
+        "entity_type": 2,  # VOICE
+        "channel_id": channel_id,
+    }
+    req = Request(
+        f"{DISCORD_API_BASE}/guilds/{guild_id}/scheduled-events",
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bot {token}",
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=30) as res:
+            return str(json.loads(res.read().decode("utf-8"))["id"])
+    except HTTPError as exc:
+        body_text = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Discord API error {exc.code} creating scheduled event: {body_text}") from exc
+    except URLError as exc:
+        raise RuntimeError(f"Discord API request failed creating scheduled event: {exc}") from exc
 
 
 def delete_channel(channel_id: str, token: str) -> None:
@@ -162,6 +208,7 @@ def confirm_schedules(
 
     guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(bot_token, guild_id)
     name_overrides = matching.load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
+    bot_user_id = fetch_bot_user_id(bot_token)
 
     for schedule in schedules:
         group_id = schedule["group_id"]
@@ -190,13 +237,26 @@ def confirm_schedules(
             if not dry_run:
                 try:
                     voice_channel_id = create_voice_channel(
-                        guild_id, f"ゆるマッチング_{best_date.month}{best_date.day:02d}", list(group_user_ids), bot_token,
+                        guild_id, f"ゆるマッチング_{best_date.month}{best_date.day:02d}", list(group_user_ids), bot_user_id, bot_token,
                     )
                 except RuntimeError as exc:
                     # Missing "Manage Channels" permission for the bot role, most likely --
                     # a Discord server setting only an admin can grant, not something this
                     # script can fix. Still confirm the date; just skip the voice channel.
                     print(f"  voice channel creation failed, confirming date only: {exc}")
+
+                if voice_channel_id:
+                    try:
+                        create_scheduled_event(
+                            guild_id, voice_channel_id,
+                            f"ゆるマッチング {best_date.month}/{best_date.day}({matching.WEEKDAY_KANJI[best_date.weekday()]})",
+                            f"{'、'.join(nicknames)}さんのゆるマッチング",
+                            best_date, bot_token,
+                        )
+                    except RuntimeError as exc:
+                        # Missing "Manage Events" permission, most likely -- same story as
+                        # the voice channel: not fatal, just no calendar entry this time.
+                        print(f"  scheduled event creation failed: {exc}")
 
                 date_line = (
                     f"🎉 開催決定！{best_date.month}/{best_date.day}({matching.WEEKDAY_KANJI[best_date.weekday()]}) "
@@ -244,7 +304,13 @@ def cleanup_voice_channels(supabase_url: str, service_role_key: str, bot_token: 
             continue
         print(f"Deleting voice channel for schedule {schedule['id']} (event was {confirmed_date.isoformat()})")
         if not dry_run:
-            delete_channel(schedule["voice_channel_id"], bot_token)
+            try:
+                delete_channel(schedule["voice_channel_id"], bot_token)
+            except RuntimeError as exc:
+                # Don't let one channel's cleanup failure (e.g. permissions) crash the
+                # whole run and block cleanup of every other schedule after it.
+                print(f"  voice channel deletion failed, leaving it for next time: {exc}")
+                continue
             requests_patch(
                 supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
                 {"voice_channel_deleted_at": now.isoformat()},
