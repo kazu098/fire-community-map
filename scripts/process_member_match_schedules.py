@@ -121,6 +121,41 @@ def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], t
         raise RuntimeError(f"Discord API request failed creating voice channel: {exc}") from exc
 
 
+def create_scheduled_event(
+    guild_id: str, channel_id: str, name: str, description: str, start: datetime, token: str,
+) -> str:
+    """Discordのサーバーイベント(予定されたイベント)を、開催決定した専用ボイスチャンネルに
+    紐づけて作成する。誰でも一覧に名前は見えるが、実際にそのボイスチャンネルへ入れるのは
+    permission_overwritesで許可された対象メンバーだけ(create_voice_channel参照)。"""
+    body = {
+        "name": name,
+        "description": description,
+        "privacy_level": 2,  # GUILD_ONLY (Discordで選べる唯一の値)
+        "scheduled_start_time": start.isoformat(),
+        "scheduled_end_time": (start + timedelta(hours=2)).isoformat(),
+        "entity_type": 2,  # VOICE
+        "channel_id": channel_id,
+    }
+    req = Request(
+        f"{DISCORD_API_BASE}/guilds/{guild_id}/scheduled-events",
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bot {token}",
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=30) as res:
+            return str(json.loads(res.read().decode("utf-8"))["id"])
+    except HTTPError as exc:
+        body_text = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Discord API error {exc.code} creating scheduled event: {body_text}") from exc
+    except URLError as exc:
+        raise RuntimeError(f"Discord API request failed creating scheduled event: {exc}") from exc
+
+
 def delete_channel(channel_id: str, token: str) -> None:
     req = Request(
         f"{DISCORD_API_BASE}/channels/{channel_id}",
@@ -197,6 +232,19 @@ def confirm_schedules(
                     # a Discord server setting only an admin can grant, not something this
                     # script can fix. Still confirm the date; just skip the voice channel.
                     print(f"  voice channel creation failed, confirming date only: {exc}")
+
+                if voice_channel_id:
+                    try:
+                        create_scheduled_event(
+                            guild_id, voice_channel_id,
+                            f"ゆるマッチング {best_date.month}/{best_date.day}({matching.WEEKDAY_KANJI[best_date.weekday()]})",
+                            f"{'、'.join(nicknames)}さんのゆるマッチング",
+                            best_date, bot_token,
+                        )
+                    except RuntimeError as exc:
+                        # Missing "Manage Events" permission, most likely -- same story as
+                        # the voice channel: not fatal, just no calendar entry this time.
+                        print(f"  scheduled event creation failed: {exc}")
 
                 date_line = (
                     f"🎉 開催決定！{best_date.month}/{best_date.day}({matching.WEEKDAY_KANJI[best_date.weekday()]}) "
