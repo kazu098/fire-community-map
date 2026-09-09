@@ -203,7 +203,7 @@ def confirm_schedules(
                     f"{best_date.hour:02d}:{best_date.minute:02d}〜"
                 )
                 confirmation = (
-                    f"{date_line}\n当日はこちらの専用通話部屋からどうぞ🔒🎙️（終了後に自動で消えます）"
+                    f"{date_line}\n当日はこちらの専用通話部屋（<#{voice_channel_id}>）からどうぞ🔒🎙️（終了後に自動で消えます）"
                     if voice_channel_id else date_line
                 )
                 matching.discord_post(channel_id, bot_token, confirmation)
