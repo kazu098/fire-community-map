@@ -77,9 +77,10 @@ DATE_OPTION_EMOJI = ["1️⃣", "2️⃣", "3️⃣"]
 # cross-match: one member's "相談できること" answering the other's
 # "知りたいこと"), since that pairing is a stronger topic hint than a plain
 # overlap.
-TOPIC_TAG_CATEGORIES = ["interest", "investment_style", "affiliation", "skill", "mbti", "fire_status"]
+TOPIC_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "affiliation", "skill", "mbti", "fire_status"]
 TOPIC_CATEGORY_LABELS = {
     "interest": "興味",
+    "chat_topic": "興味あるテーマや話題",
     "investment_style": "投資スタイル",
     "affiliation": "活動・部活",
     "skill": "得意なこと",
