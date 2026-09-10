@@ -241,6 +241,17 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "drive_pdf_url": "https://drive.google.com/file/d/1Pzw4a6Bsclf_h5m4-Q4n-66FiQXjNN1Q/view",
         "sort_order": 16,
     },
+    {
+        # 「エキストラ道」と同様、member_nicknameはコミュニティのメンバー名(浮雲)、
+        # author_nameは本の実際の表記(浮影)に合わせる。
+        "member_nickname": "浮雲",
+        "title": "エキストラ道 2: エキストラを100回やってわかったこと",
+        "author_name": "浮影",
+        "amazon_url": "https://www.amazon.co.jp/dp/B0HJ7PC74L",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0HJ7PC74L.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1meKaIZykPjeujLHSloK5D-KJrjnDRur5/view",
+        "sort_order": 17,
+    },
 ]
 
 
