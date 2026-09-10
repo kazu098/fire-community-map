@@ -2484,9 +2484,10 @@ const CATEGORY_META = {
   consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e' },
   wants_to_know:    { label: '知りたいこと', bg: '#e0f2fe', text: '#0369a1' },
   interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
+  chat_topic:       { label: '興味あるテーマや話題', bg: '#f0fdf4', text: '#15803d' },
   affiliation:      { label: '所属活動・部活', bg: '#f1f5f9', text: '#334155' },
 };
-const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'wants_to_know', 'interest', 'affiliation'];
+const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'wants_to_know', 'interest', 'chat_topic', 'affiliation'];
 // 「知りたいこと」の入力候補は「相談できること」の既存タグから出す(逆も同様)。
 // 表記を自然に揃えて、将来のマッチング精度を上げるため。
 const TAG_SUGGESTION_SOURCE_CATEGORY = { wants_to_know: 'consultation', consultation: 'wants_to_know' };
@@ -3354,6 +3355,7 @@ const LIST_FILTER_SECTIONS = [
   { key: 'consultation', label: '相談できること', getValues: m => m.tags.consultation || [] },
   { key: 'wants_to_know', label: '知りたいこと', getValues: m => m.tags.wants_to_know || [] },
   { key: 'affiliation', label: '活動・部活', getValues: m => m.tags.affiliation || [] },
+  { key: 'chat_topic', label: '興味あるテーマや話題', getValues: m => m.tags.chat_topic || [] },
   { key: 'tag', label: 'その他のタグ', getValues: m => ['investment_style', 'mbti', 'skill', 'interest'].flatMap(cat => m.tags[cat] || []) },
 ];
 const SECTION_INITIAL_VISIBLE = 8;
@@ -4376,7 +4378,7 @@ const MATCHING_DISCORD_CHANNEL_URL = 'https://discord.com/channels/1389921372683
 // 「相談してみる」の下書き文生成に使う共通の話題カテゴリ。
 // scripts/run_member_matching.py の TOPIC_TAG_CATEGORIES と同じ考え方(相談/知りたいことは
 // 別枠で強めのヒントとして先に評価する)。
-const CONSULTATION_TOPIC_TAG_CATEGORIES = ['interest', 'investment_style', 'affiliation', 'skill', 'mbti', 'fire_status'];
+const CONSULTATION_TOPIC_TAG_CATEGORIES = ['interest', 'chat_topic', 'investment_style', 'affiliation', 'skill', 'mbti', 'fire_status'];
 // タグ化されていない話題も拾えるよう自己紹介文をゆるくキーワード一致させる(scripts/run_member_matching.py
 // の INTRO_TOPIC_KEYWORDS を流用)。
 const CONSULTATION_INTRO_KEYWORDS = [
