@@ -1,5 +1,46 @@
 [
   {
+    "discord_message_id": "1547564951625797644",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1547564951625797644",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "Nyupy",
+    "avatar_path": "data/travel-avatars/679b3d069bb1.png",
+    "avatarColor": "#f97316",
+    "init": "N",
+    "prefecture": "京都府",
+    "municipality_optional": null,
+    "lat": 35.02139,
+    "lng": 135.75556,
+    "date": "2026/09/10",
+    "posted_at": "2026-09-10T11:10:36.834000+00:00",
+    "comment": "共立メンテナンスの株主優待でランチしてきました。\n関西は神戸しかないのが難点だけど久しぶりに南京街に行けて楽しかったです😊",
+    "photos": [
+      "data/travel-photos/1547564951625797644-1.jpg",
+      "data/travel-photos/1547564951625797644-2.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1547389311920508979",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1547389311920508979",
+    "discord_channel_name": "旅行",
+    "nickname": "もずく",
+    "avatar_path": "data/travel-avatars/9fcb749215c4.png",
+    "avatarColor": "#f97316",
+    "init": "も",
+    "prefecture": "北海道",
+    "municipality_optional": null,
+    "lat": 43.06417,
+    "lng": 141.34694,
+    "date": "2026/09/09",
+    "posted_at": "2026-09-09T23:32:41.065000+00:00",
+    "comment": "北海道半周？\nくらいの旅行しています\nいまは北海道の真ん中\n今さらながら広いです🤣",
+    "photos": [
+      "data/travel-photos/1547389311920508979-1.png"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1545962076986544239",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1545962076986544239",
     "discord_channel_name": "旅行",
