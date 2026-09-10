@@ -1747,7 +1747,7 @@
   <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
   <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
-  <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">本棚</button>
+  <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">F研図書館</button>
   <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
 </div>
 
@@ -1808,7 +1808,7 @@
 
 <div id="bookshelf-view">
   <div id="bookshelf-header">
-    <h2>📚 本棚</h2>
+    <h2>📚 F研図書館</h2>
     <p>FIRE研究所のメンバーが出版した本と、FIRE研究所の公式本をまとめています。</p>
   </div>
   <div id="bookshelf-body"></div>
@@ -5726,7 +5726,7 @@ function renderBookshelfView() {
   if (bookshelfBooks.length === 0) {
     const empty = document.createElement('div');
     empty.id = 'bookshelf-empty';
-    empty.textContent = '本棚データの準備がまだ完了していません';
+    empty.textContent = 'F研図書館データの準備がまだ完了していません';
     body.appendChild(empty);
     return;
   }
