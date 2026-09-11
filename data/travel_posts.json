@@ -1,5 +1,45 @@
 [
   {
+    "discord_message_id": "1547907655383646269",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1547907655383646269",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "にょろ",
+    "avatar_path": "data/travel-avatars/7243a2f9e894.png",
+    "avatarColor": "#f97316",
+    "init": "に",
+    "prefecture": "埼玉県",
+    "municipality_optional": null,
+    "lat": 35.85694,
+    "lng": 139.64889,
+    "date": "2026/09/11",
+    "posted_at": "2026-09-11T09:52:23.777000+00:00",
+    "comment": "祖母とラーメンを食べるためだけに帯広から埼玉へ。\n今日話を聞いたら食べたいものがタンメンに変わってました。\n食べきれないというので、取り分け用のどんぶりを出したのですが、結果として半分以上入れられることに。(手前の器が私のノルマ)\n孫はお腹がはち切れそうです。",
+    "photos": [
+      "data/travel-photos/1547907655383646269-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1547845907196944434",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1547845907196944434",
+    "discord_channel_name": "旅行",
+    "nickname": "かず",
+    "avatar_path": "data/travel-avatars/961b00687688.png",
+    "avatarColor": "#f97316",
+    "init": "か",
+    "prefecture": "鹿児島県",
+    "municipality_optional": null,
+    "lat": 31.56028,
+    "lng": 130.55806,
+    "date": "2026/09/11",
+    "posted_at": "2026-09-11T05:47:01.862000+00:00",
+    "comment": "桜島。\n\n鹿児島は天気予報に必ず、桜島の風向きの情報もあり、自分が住んでいる地域の方向の風向きの日には、真っ黒の灰が飛んできて、洗濯物は干せないし、コンタクトに灰が降ってきて目がしょぼしょぼするし、車のフロントガラスも灰まみれになるしで大変でした😆",
+    "photos": [
+      "data/travel-photos/1547845907196944434-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1547564951625797644",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1547564951625797644",
     "discord_channel_name": "グルメ・料理",
