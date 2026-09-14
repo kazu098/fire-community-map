@@ -158,10 +158,13 @@ def fetch_messages(token: str, channel_id: str, after_id: str) -> list[dict[str,
     return messages
 
 
-def fetch_forum_threads(token: str, channel_id: str) -> list[dict[str, Any]]:
+def fetch_forum_threads(token: str, guild_id: str, channel_id: str) -> list[dict[str, Any]]:
     threads: list[dict[str, Any]] = []
-    active = discord_get(f"/channels/{channel_id}/threads/active", token)
-    threads.extend(active.get("threads", []))
+    # Discord has no per-channel "active threads" REST endpoint -- active
+    # threads are only listable guild-wide, so fetch them there and filter
+    # down to this forum channel.
+    active = discord_get(f"/guilds/{guild_id}/threads/active", token)
+    threads.extend(t for t in active.get("threads", []) if str(t.get("parent_id")) == str(channel_id))
 
     before: str | None = None
     while True:
@@ -307,7 +310,7 @@ def main() -> int:
             newest_ids = [str(m["id"]) for m in messages]
             if channel.get("type") == 15:
                 try:
-                    threads = fetch_forum_threads(token, channel_id)
+                    threads = fetch_forum_threads(token, guild_id, channel_id)
                 except RuntimeError as exc:
                     summary[state_key] = {"error": str(exc)}
                     continue
