@@ -427,58 +427,5 @@
     "discord_channel_name": "オンラインイベント",
     "discord_message_id": "1523306837821095936",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1523306837821095936"
-  },
-  {
-    "title": "F研1.5周年オフ会＠大阪",
-    "tags": ["オフ会", "交流会", "周年"],
-    "starts_at": "2026-12-05T12:30:00+09:00",
-    "format": "offline",
-    "prefecture": "大阪府",
-    "location_label": "JR大阪・梅田周辺",
-    "participant_count": 18,
-    "participation_note": "イベント用フォーラムの専用スレッドで参加意向アンケートを実施し、2026/9/13時点で18名の参加予定。",
-    "summary": "F研究所の発足1.5周年を記念して大阪・梅田周辺で開催するオフ会。日程・場所を先出しした上で参加意向アンケートを取り、規模に応じて店舗を手配する進め方で調整が進んでいる。",
-    "discord_channel_name": "イベント用フォーラム",
-    "discord_message_id": "1545048380147900487",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1545047526489464932/1545048380147900487"
-  },
-  {
-    "title": "葉山オフ会",
-    "tags": ["オフ会", "BBQ", "海"],
-    "starts_at": "2026-09-29T12:00:00+09:00",
-    "format": "offline",
-    "prefecture": "神奈川県",
-    "location_label": "葉山・森戸海岸周辺",
-    "participation_note": "森戸海岸付近でBBQを予定。10-11時頃から準備・買い出し、12-13時頃に現地集合の想定で調整中。",
-    "summary": "JR/京急逗子駅からバス・タクシーでアクセスする葉山でのBBQオフ会。翌日の鎌倉観光も話題に上っている。",
-    "discord_channel_name": "イベント用フォーラム",
-    "discord_message_id": "1546043982394691634",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1546043982394691634/1546043982394691634"
-  },
-  {
-    "title": "博多オフ会",
-    "tags": ["オフ会", "グルメ", "遠征"],
-    "starts_at": "2026-10-14T12:20:00+09:00",
-    "format": "offline",
-    "prefecture": "福岡県",
-    "location_label": "博多駅",
-    "participation_note": "博多駅新幹線のりば(中央改札口)に12:20集合。もつ鍋店を16名分予約済み。",
-    "summary": "九州在住・遠征メンバーが集まる博多オフ会。もつ鍋やラーメンなど博多グルメを楽しみつつFIREの話もする会として企画された。",
-    "discord_channel_name": "イベント用フォーラム",
-    "discord_message_id": "1544528332027203675",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1544528332027203675/1544528332027203675"
-  },
-  {
-    "title": "鎌倉ハイキング＋昼食",
-    "tags": ["オフ会", "ハイキング"],
-    "starts_at": "2026-10-07T10:00:00+09:00",
-    "format": "offline",
-    "prefecture": "神奈川県",
-    "location_label": "鎌倉",
-    "participation_note": "集合時間・詳細ルートは調整中。7名程度が参加表明。",
-    "summary": "鎌倉をハイキングして昼食を楽しむオフ会。専用スレッドが立ち上がったばかりで、参加者の顔ぶれや当日の流れをこれから詰めていく段階。",
-    "discord_channel_name": "イベント用フォーラム",
-    "discord_message_id": "1548301860065120308",
-    "discord_permalink": "https://discord.com/channels/1389921372683112539/1548301860065120308/1548301860065120308"
   }
 ]
