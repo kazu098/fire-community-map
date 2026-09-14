@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1548958963650007151",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1548958963650007151",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "Hiro-shi＠GL",
+    "avatar_path": "data/travel-avatars/77a377c336ec.png",
+    "avatarColor": "#f97316",
+    "init": "H",
+    "prefecture": "千葉県",
+    "municipality_optional": null,
+    "lat": 35.60472,
+    "lng": 140.12333,
+    "date": "2026/09/14",
+    "posted_at": "2026-09-14T07:29:55.200000+00:00",
+    "comment": "今日のブランチ、\n千葉そごう地下の地元寿司店へ。\n午前中のみのスペシャル、\n握り20貫、1,380円。\n\n回転寿司より安くて、職人さんが握ってます。\n平目が甘くて良かったかな。\n\n期間限定店舗らしいので、お近くの方は是非。\n\nhttps://maps.app.goo.gl/h1D49uq3KpJaz47L8?g_st=ac",
+    "photos": [
+      "data/travel-photos/1548958963650007151-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1547907655383646269",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1547907655383646269",
     "discord_channel_name": "グルメ・料理",
