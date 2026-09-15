@@ -3064,6 +3064,23 @@ async function fetchDirectoryProfiles() {
   }));
 }
 
+// PostgRESTはデフォルトで1回のGETを1000件までしか返さない(db-max-rows)。
+// member_tagsは全件合計で1000件を超えたため、Rangeヘッダーでページングして全件取得する。
+async function fetchAllRows(url, headers) {
+  const pageSize = 1000;
+  let offset = 0;
+  let allRows = [];
+  while (true) {
+    const res = await fetch(url, { headers: { ...headers, Range: `${offset}-${offset + pageSize - 1}` } });
+    if (!res.ok) return allRows;
+    const rows = await res.json();
+    allRows = allRows.concat(rows);
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+  return allRows;
+}
+
 async function fetchCommunityPosts() {
   const select = 'id,member_nickname,content_type,title,summary,discord_message_id,discord_author_display_name,discord_permalink,posted_at';
   try {
@@ -3128,10 +3145,10 @@ async function fetchLocalCommunityEvents() {
 }
 
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData, bookshelfBooksData, matchingSettingsRes, availabilityRes, availabilityOverridesRes] = await Promise.all([
+  const [profiles, tags, linksRes, locationsRes, communityPostsData, communityEventsData, bookshelfBooksData, matchingSettingsRes, availabilityRes, availabilityOverridesRes] = await Promise.all([
     fetchDirectoryProfiles(),
-    fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetchAllRows(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
+      { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }),
     fetch(`${SUPABASE_URL}/rest/v1/member_links?select=member_nickname,label,url&order=created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
@@ -3146,7 +3163,6 @@ async function loadDirectory() {
     fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?select=member_nickname,override_date,hour,is_available`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
   ]);
-  const tags = await tagsRes.json();
   const links = await linksRes.json();
   const locations = await locationsRes.json();
   communityPosts = communityPostsData;
