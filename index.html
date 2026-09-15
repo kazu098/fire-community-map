@@ -4659,7 +4659,7 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
 // 提案)を踏まえた機能。曜日×時間帯(午前/午後/夜)の毎週パターンはアプリ全体を1時間刻みにする
 // ほどの負担はかけたくない一方、特定日の例外だけは1時間単位で指定できると便利、という要望に
 // 合わせている。詳細は docs/yuru-matching.md 参照。
-const OVERRIDE_HOURS = Array.from({ length: 24 }, (_, h) => h);
+const OVERRIDE_HOURS = Array.from({ length: 17 }, (_, h) => h + 7); // 7時〜23時(深夜0〜6時は対象外)
 
 function formatOverrideDate(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
@@ -4765,13 +4765,41 @@ function buildAvailabilityOverrideSection(member, { editable }) {
 
   let renderGrid = () => {};
 
+  // 同じ日付・同じ○/×が連続する時間は、10時,11時,12時,13時のように1つずつチップにすると
+  // 項目数が多くなりすぎるため、10:00〜14:00のように1本の範囲チップへまとめて表示する。
+  function buildOverrideRanges() {
+    const ranges = [];
+    let current = null;
+    overrides.forEach(o => {
+      if (
+        current
+        && current.override_date === o.override_date
+        && current.is_available === o.is_available
+        && current.endHour === o.hour - 1
+      ) {
+        current.endHour = o.hour;
+        current.hours.push(o.hour);
+      } else {
+        current = {
+          override_date: o.override_date, is_available: o.is_available,
+          startHour: o.hour, endHour: o.hour, hours: [o.hour],
+        };
+        ranges.push(current);
+      }
+    });
+    return ranges;
+  }
+
   function renderList() {
     list.innerHTML = '';
-    overrides.forEach(o => {
+    buildOverrideRanges().forEach(range => {
       const chip = document.createElement('span');
-      chip.className = `availability-override-chip ${o.is_available ? 'is-available' : 'is-unavailable'}`;
+      chip.className = `availability-override-chip ${range.is_available ? 'is-available' : 'is-unavailable'}`;
+      const timeLabel = range.startHour === range.endHour
+        ? `${range.startHour}:00`
+        : `${range.startHour}:00〜${range.endHour + 1}:00`;
       chip.appendChild(document.createTextNode(
-        `${formatOverrideDate(o.override_date)} ${o.hour}:00 ${o.is_available ? '○' : '×'}`
+        `${formatOverrideDate(range.override_date)} ${timeLabel} ${range.is_available ? '○' : '×'}`
       ));
       if (editable) {
         const removeBtn = document.createElement('button');
@@ -4780,10 +4808,9 @@ function buildAvailabilityOverrideSection(member, { editable }) {
         removeBtn.title = '削除';
         removeBtn.addEventListener('click', async () => {
           removeBtn.disabled = true;
-          const ok = await deleteAvailabilityOverride(member.nickname, o.override_date, o.hour);
+          const ok = await deleteAvailabilityOverrideBatch(member.nickname, range.override_date, range.hours);
           if (ok) {
-            const idx = overrides.findIndex(x => x.override_date === o.override_date && x.hour === o.hour);
-            if (idx !== -1) overrides.splice(idx, 1);
+            syncOverrides();
             renderList();
             renderGrid();
           } else {
