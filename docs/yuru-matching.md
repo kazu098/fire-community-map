@@ -14,6 +14,17 @@
 
 メンバー詳細画面の「ゆるマッチング」セクション(`buildMatchingSection`)で、参加ON/OFFトグル・頻度セレクト・曜日×時間帯の○×グリッドを自己編集できる。
 
+### 特定日の例外(`member_availability_overrides`)
+
+itチームのDiscordでの相談(2026-09-14/15、[Hiro-shi@GLさんの提案](https://discord.com/channels/1389921372683112539/1514597598357491742/1549054660126580778))を踏まえた追加機能。曜日×時間帯の毎週固定パターンだけだと「週によって既存予定がバラバラ」というケースに対応できないため、特定の日付(向こう1か月ほどが目安)だけ空き/不可を個別登録できる`member_availability_overrides`テーブルを追加した(`buildAvailabilityOverrideSection`)。
+
+- カラムは`override_date`(date)・`hour`(0〜23の整数、1時間単位)・`is_available`(true/false)。Hiro-shiさんの提案が「アプリ全体を1時間ごとにするのは幹事の負担的に厳しいが、特定日の例外なら1時間単位で良い/ダメを指定できると便利」という内容だったため、この特定日の例外だけ1時間粒度にしている(既存の`member_availability`側は午前/午後/夜の3枠のまま据え置き)。Googleカレンダー同期は個人認証が絡んで運用コストが高いため今回は見送り(かずさんの判断)、選択した日付に対して1時間ごとの○×グリッドをクリックして登録する方式にした。
+- `member_availability`と同じオープン編集パターン(anon insert/select/delete)。更新はdelete+insertではなく`on_conflict=member_nickname,override_date,hour`のupsertで1件を洗い替え。
+- 「毎回日付を指定してから1時間おきに登録するのが手間」というフィードバックを受けて、グリッドはクリックだけでなくドラッグで複数時間をまとめて塗れる(`addAvailabilityOverrideBatch`/`deleteAvailabilityOverrideBatch`で1回のAPI呼び出しにまとめる)。別日付への一括コピー機能も検討したが、仕様・操作とも煩雑になりそうという判断で見送った。
+- UIのグリッドは7時〜23時(`OVERRIDE_HOURS`)だけ表示している。深夜0〜6時は候補として出しても使われないだろうという判断。カラム自体の制約(`hour`は0〜23)は変えていないので、必要になればUI側の表示範囲を広げるだけで対応できる。
+- 登録内容の一覧は1時間ごとに1チップだと項目数が多くなりすぎるため、同じ日付・同じ○/×が連続する時間はまとめて1本の範囲チップ(例: `10:00〜14:00`)として表示する(`buildOverrideRanges`)。削除もチップ単位でその範囲の時間をまとめて削除する。
+- マッチングバッチ(`scripts/run_member_matching.py`)側はまだこの例外情報を読んでいない(グルーピング自体は従来通り曜日×時間帯パターンのみで行う)。特定日の候補日程提案(`next_occurrences`)への反映は今後の課題。
+
 ## バッチ(`scripts/run_member_matching.py`)
 
 `interval_days` が経過して再マッチング対象になったopted-inメンバーを、空き時間が重なる相手とランダムにグルーピング(`run_matching`、常に4人。4人揃わなければその回はマッチングしない)し、`member_match_groups`/`member_match_group_members` に記録した上でDiscordの専用チャンネルに投稿する。
