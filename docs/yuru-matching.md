@@ -19,7 +19,8 @@
 itチームのDiscordでの相談(2026-09-14/15、[Hiro-shi@GLさんの提案](https://discord.com/channels/1389921372683112539/1514597598357491742/1549054660126580778))を踏まえた追加機能。曜日×時間帯の毎週固定パターンだけだと「週によって既存予定がバラバラ」というケースに対応できないため、特定の日付(向こう1か月ほどが目安)だけ空き/不可を個別登録できる`member_availability_overrides`テーブルを追加した(`buildAvailabilityOverrideSection`)。
 
 - カラムは`override_date`(date)・`hour`(0〜23の整数、1時間単位)・`is_available`(true/false)。Hiro-shiさんの提案が「アプリ全体を1時間ごとにするのは幹事の負担的に厳しいが、特定日の例外なら1時間単位で良い/ダメを指定できると便利」という内容だったため、この特定日の例外だけ1時間粒度にしている(既存の`member_availability`側は午前/午後/夜の3枠のまま据え置き)。Googleカレンダー同期は個人認証が絡んで運用コストが高いため今回は見送り(かずさんの判断)、選択した日付に対して1時間ごとの○×グリッドをクリックして登録する方式にした。
-- `member_availability`と同じオープン編集パターン(anon insert/select/delete)。更新はdelete+insertではなく`on_conflict=member_nickname,override_date,time_slot`のupsertで1件を洗い替え。
+- `member_availability`と同じオープン編集パターン(anon insert/select/delete)。更新はdelete+insertではなく`on_conflict=member_nickname,override_date,hour`のupsertで1件を洗い替え。
+- 「毎回日付を指定してから1時間おきに登録するのが手間」というフィードバックを受けて、グリッドはクリックだけでなくドラッグで複数時間をまとめて塗れる(`addAvailabilityOverrideBatch`/`deleteAvailabilityOverrideBatch`で1回のAPI呼び出しにまとめる)。別日付への一括コピー機能も検討したが、仕様・操作とも煩雑になりそうという判断で見送った。
 - マッチングバッチ(`scripts/run_member_matching.py`)側はまだこの例外情報を読んでいない(グルーピング自体は従来通り曜日×時間帯パターンのみで行う)。特定日の候補日程提案(`next_occurrences`)への反映は今後の課題。
 
 ## バッチ(`scripts/run_member_matching.py`)

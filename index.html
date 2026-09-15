@@ -1686,6 +1686,7 @@
     }
     .availability-override-hour-grid {
       display: flex; flex-wrap: wrap; gap: 4px; max-width: 420px; margin-bottom: 8px;
+      user-select: none;
     }
     .availability-override-hour-cell {
       width: 30px; height: 30px; font-size: 11px;
@@ -4667,7 +4668,10 @@ function formatOverrideDate(dateStr) {
   return `${d.getMonth() + 1}/${d.getDate()}(${weekday})`;
 }
 
-async function addAvailabilityOverride(nickname, dateStr, hour, isAvailable) {
+// 1回のドラッグ操作で複数時間をまとめて登録/削除するためのバッチ版。
+// 単一時間の登録/削除もこのバッチ版を1件で呼ぶ形に統一している。
+async function addAvailabilityOverrideBatch(nickname, dateStr, hours, isAvailable) {
+  if (hours.length === 0) return true;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?on_conflict=member_nickname,override_date,hour`, {
     method: 'POST',
     headers: {
@@ -4676,9 +4680,9 @@ async function addAvailabilityOverride(nickname, dateStr, hour, isAvailable) {
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
-    body: JSON.stringify([{
+    body: JSON.stringify(hours.map(hour => ({
       member_nickname: nickname, override_date: dateStr, hour, is_available: isAvailable,
-    }]),
+    }))),
   });
   if (!res.ok) {
     console.warn('availability override save failed', res.status, await res.text());
@@ -4686,19 +4690,21 @@ async function addAvailabilityOverride(nickname, dateStr, hour, isAvailable) {
   }
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (member) {
+    const hourSet = new Set(hours);
     member.availabilityOverrides = member.availabilityOverrides.filter(
-      a => !(a.override_date === dateStr && a.hour === hour)
+      a => !(a.override_date === dateStr && hourSet.has(a.hour))
     );
-    member.availabilityOverrides.push({ override_date: dateStr, hour, is_available: isAvailable });
+    hours.forEach(hour => member.availabilityOverrides.push({ override_date: dateStr, hour, is_available: isAvailable }));
   }
   return true;
 }
 
-async function deleteAvailabilityOverride(nickname, dateStr, hour) {
+async function deleteAvailabilityOverrideBatch(nickname, dateStr, hours) {
+  if (hours.length === 0) return true;
   const params = new URLSearchParams({
     member_nickname: `eq.${nickname}`,
     override_date: `eq.${dateStr}`,
-    hour: `eq.${hour}`,
+    hour: `in.(${hours.join(',')})`,
   });
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?${params.toString()}`, {
     method: 'DELETE',
@@ -4710,11 +4716,16 @@ async function deleteAvailabilityOverride(nickname, dateStr, hour) {
   }
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (member) {
+    const hourSet = new Set(hours);
     member.availabilityOverrides = member.availabilityOverrides.filter(
-      a => !(a.override_date === dateStr && a.hour === hour)
+      a => !(a.override_date === dateStr && hourSet.has(a.hour))
     );
   }
   return true;
+}
+
+async function deleteAvailabilityOverride(nickname, dateStr, hour) {
+  return deleteAvailabilityOverrideBatch(nickname, dateStr, [hour]);
 }
 
 function buildAvailabilityOverrideSection(member, { editable }) {
@@ -4722,6 +4733,17 @@ function buildAvailabilityOverrideSection(member, { editable }) {
     (a, b) => a.override_date.localeCompare(b.override_date) || a.hour - b.hour
   );
   if (!editable && overrides.length === 0) return null;
+
+  // addAvailabilityOverrideBatch/deleteAvailabilityOverrideBatch は member.availabilityOverrides
+  // (実データ)を更新するだけなので、その内容を描画に使っているローカルの overrides 配列にも
+  // 反映させる。これを忘れるとネットワーク保存自体は成功するのにチップ一覧や別日付のグリッドが
+  // 画面上だけ古いまま(再読み込みするまで反映されない)というバグになる。
+  function syncOverrides() {
+    overrides.length = 0;
+    overrides.push(...[...member.availabilityOverrides].sort(
+      (a, b) => a.override_date.localeCompare(b.override_date) || a.hour - b.hour
+    ));
+  }
 
   const wrap = document.createElement('div');
   wrap.className = 'availability-override-section';
@@ -4815,6 +4837,11 @@ function buildAvailabilityOverrideSection(member, { editable }) {
   form.appendChild(dateInput);
   wrap.appendChild(form);
 
+  const gridHint = document.createElement('div');
+  gridHint.className = 'detail-field-hint';
+  gridHint.textContent = 'マスをドラッグすると複数時間まとめて登録できます。';
+  wrap.appendChild(gridHint);
+
   const grid = document.createElement('div');
   grid.className = 'availability-override-hour-grid';
   wrap.appendChild(grid);
@@ -4823,42 +4850,69 @@ function buildAvailabilityOverrideSection(member, { editable }) {
   formStatus.className = 'matching-status';
   wrap.appendChild(formStatus);
 
+  // ドラッグで複数マスをまとめて塗る。最初にクリックしたマスの状態で「今回のドラッグは
+  // 登録するのか解除するのか」を決め、ドラッグ中に通ったマスすべてに同じ操作を適用する
+  // (ペイントツールと同じ考え方)。実際の保存はマスを離した時に1回のバッチAPI呼び出しで行う。
+  let dragState = null;
+
+  function cellVisualState(dateStr, hour) {
+    return overrides.find(o => o.override_date === dateStr && o.hour === hour);
+  }
+
+  function paintCell(cell, isAvailable) {
+    cell.classList.remove('is-available', 'is-unavailable');
+    cell.classList.add(isAvailable ? 'is-available' : 'is-unavailable');
+  }
+  function unpaintCell(cell) {
+    cell.classList.remove('is-available', 'is-unavailable');
+  }
+
+  function finishDrag() {
+    if (!wrap.isConnected) {
+      document.removeEventListener('mouseup', finishDrag);
+      dragState = null;
+      return;
+    }
+    if (!dragState) return;
+    const { action, dateStr, hours, wantAvailable } = dragState;
+    dragState = null;
+    const hourList = [...hours];
+    (async () => {
+      formStatus.textContent = '保存中...';
+      const ok = action === 'set'
+        ? await addAvailabilityOverrideBatch(member.nickname, dateStr, hourList, wantAvailable)
+        : await deleteAvailabilityOverrideBatch(member.nickname, dateStr, hourList);
+      formStatus.textContent = ok ? '保存しました' : '保存できませんでした';
+      if (ok) syncOverrides();
+      renderGrid();
+      renderList();
+    })();
+  }
+  document.addEventListener('mouseup', finishDrag);
+
   renderGrid = function renderGridImpl() {
     grid.innerHTML = '';
     const dateStr = dateInput.value;
     OVERRIDE_HOURS.forEach(hour => {
-      const existing = overrides.find(o => o.override_date === dateStr && o.hour === hour);
+      const existing = cellVisualState(dateStr, hour);
       const cell = document.createElement('button');
       cell.type = 'button';
       cell.className = 'availability-override-hour-cell';
       if (existing) cell.classList.add(existing.is_available ? 'is-available' : 'is-unavailable');
       cell.textContent = String(hour);
       cell.title = `${hour}:00〜${hour + 1}:00`;
-      cell.addEventListener('click', async () => {
-        cell.disabled = true;
-        formStatus.textContent = '保存中...';
+      cell.addEventListener('mousedown', e => {
+        e.preventDefault();
         const wantAvailable = paintMode === 'available';
-        let ok;
-        if (existing && existing.is_available === wantAvailable) {
-          ok = await deleteAvailabilityOverride(member.nickname, dateStr, hour);
-          if (ok) {
-            const idx = overrides.findIndex(x => x.override_date === dateStr && x.hour === hour);
-            if (idx !== -1) overrides.splice(idx, 1);
-          }
-        } else {
-          ok = await addAvailabilityOverride(member.nickname, dateStr, hour, wantAvailable);
-          if (ok) {
-            const idx = overrides.findIndex(x => x.override_date === dateStr && x.hour === hour);
-            const entry = { override_date: dateStr, hour, is_available: wantAvailable };
-            if (idx !== -1) overrides[idx] = entry; else overrides.push(entry);
-          }
-        }
-        formStatus.textContent = ok ? '保存しました' : '保存できませんでした';
-        cell.disabled = false;
-        if (ok) {
-          renderGrid();
-          renderList();
-        }
+        const cur = cellVisualState(dateStr, hour);
+        const action = (cur && cur.is_available === wantAvailable) ? 'clear' : 'set';
+        dragState = { action, dateStr, wantAvailable, hours: new Set([hour]) };
+        if (action === 'set') paintCell(cell, wantAvailable); else unpaintCell(cell);
+      });
+      cell.addEventListener('mouseenter', () => {
+        if (!dragState || dragState.dateStr !== dateStr) return;
+        dragState.hours.add(hour);
+        if (dragState.action === 'set') paintCell(cell, dragState.wantAvailable); else unpaintCell(cell);
       });
       grid.appendChild(cell);
     });
