@@ -51,3 +51,4 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 浮羽稲荷神社,福岡県,うきは市,spot,33.323081,130.791719,manual_alias,浮羽稲荷神社の旅行推薦投稿から神社代表点として扱う
 有田ポーセリンパーク,佐賀県,西松浦郡有田町,spot,33.16472,129.90806,manual_alias,有田ポーセリンパークの旅行推薦投稿から施設代表点として扱う
 音戸の瀬戸,広島県,呉市,spot,34.19738,132.53847,manual_alias,音戸の瀬戸フェリー投稿から海峡代表点として扱う
+訪れたらとりあえずガチャ回しています,北海道,,prefecture,43.06417,141.34694,manual_alias,添付画像が北海道道の駅ガチャピンズラリー台紙で、butabutakunさんの十勝方面ロードトリップ(足寄・陸別)の続き投稿のため北海道代表点として扱う

@@ -427,5 +427,32 @@
     "discord_channel_name": "オンラインイベント",
     "discord_message_id": "1523306837821095936",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1523306837821095936"
+  },
+  {
+    "title": "肉喰い＆下見オフ会！＠大阪",
+    "tags": ["オフ会", "関西", "グルメ"],
+    "starts_at": "2026-10-16T12:00:00+09:00",
+    "format": "offline",
+    "prefecture": "大阪府",
+    "location_label": "梅田界隈",
+    "participation_note": "スレッド開設直後で参加表明が数名(モンチ・うみ・Nyupyなど)。店舗は未定。",
+    "summary": "関西メンバーの増加を受けて平日昼間に企画されたオフ会。12/5開催予定の「F研1.5周年オフ会＠大阪」の会場探しも兼ねている。",
+    "discord_channel_name": "イベント用フォーラム",
+    "discord_message_id": "1548929140856590346",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1548929140856590346/1548929140856590346"
+  },
+  {
+    "title": "鎌倉ハイキング＋昼食オフ会",
+    "tags": ["オフ会", "ハイキング", "関東"],
+    "starts_at": "2026-10-07T09:30:00+09:00",
+    "ends_at": "2026-10-07T14:00:00+09:00",
+    "format": "offline",
+    "prefecture": "神奈川県",
+    "location_label": "JR横須賀線北鎌倉駅",
+    "participation_note": "雨天時は中止。前日夜20時頃に開催可否を判断予定。",
+    "summary": "北鎌倉駅から建長寺・大平山・天園・瑞泉寺・鎌倉宮を巡る6.5キロのハイキングオフ会。ハイキング終了後は鎌倉駅方面で昼食を予定しており、途中離脱も可能。",
+    "discord_channel_name": "イベント用フォーラム",
+    "discord_message_id": "1549018869727887413",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1548301860065120308/1549018869727887413"
   }
 ]
