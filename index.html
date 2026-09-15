@@ -3898,7 +3898,7 @@ async function addTag(nickname, category, value) {
   if (!value.trim()) return;
   const member = directoryMembers.find(m => m.nickname === nickname);
   const sortOrder = member ? (member.tags[category] || []).length : 0;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_tags`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_tags?on_conflict=member_nickname,category,value`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -3911,7 +3911,13 @@ async function addTag(nickname, category, value) {
   if (!res.ok) {
     const message = await res.text();
     console.error('tag save failed', res.status, message);
-    alert('タグを保存できませんでした。Supabaseのカテゴリ設定が未反映の可能性があります。');
+    if (res.status === 409) {
+      alert('このタグはすでに追加されています。');
+    } else if (res.status === 400 && message.includes('23514')) {
+      alert('タグを保存できませんでした。Supabaseのカテゴリ設定が未反映の可能性があります。');
+    } else {
+      alert('タグを保存できませんでした。時間をおいて再度お試しください。');
+    }
     return;
   }
   await refreshDirectory();
