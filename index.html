@@ -1651,6 +1651,73 @@
     .matching-status {
       font-size: 11px; color: #2563eb; min-height: 16px; margin-top: 8px;
     }
+    .availability-override-section {
+      margin-top: 14px;
+    }
+    .availability-override-title {
+      font-size: 12px; font-weight: bold; color: #374151; margin-bottom: 4px;
+    }
+    .availability-override-form {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .availability-override-form input[type="date"],
+    .availability-override-form select {
+      font-size: 12px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px;
+      background: white;
+    }
+    .availability-override-form button {
+      font-size: 12px; padding: 5px 10px; border-radius: 6px;
+      border: 1px solid #2563eb; background: #2563eb; color: white; cursor: pointer;
+    }
+    .availability-override-form button:disabled { cursor: progress; opacity: 0.6; }
+    .availability-override-mode-row {
+      display: flex; align-items: center; gap: 6px; margin: 8px 0 6px;
+    }
+    .availability-override-mode-btn {
+      font-size: 12px; padding: 5px 10px; border-radius: 999px;
+      border: 1px solid #d1d5db; background: white; color: #374151; cursor: pointer;
+    }
+    .availability-override-mode-btn.is-active[data-mode="available"] {
+      border-color: #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: bold;
+    }
+    .availability-override-mode-btn.is-active[data-mode="unavailable"] {
+      border-color: #ef4444; background: #fef2f2; color: #991b1b; font-weight: bold;
+    }
+    .availability-override-hour-grid {
+      display: flex; flex-wrap: wrap; gap: 4px; max-width: 420px; margin-bottom: 8px;
+    }
+    .availability-override-hour-cell {
+      width: 30px; height: 30px; font-size: 11px;
+      border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #9ca3af;
+      cursor: pointer;
+    }
+    .availability-override-hour-cell:hover:not(:disabled) { border-color: #93c5fd; }
+    .availability-override-hour-cell.is-available {
+      background: #2563eb; border-color: #2563eb; color: white;
+    }
+    .availability-override-hour-cell.is-unavailable {
+      background: #ef4444; border-color: #ef4444; color: white;
+    }
+    .availability-override-hour-cell:disabled { cursor: progress; opacity: 0.6; }
+    .availability-override-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .availability-override-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; padding: 4px 6px 4px 10px; border-radius: 999px;
+      border: 1px solid #d1d5db; background: white; color: #374151;
+    }
+    .availability-override-chip.is-unavailable {
+      border-color: #fca5a5; background: #fef2f2; color: #991b1b;
+    }
+    .availability-override-chip.is-available {
+      border-color: #93c5fd; background: #eff6ff; color: #1d4ed8;
+    }
+    .availability-override-chip button {
+      border: none; background: none; color: inherit; cursor: pointer;
+      font-size: 12px; padding: 0 2px; line-height: 1;
+    }
     .external-intro-editor {
       display: block;
     }
@@ -3060,7 +3127,7 @@ async function fetchLocalCommunityEvents() {
 }
 
 async function loadDirectory() {
-  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData, bookshelfBooksData, matchingSettingsRes, availabilityRes] = await Promise.all([
+  const [profiles, tagsRes, linksRes, locationsRes, communityPostsData, communityEventsData, bookshelfBooksData, matchingSettingsRes, availabilityRes, availabilityOverridesRes] = await Promise.all([
     fetchDirectoryProfiles(),
     fetch(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -3075,6 +3142,8 @@ async function loadDirectory() {
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_availability?select=member_nickname,day_of_week,time_slot`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+    fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?select=member_nickname,override_date,hour,is_available`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
   ]);
   const tags = await tagsRes.json();
   const links = await linksRes.json();
@@ -3085,6 +3154,7 @@ async function loadDirectory() {
   bookshelfBooks = bookshelfBooksData;
   const matchingSettings = matchingSettingsRes.ok ? await matchingSettingsRes.json() : [];
   const availability = availabilityRes.ok ? await availabilityRes.json() : [];
+  const availabilityOverrides = availabilityOverridesRes.ok ? await availabilityOverridesRes.json() : [];
 
   const tagsByNickname = {};
   tags.forEach(t => {
@@ -3108,6 +3178,13 @@ async function loadDirectory() {
     (availabilityByNickname[a.member_nickname] ??= []).push({ day_of_week: a.day_of_week, time_slot: a.time_slot });
   });
 
+  const availabilityOverridesByNickname = {};
+  availabilityOverrides.forEach(a => {
+    (availabilityOverridesByNickname[a.member_nickname] ??= []).push({
+      override_date: a.override_date, hour: a.hour, is_available: a.is_available,
+    });
+  });
+
   directoryMembers = profiles.map(p => ({
     ...p,
     tags: tagsByNickname[p.nickname] || {},
@@ -3115,6 +3192,7 @@ async function loadDirectory() {
     location: locationByNickname[p.nickname] || null,
     matching: matchingSettingsByNickname[p.nickname] || { opted_in: false, interval_days: 7, last_matched_at: null },
     availability: availabilityByNickname[p.nickname] || [],
+    availabilityOverrides: availabilityOverridesByNickname[p.nickname] || [],
   }));
   directoryLoaded = true;
 
@@ -4575,6 +4653,222 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
   return true;
 }
 
+// 特定日の空き時間の例外登録(曜日パターンとは別に、向こう1か月ほどの特定日だけ1時間単位で
+// ○/×を登録したいメンバー向け)。itチームのDiscordでの相談(2026-09-14/15、Hiro-shi@GLさんの
+// 提案)を踏まえた機能。曜日×時間帯(午前/午後/夜)の毎週パターンはアプリ全体を1時間刻みにする
+// ほどの負担はかけたくない一方、特定日の例外だけは1時間単位で指定できると便利、という要望に
+// 合わせている。詳細は docs/yuru-matching.md 参照。
+const OVERRIDE_HOURS = Array.from({ length: 24 }, (_, h) => h);
+
+function formatOverrideDate(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  const weekday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+  return `${d.getMonth() + 1}/${d.getDate()}(${weekday})`;
+}
+
+async function addAvailabilityOverride(nickname, dateStr, hour, isAvailable) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?on_conflict=member_nickname,override_date,hour`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify([{
+      member_nickname: nickname, override_date: dateStr, hour, is_available: isAvailable,
+    }]),
+  });
+  if (!res.ok) {
+    console.warn('availability override save failed', res.status, await res.text());
+    return false;
+  }
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (member) {
+    member.availabilityOverrides = member.availabilityOverrides.filter(
+      a => !(a.override_date === dateStr && a.hour === hour)
+    );
+    member.availabilityOverrides.push({ override_date: dateStr, hour, is_available: isAvailable });
+  }
+  return true;
+}
+
+async function deleteAvailabilityOverride(nickname, dateStr, hour) {
+  const params = new URLSearchParams({
+    member_nickname: `eq.${nickname}`,
+    override_date: `eq.${dateStr}`,
+    hour: `eq.${hour}`,
+  });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?${params.toString()}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  if (!res.ok) {
+    console.warn('availability override delete failed', res.status, await res.text());
+    return false;
+  }
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (member) {
+    member.availabilityOverrides = member.availabilityOverrides.filter(
+      a => !(a.override_date === dateStr && a.hour === hour)
+    );
+  }
+  return true;
+}
+
+function buildAvailabilityOverrideSection(member, { editable }) {
+  const overrides = [...member.availabilityOverrides].sort(
+    (a, b) => a.override_date.localeCompare(b.override_date) || a.hour - b.hour
+  );
+  if (!editable && overrides.length === 0) return null;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'availability-override-section';
+  const title = document.createElement('div');
+  title.className = 'availability-override-title';
+  title.textContent = '特定日の例外(オプション・1時間単位)';
+  wrap.appendChild(title);
+
+  const hint = document.createElement('div');
+  hint.className = 'detail-field-hint';
+  hint.textContent = editable
+    ? '曜日パターンと違う日だけ、日付を選んでマスをクリックすると1時間単位で空き/不可を登録できます(向こう1か月ほどが目安)。'
+    : '曜日パターンとは別に登録されている特定日・1時間単位の空き/不可です。';
+  wrap.appendChild(hint);
+
+  const list = document.createElement('div');
+  list.className = 'availability-override-list';
+  wrap.appendChild(list);
+
+  let renderGrid = () => {};
+
+  function renderList() {
+    list.innerHTML = '';
+    overrides.forEach(o => {
+      const chip = document.createElement('span');
+      chip.className = `availability-override-chip ${o.is_available ? 'is-available' : 'is-unavailable'}`;
+      chip.appendChild(document.createTextNode(
+        `${formatOverrideDate(o.override_date)} ${o.hour}:00 ${o.is_available ? '○' : '×'}`
+      ));
+      if (editable) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✕';
+        removeBtn.title = '削除';
+        removeBtn.addEventListener('click', async () => {
+          removeBtn.disabled = true;
+          const ok = await deleteAvailabilityOverride(member.nickname, o.override_date, o.hour);
+          if (ok) {
+            const idx = overrides.findIndex(x => x.override_date === o.override_date && x.hour === o.hour);
+            if (idx !== -1) overrides.splice(idx, 1);
+            renderList();
+            renderGrid();
+          } else {
+            removeBtn.disabled = false;
+          }
+        });
+        chip.appendChild(removeBtn);
+      }
+      list.appendChild(chip);
+    });
+  }
+  renderList();
+
+  if (!editable) return wrap;
+
+  let paintMode = 'available';
+
+  const modeRow = document.createElement('div');
+  modeRow.className = 'availability-override-mode-row';
+  const modeLabel = document.createElement('span');
+  modeLabel.className = 'detail-field-hint';
+  modeLabel.textContent = 'クリックで登録する内容:';
+  modeRow.appendChild(modeLabel);
+  const modeButtons = [];
+  [{ mode: 'available', label: '○ 空きあり' }, { mode: 'unavailable', label: '× 予定あり(不可)' }].forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `availability-override-mode-btn${paintMode === opt.mode ? ' is-active' : ''}`;
+    btn.dataset.mode = opt.mode;
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => {
+      paintMode = opt.mode;
+      modeButtons.forEach(b => b.classList.toggle('is-active', b.dataset.mode === paintMode));
+    });
+    modeButtons.push(btn);
+    modeRow.appendChild(btn);
+  });
+  wrap.appendChild(modeRow);
+
+  const form = document.createElement('div');
+  form.className = 'availability-override-form';
+
+  const dateInput = document.createElement('input');
+  dateInput.type = 'date';
+  const today = new Date();
+  dateInput.value = today.toISOString().slice(0, 10);
+  dateInput.min = today.toISOString().slice(0, 10);
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 42);
+  dateInput.max = maxDate.toISOString().slice(0, 10);
+  form.appendChild(dateInput);
+  wrap.appendChild(form);
+
+  const grid = document.createElement('div');
+  grid.className = 'availability-override-hour-grid';
+  wrap.appendChild(grid);
+
+  const formStatus = document.createElement('span');
+  formStatus.className = 'matching-status';
+  wrap.appendChild(formStatus);
+
+  renderGrid = function renderGridImpl() {
+    grid.innerHTML = '';
+    const dateStr = dateInput.value;
+    OVERRIDE_HOURS.forEach(hour => {
+      const existing = overrides.find(o => o.override_date === dateStr && o.hour === hour);
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'availability-override-hour-cell';
+      if (existing) cell.classList.add(existing.is_available ? 'is-available' : 'is-unavailable');
+      cell.textContent = String(hour);
+      cell.title = `${hour}:00〜${hour + 1}:00`;
+      cell.addEventListener('click', async () => {
+        cell.disabled = true;
+        formStatus.textContent = '保存中...';
+        const wantAvailable = paintMode === 'available';
+        let ok;
+        if (existing && existing.is_available === wantAvailable) {
+          ok = await deleteAvailabilityOverride(member.nickname, dateStr, hour);
+          if (ok) {
+            const idx = overrides.findIndex(x => x.override_date === dateStr && x.hour === hour);
+            if (idx !== -1) overrides.splice(idx, 1);
+          }
+        } else {
+          ok = await addAvailabilityOverride(member.nickname, dateStr, hour, wantAvailable);
+          if (ok) {
+            const idx = overrides.findIndex(x => x.override_date === dateStr && x.hour === hour);
+            const entry = { override_date: dateStr, hour, is_available: wantAvailable };
+            if (idx !== -1) overrides[idx] = entry; else overrides.push(entry);
+          }
+        }
+        formStatus.textContent = ok ? '保存しました' : '保存できませんでした';
+        cell.disabled = false;
+        if (ok) {
+          renderGrid();
+          renderList();
+        }
+      });
+      grid.appendChild(cell);
+    });
+  };
+  dateInput.addEventListener('change', () => renderGrid());
+  renderGrid();
+
+  return wrap;
+}
+
 function buildMatchingSection(member) {
   const section = document.createElement('div');
   section.className = 'detail-section';
@@ -4640,6 +4934,8 @@ function buildMatchingSection(member) {
       });
       section.appendChild(grid);
     }
+    const readonlyOverrideSection = buildAvailabilityOverrideSection(member, { editable: false });
+    if (readonlyOverrideSection) section.appendChild(readonlyOverrideSection);
     return section;
   }
 
@@ -4742,6 +5038,8 @@ function buildMatchingSection(member) {
   legend.textContent = 'マスをクリックすると ○（空きあり）/ ×（空きなし）が切り替わります。';
   section.appendChild(legend);
   section.appendChild(status);
+
+  section.appendChild(buildAvailabilityOverrideSection(member, { editable: true }));
 
   return section;
 }
