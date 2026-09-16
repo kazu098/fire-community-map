@@ -454,5 +454,20 @@
     "discord_channel_name": "イベント用フォーラム",
     "discord_message_id": "1549018869727887413",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1548301860065120308/1549018869727887413"
+  },
+  {
+    "title": "F研1.5周年オフ会＠大阪",
+    "tags": ["オフ会", "交流会", "関西"],
+    "starts_at": "2026-12-05T12:00:00+09:00",
+    "ends_at": "2026-12-05T13:00:00+09:00",
+    "format": "offline",
+    "prefecture": "大阪府",
+    "location_label": "大阪（会場調整中）",
+    "participant_count": 18,
+    "participation_note": "参加意向アンケートで18名が参加予定と回答し、想定より大きな規模に。会場は今後手配予定。前泊・後泊して周辺観光や翌日の京都・舞妓さん体験企画への参加を検討する人も多い。",
+    "summary": "F研コミュニティ発足1.5周年を記念した大阪でのオフ会。関西メンバーの増加を受けて企画され、忘年会シーズンの会場確保に向けて調整が進んでいる。",
+    "discord_channel_name": "イベント用フォーラム",
+    "discord_message_id": "scheduled_event:1545612465050488972",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1545612465050488972"
   }
 ]
