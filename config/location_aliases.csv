@@ -1,5 +1,7 @@
 input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,note
 敦賀,福井県,敦賀市,municipality,35.649211,136.071349,manual_alias,敦賀鉄道資料館の投稿から福井県敦賀市として扱う
+伊勢神宮,三重県,伊勢市,municipality,34.492471,136.708381,manual_alias,伊勢神宮は三重県伊勢市に所在
+猿田彦神社,三重県,伊勢市,municipality,34.492471,136.708381,manual_alias,猿田彦神社は三重県伊勢市に所在
 氣比神宮,福井県,敦賀市,municipality,35.649211,136.071349,manual_alias,氣比神宮は福井県敦賀市に所在
 東京,東京都,,prefecture,35.68944,139.69167,manual_alias,東京都として扱う
 福井県で2拠点居住,福井県,,prefecture,36.06528,136.22194,manual_alias,福井県として扱う

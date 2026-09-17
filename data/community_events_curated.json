@@ -469,5 +469,20 @@
     "discord_channel_name": "イベント用フォーラム",
     "discord_message_id": "scheduled_event:1545612465050488972",
     "discord_permalink": "https://discord.com/events/1389921372683112539/1545612465050488972"
+  },
+  {
+    "title": "F研名物？開墾オフ会＠三重県志摩市",
+    "tags": ["オフ会", "開墾", "三重", "募集中"],
+    "starts_at": "2026-11-04T13:00:00+09:00",
+    "ends_at": "2026-11-05T12:00:00+09:00",
+    "format": "offline",
+    "prefecture": "三重県",
+    "location_label": "志摩市（一棟貸しの宿）",
+    "participant_count": 4,
+    "participation_note": "参加者は主催者含め3名決定済みで、残り1名を先着順で募集中。参加希望者はスレッドへの返信で応募。",
+    "summary": "三重県志摩市にあるメンバー所有地で行う開墾オフ会。11/4お昼過ぎから開墾作業を行い、夜は一棟貸しの宿に宿泊して交流する1泊2日の企画。詳細は今後参加者間で相談して決定予定。",
+    "discord_channel_name": "オフ会",
+    "discord_message_id": "1550045687524229170",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1550045687524229170"
   }
 ]
