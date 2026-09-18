@@ -2,17 +2,17 @@
   "channels": {
     "旅行": {
       "channel_id": "1453995203060043787",
-      "last_scanned_message_id": "1550041254296035398",
+      "last_scanned_message_id": "1550510684788498622",
       "last_imported_message_id": "1550041254296035398",
-      "last_synced_at": "2026-09-17T23:55:45.314593+00:00"
+      "last_synced_at": "2026-09-18T22:46:20.008952+00:00"
     },
     "グルメ・料理": {
       "channel_id": "1398934575803273288",
-      "last_scanned_message_id": "1550112103572967434",
+      "last_scanned_message_id": "1550507552348049420",
       "last_imported_message_id": "1548958963650007151",
-      "last_synced_at": "2026-09-17T23:55:45.710840+00:00"
+      "last_synced_at": "2026-09-18T22:46:20.306383+00:00"
     }
   },
   "last_imported_message_id": "1550041254296035398",
-  "last_synced_at": "2026-09-17T23:55:45.711808+00:00"
+  "last_synced_at": "2026-09-18T22:46:20.307576+00:00"
 }
