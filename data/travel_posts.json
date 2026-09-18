@@ -1,5 +1,28 @@
 [
   {
+    "discord_message_id": "1550041254296035398",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1550041254296035398",
+    "discord_channel_name": "旅行",
+    "nickname": "みかん０",
+    "avatar_path": "data/travel-avatars/bf28ec4672f5.png",
+    "avatarColor": "#f97316",
+    "init": "み",
+    "prefecture": "三重県",
+    "municipality_optional": "伊勢市",
+    "lat": 34.492471,
+    "lng": 136.708381,
+    "date": "2026/09/17",
+    "posted_at": "2026-09-17T07:10:33.398000+00:00",
+    "comment": "伊勢神宮と猿田彦神社にお参りに行ってきましたー！\nお昼に食べた海老フライが激うまでした！🤤",
+    "photos": [
+      "data/travel-photos/1550041254296035398-1.jpg",
+      "data/travel-photos/1550041254296035398-2.jpg",
+      "data/travel-photos/1550041254296035398-3.jpg",
+      "data/travel-photos/1550041254296035398-4.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1548958963650007151",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1548958963650007151",
     "discord_channel_name": "グルメ・料理",
