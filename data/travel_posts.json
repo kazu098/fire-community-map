@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1550745474158301275",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1550745474158301275",
+    "discord_channel_name": "旅行",
+    "nickname": "めめと",
+    "avatar_path": "data/travel-avatars/1c82026e8b03.png",
+    "avatarColor": "#f97316",
+    "init": "め",
+    "prefecture": "岐阜県",
+    "municipality_optional": null,
+    "lat": 35.39111,
+    "lng": 136.72222,
+    "date": "2026/09/19",
+    "posted_at": "2026-09-19T05:48:52.497000+00:00",
+    "comment": "岐阜の下呂温泉に来ています♨️\n妻の家族と2泊3日の温泉旅行です！\n\nシルバーウィークですが、今のところ落ち着いて過ごせています😊",
+    "photos": [
+      "data/travel-photos/1550745474158301275-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1550041254296035398",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1550041254296035398",
     "discord_channel_name": "旅行",
