@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1551208343828434986",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1551208343828434986",
+    "discord_channel_name": "旅行",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/62b1622d0719.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "長崎県",
+    "municipality_optional": null,
+    "lat": 32.74472,
+    "lng": 129.87361,
+    "date": "2026/09/20",
+    "posted_at": "2026-09-20T12:28:09.226000+00:00",
+    "comment": "おお！長崎天気良いですね。川崎は大雨です。検索したら2年前に訪れていました。",
+    "photos": [
+      "data/travel-photos/1551208343828434986-1.png"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1550745474158301275",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1550745474158301275",
     "discord_channel_name": "旅行",
