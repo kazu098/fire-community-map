@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -41,6 +42,13 @@ VOICE_CHANNEL_CLEANUP_BUFFER_HOURS = 4
 # VIEW_CHANNEL (0x400) + CONNECT (0x100000): enough to see and join the temporary
 # voice channel, nothing more.
 VOICE_CHANNEL_PERMISSION_BITS = 0x400 | 0x100000
+THREAD_CONFIRM_EMOJI = "✅"
+THREAD_LOOKBACK_LIMIT = 200
+
+POSITIVE_DATE_RE = re.compile(r"(?:OK|ok|いけ|行け|大丈夫|空いて|あいて|できます|参加|可能|可|よい|良い)")
+NEGATIVE_DATE_RE = re.compile(r"(?:NG|ng|無理|厳し|だめ|ダメ|不可|行けない|いけない|難し)")
+DATE_RE = re.compile(r"(?:(20\d{2})\s*[年/.-]\s*)?(\d{1,2})\s*(?:月|/|-)\s*(\d{1,2})\s*日?")
+DAY_ONLY_RE = re.compile(r"(?<![月/\-\d])(\d{1,2})\s*日")
 
 
 def load_dotenv(path: Path) -> None:
@@ -96,6 +104,32 @@ def fetch_reactors(channel_id: str, message_id: str, emoji: str, token: str) -> 
 
 def fetch_bot_user_id(token: str) -> str:
     return str(discord_get(f"{DISCORD_API_BASE}/users/@me", token)["id"])
+
+
+def fetch_message_thread_id(channel_id: str, message_id: str, token: str) -> str | None:
+    message = discord_get(f"{DISCORD_API_BASE}/channels/{channel_id}/messages/{message_id}", token)
+    thread = message.get("thread")
+    if isinstance(thread, dict) and thread.get("id"):
+        return str(thread["id"])
+    return None
+
+
+def fetch_channel_messages(channel_id: str, token: str, limit: int = THREAD_LOOKBACK_LIMIT) -> list[dict[str, Any]]:
+    messages: list[dict[str, Any]] = []
+    before: str | None = None
+    while len(messages) < limit:
+        page_limit = min(100, limit - len(messages))
+        suffix = f"?limit={page_limit}"
+        if before:
+            suffix += f"&before={before}"
+        page = discord_get(f"{DISCORD_API_BASE}/channels/{channel_id}/messages{suffix}", token)
+        if not page:
+            break
+        messages.extend(page)
+        before = str(page[-1]["id"])
+        if len(page) < page_limit:
+            break
+    return messages
 
 
 def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], bot_user_id: str, token: str) -> str:
@@ -185,6 +219,145 @@ def delete_channel(channel_id: str, token: str) -> None:
         raise RuntimeError(f"Discord API request failed deleting channel {channel_id}: {exc}") from exc
 
 
+def date_candidates_from_text(text: str, base_time: datetime, now: datetime) -> list[tuple[datetime, str]]:
+    now_jst = now.astimezone(matching.JST)
+    candidates: list[tuple[datetime, str]] = []
+    for match in DATE_RE.finditer(text):
+        year = int(match.group(1)) if match.group(1) else now_jst.year
+        month = int(match.group(2))
+        day = int(match.group(3))
+        try:
+            date = base_time.replace(year=year, month=month, day=day)
+        except ValueError:
+            continue
+        if not match.group(1) and date < now_jst - timedelta(days=1):
+            try:
+                date = date.replace(year=year + 1)
+            except ValueError:
+                continue
+        start = match.start()
+        end = min(len(text), match.end() + 32)
+        candidates.append((date, text[start:end]))
+    return candidates
+
+
+def thread_date_votes(
+    messages: list[dict[str, Any]],
+    group_user_ids: set[str],
+    proposed_dates: list[datetime],
+    now: datetime,
+) -> dict[datetime, set[str]]:
+    if not proposed_dates:
+        return {}
+    proposed_keys = {d.date() for d in proposed_dates}
+    base_time = proposed_dates[0]
+    explicit_dates: set[datetime] = set()
+    for message in messages:
+        content = str(message.get("content") or "")
+        for date, _context in date_candidates_from_text(content, base_time, now):
+            if date.date() not in proposed_keys:
+                explicit_dates.add(date)
+
+    user_votes: dict[str, set[datetime]] = {}
+    for message in sorted(messages, key=lambda item: item.get("timestamp", "")):
+        author = message.get("author") or {}
+        user_id = str(author.get("id") or "")
+        if user_id not in group_user_ids:
+            continue
+        content = str(message.get("content") or "")
+        candidates = date_candidates_from_text(content, base_time, now)
+        for match in DAY_ONLY_RE.finditer(content):
+            day = int(match.group(1))
+            matching_explicit_dates = [date for date in explicit_dates if date.day == day]
+            if len(matching_explicit_dates) != 1:
+                continue
+            start = match.start()
+            end = min(len(content), match.end() + 32)
+            candidates.append((matching_explicit_dates[0], content[start:end]))
+        for date, context in candidates:
+            if date.date() in proposed_keys:
+                continue
+            votes = user_votes.setdefault(user_id, set())
+            if NEGATIVE_DATE_RE.search(context):
+                votes.discard(date)
+            elif POSITIVE_DATE_RE.search(context):
+                votes.add(date)
+
+    by_date: dict[datetime, set[str]] = {}
+    for user_id, dates in user_votes.items():
+        for date in dates:
+            by_date.setdefault(date, set()).add(user_id)
+    return by_date
+
+
+def format_thread_confirmation_prompt(date: datetime, count: int) -> str:
+    return (
+        f"🐾 スレッドを見ると、{date.month}/{date.day}({matching.WEEKDAY_KANJI[date.weekday()]}) "
+        f"{date.hour:02d}:{date.minute:02d}〜 なら集まれそうです（いま{count}人が前向きそう）。\n"
+        f"この日で決定する場合は {THREAD_CONFIRM_EMOJI} を押してください。"
+    )
+
+
+def confirm_schedule_date(
+    supabase_url: str,
+    service_role_key: str,
+    schedule_id: str,
+    guild_id: str,
+    post_channel_id: str,
+    bot_token: str,
+    bot_user_id: str,
+    nicknames: list[str],
+    group_user_ids: set[str],
+    date: datetime,
+    reaction_count: int,
+    source: str,
+    dry_run: bool,
+) -> None:
+    print(f"Confirming schedule {schedule_id}: {nicknames} -> {date.isoformat()} ({reaction_count} via {source})")
+    voice_channel_id = None
+    if not dry_run:
+        try:
+            voice_channel_id = create_voice_channel(
+                guild_id, f"ゆるマッチング_{date.month}{date.day:02d}", list(group_user_ids), bot_user_id, bot_token,
+            )
+        except RuntimeError as exc:
+            print(f"  voice channel creation failed, confirming date only: {exc}")
+
+        if voice_channel_id:
+            try:
+                create_scheduled_event(
+                    guild_id, voice_channel_id,
+                    f"ゆるマッチング {date.month}/{date.day}({matching.WEEKDAY_KANJI[date.weekday()]})",
+                    f"{'、'.join(nicknames)}さんのゆるマッチング",
+                    date, bot_token,
+                )
+            except RuntimeError as exc:
+                print(f"  scheduled event creation failed: {exc}")
+
+        date_line = (
+            f"🎉 開催決定！{date.month}/{date.day}({matching.WEEKDAY_KANJI[date.weekday()]}) "
+            f"{date.hour:02d}:{date.minute:02d}〜"
+        )
+        confirmation = (
+            f"{date_line}\n当日はこちらの専用通話部屋（<#{voice_channel_id}>）からどうぞ🔒🎙️（終了後に自動で消えます）"
+            if voice_channel_id else date_line
+        )
+        matching.discord_post(post_channel_id, bot_token, confirmation)
+        patch_body: dict[str, Any] = {
+            "status": "confirmed",
+            "confirmed_date": date.isoformat(),
+            "confirmed_reaction_count": reaction_count,
+            "confirmed_source": source,
+            "voice_channel_id": voice_channel_id,
+        }
+        if source == "thread_confirmation":
+            patch_body["thread_confirmation_reaction_count"] = reaction_count
+        requests_patch(
+            supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule_id}",
+            patch_body,
+        )
+
+
 def confirm_schedules(
     supabase_url: str,
     service_role_key: str,
@@ -201,7 +374,11 @@ def confirm_schedules(
         with urlopen(req, timeout=30) as res:
             return json.loads(res.read().decode("utf-8"))
 
-    schedules = get("/rest/v1/member_match_schedules?select=id,group_id,proposed_dates,discord_message_id&status=eq.proposed")
+    schedules = get(
+        "/rest/v1/member_match_schedules"
+        "?select=id,group_id,proposed_dates,discord_message_id,thread_id,thread_confirmation_message_id,thread_confirmation_date"
+        "&status=eq.proposed"
+    )
     if not schedules:
         print("No proposed schedules to check.")
         return
@@ -224,6 +401,21 @@ def confirm_schedules(
         proposed_dates = [datetime.fromisoformat(d).astimezone(matching.JST) for d in schedule["proposed_dates"]]
         message_id = schedule["discord_message_id"]
 
+        thread_id = schedule.get("thread_id")
+        if message_id:
+            try:
+                thread_id = thread_id or fetch_message_thread_id(channel_id, message_id, bot_token)
+            except RuntimeError as exc:
+                print(f"  could not fetch schedule message thread for {schedule['id']}: {exc}")
+        if not thread_id:
+            group_rows = get(f"/rest/v1/member_match_groups?id=eq.{group_id}&select=discord_message_id")
+            group_message_id = group_rows[0].get("discord_message_id") if group_rows else None
+            if group_message_id:
+                try:
+                    thread_id = fetch_message_thread_id(channel_id, group_message_id, bot_token)
+                except RuntimeError as exc:
+                    print(f"  could not fetch match message thread for {schedule['id']}: {exc}")
+
         counts: list[tuple[datetime, int]] = []
         for date, emoji in zip(proposed_dates, matching.DATE_OPTION_EMOJI):
             reactors = fetch_reactors(channel_id, message_id, emoji, bot_token)
@@ -232,50 +424,74 @@ def confirm_schedules(
         best_date, best_count = max(counts, key=lambda item: (item[1], -item[0].timestamp()))
 
         if best_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
-            print(f"Confirming schedule {schedule['id']}: {nicknames} -> {best_date.isoformat()} ({best_count} reactions)")
-            voice_channel_id = None
+            confirm_schedule_date(
+                supabase_url, service_role_key, schedule["id"], guild_id, channel_id, bot_token,
+                bot_user_id, nicknames, group_user_ids, best_date, best_count, "reaction_poll", dry_run,
+            )
+            continue
+
+        thread_confirmation_message_id = schedule.get("thread_confirmation_message_id")
+        if thread_confirmation_message_id and thread_id:
+            thread_confirmation_date = datetime.fromisoformat(schedule["thread_confirmation_date"]).astimezone(matching.JST)
+            reactors = fetch_reactors(thread_id, thread_confirmation_message_id, THREAD_CONFIRM_EMOJI, bot_token)
+            confirm_count = len(reactors & group_user_ids)
+            if confirm_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
+                confirm_schedule_date(
+                    supabase_url, service_role_key, schedule["id"], guild_id, thread_id, bot_token,
+                    bot_user_id, nicknames, group_user_ids, thread_confirmation_date, confirm_count,
+                    "thread_confirmation", dry_run,
+                )
+                continue
             if not dry_run:
-                try:
-                    voice_channel_id = create_voice_channel(
-                        guild_id, f"ゆるマッチング_{best_date.month}{best_date.day:02d}", list(group_user_ids), bot_user_id, bot_token,
-                    )
-                except RuntimeError as exc:
-                    # Missing "Manage Channels" permission for the bot role, most likely --
-                    # a Discord server setting only an admin can grant, not something this
-                    # script can fix. Still confirm the date; just skip the voice channel.
-                    print(f"  voice channel creation failed, confirming date only: {exc}")
-
-                if voice_channel_id:
-                    try:
-                        create_scheduled_event(
-                            guild_id, voice_channel_id,
-                            f"ゆるマッチング {best_date.month}/{best_date.day}({matching.WEEKDAY_KANJI[best_date.weekday()]})",
-                            f"{'、'.join(nicknames)}さんのゆるマッチング",
-                            best_date, bot_token,
-                        )
-                    except RuntimeError as exc:
-                        # Missing "Manage Events" permission, most likely -- same story as
-                        # the voice channel: not fatal, just no calendar entry this time.
-                        print(f"  scheduled event creation failed: {exc}")
-
-                date_line = (
-                    f"🎉 開催決定！{best_date.month}/{best_date.day}({matching.WEEKDAY_KANJI[best_date.weekday()]}) "
-                    f"{best_date.hour:02d}:{best_date.minute:02d}〜"
-                )
-                confirmation = (
-                    f"{date_line}\n当日はこちらの専用通話部屋（<#{voice_channel_id}>）からどうぞ🔒🎙️（終了後に自動で消えます）"
-                    if voice_channel_id else date_line
-                )
-                matching.discord_post(channel_id, bot_token, confirmation)
                 requests_patch(
                     supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
-                    {
-                        "status": "confirmed",
-                        "confirmed_date": best_date.isoformat(),
-                        "confirmed_reaction_count": best_count,
-                        "voice_channel_id": voice_channel_id,
-                    },
+                    {"thread_confirmation_reaction_count": confirm_count},
                 )
+            print(f"Schedule {schedule['id']} thread confirmation still open: {nicknames} (best so far: {confirm_count})")
+            if thread_confirmation_date < now:
+                print(f"Expiring schedule {schedule['id']}: {nicknames} (thread confirmation date has passed)")
+                if not dry_run:
+                    requests_patch(
+                        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+                        {"status": "expired"},
+                    )
+        elif thread_id:
+            messages = fetch_channel_messages(thread_id, bot_token)
+            thread_votes = thread_date_votes(messages, group_user_ids, proposed_dates, now)
+            if thread_votes:
+                thread_best_date, voters = max(thread_votes.items(), key=lambda item: (len(item[1]), -item[0].timestamp()))
+                if len(voters) >= matching.SCHEDULE_CONFIRM_THRESHOLD:
+                    print(
+                        f"Posting thread confirmation for schedule {schedule['id']}: "
+                        f"{nicknames} -> {thread_best_date.isoformat()} ({len(voters)} text votes)"
+                    )
+                    if not dry_run:
+                        prompt = format_thread_confirmation_prompt(thread_best_date, len(voters))
+                        confirmation_message_id = matching.discord_post(thread_id, bot_token, prompt)
+                        if confirmation_message_id:
+                            matching.discord_add_reaction(thread_id, confirmation_message_id, bot_token, THREAD_CONFIRM_EMOJI)
+                            requests_patch(
+                                supabase_url, service_role_key,
+                                f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+                                {
+                                    "thread_id": thread_id,
+                                    "thread_suggested_date": thread_best_date.isoformat(),
+                                    "thread_confirmation_message_id": confirmation_message_id,
+                                    "thread_confirmation_date": thread_best_date.isoformat(),
+                                    "thread_confirmation_reaction_count": 0,
+                                },
+                            )
+                    continue
+            latest_open_date = max([*proposed_dates, *thread_votes.keys()])
+            if latest_open_date < now:
+                print(f"Expiring schedule {schedule['id']}: {nicknames} (no option reached {matching.SCHEDULE_CONFIRM_THRESHOLD})")
+                if not dry_run:
+                    requests_patch(
+                        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+                        {"status": "expired"},
+                    )
+            else:
+                print(f"Schedule {schedule['id']} still open: {nicknames} (best so far: {best_count})")
         elif proposed_dates[-1] < now:
             print(f"Expiring schedule {schedule['id']}: {nicknames} (no option reached {matching.SCHEDULE_CONFIRM_THRESHOLD})")
             if not dry_run:
