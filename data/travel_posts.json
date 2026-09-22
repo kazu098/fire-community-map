@@ -1,5 +1,89 @@
 [
   {
+    "discord_message_id": "1551858614418022422",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1551858614418022422",
+    "discord_channel_name": "旅行",
+    "nickname": "ネコ先生",
+    "avatar_path": "data/travel-avatars/b7d35e11d291.png",
+    "avatarColor": "#f97316",
+    "init": "ネ",
+    "prefecture": "長崎県",
+    "municipality_optional": "佐世保市",
+    "lat": 33.0894,
+    "lng": 129.7961,
+    "date": "2026/09/22",
+    "posted_at": "2026-09-22T07:32:05.816000+00:00",
+    "comment": "ハウステンボスに行ってきました😀ハウステンボス駅からハウステンボス入口までは徒歩５分程度でした。近接してホテル大倉や日航ホテルがあります。\n\n長崎市内や温泉をプランに組み入れるのであれば、車が便利かもしれません(駐車場は要検討ですが)😅",
+    "photos": [
+      "data/travel-photos/1551858614418022422-1.jpg",
+      "data/travel-photos/1551858614418022422-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1551793067768422412",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1551793067768422412",
+    "discord_channel_name": "旅行",
+    "nickname": "Carbon_06",
+    "avatar_path": "data/travel-avatars/9f310673f6a6.png",
+    "avatarColor": "#f97316",
+    "init": "C",
+    "prefecture": "大阪府",
+    "municipality_optional": null,
+    "lat": 34.68639,
+    "lng": 135.52,
+    "date": "2026/09/22",
+    "posted_at": "2026-09-22T03:11:38.277000+00:00",
+    "comment": "大阪にあるサントリーウィスキーハウスさんにお邪魔しました。\n\nウィスキー好きとしてはとても素晴らしい空間でした🥃\n\nいつか蒸留所にも行きたいですね〜",
+    "photos": [
+      "data/travel-photos/1551793067768422412-1.jpg",
+      "data/travel-photos/1551793067768422412-2.jpg",
+      "data/travel-photos/1551793067768422412-3.jpg",
+      "data/travel-photos/1551793067768422412-4.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1551208343828434986",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1551208343828434986",
+    "discord_channel_name": "旅行",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/62b1622d0719.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "長崎県",
+    "municipality_optional": null,
+    "lat": 32.74472,
+    "lng": 129.87361,
+    "date": "2026/09/20",
+    "posted_at": "2026-09-20T12:28:09.226000+00:00",
+    "comment": "おお！長崎天気良いですね。川崎は大雨です。検索したら2年前に訪れていました。",
+    "photos": [
+      "data/travel-photos/1551208343828434986-1.png"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1550745474158301275",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1550745474158301275",
+    "discord_channel_name": "旅行",
+    "nickname": "めめと",
+    "avatar_path": "data/travel-avatars/1c82026e8b03.png",
+    "avatarColor": "#f97316",
+    "init": "め",
+    "prefecture": "岐阜県",
+    "municipality_optional": null,
+    "lat": 35.39111,
+    "lng": 136.72222,
+    "date": "2026/09/19",
+    "posted_at": "2026-09-19T05:48:52.497000+00:00",
+    "comment": "岐阜の下呂温泉に来ています♨️\n妻の家族と2泊3日の温泉旅行です！\n\nシルバーウィークですが、今のところ落ち着いて過ごせています😊",
+    "photos": [
+      "data/travel-photos/1550745474158301275-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1550041254296035398",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1550041254296035398",
     "discord_channel_name": "旅行",
