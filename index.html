@@ -2774,6 +2774,10 @@ function selectView(view) {
   document.getElementById('view-tabs').style.display = isYuruTalk ? 'none' : 'flex';
   document.getElementById('yuru-talk-view').style.display = isYuruTalk ? 'block' : 'none';
   if (isYuruTalk) {
+    document.getElementById('header').style.display = 'none';
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('mascot-fainya').style.display = 'none';
+    document.getElementById('mascot-fainya-2').style.display = 'none';
     renderYuruTalkView(new URLSearchParams(location.search).get('group'));
     return;
   }
