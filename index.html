@@ -1382,6 +1382,51 @@
     }
     #detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
     #detail-nickname { font-size: 19px; font-weight: bold; color: #1f2937; }
+    .detail-identity-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: -6px 0 18px;
+    }
+    .detail-identity-text {
+      flex: 1 1 220px;
+      min-width: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #1e40af;
+      font-weight: bold;
+    }
+    .detail-identity-card input {
+      flex: 1 1 180px;
+      min-width: 0;
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      outline: none;
+      background: white;
+    }
+    .detail-identity-card button {
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid #3b82f6;
+      border-radius: 6px;
+      background: #3b82f6;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .detail-identity-card button.secondary {
+      background: white;
+      color: #2563eb;
+      border-color: #93c5fd;
+    }
     .detail-section { margin-bottom: 20px; }
     .detail-section-title {
       font-size: 11px; font-weight: bold; color: #9ca3af;
@@ -3255,6 +3300,7 @@ function setMyNickname(nickname) {
   }
   myNickname = member.nickname;
   try { localStorage.setItem('myNickname', myNickname); } catch (e) {}
+  try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
   renderMemberGrid();
 }
 
@@ -3263,6 +3309,15 @@ function clearMyNickname() {
   listSortMode = 'default';
   try { localStorage.removeItem('myNickname'); } catch (e) {}
   renderMemberGrid();
+}
+
+function beginMyNicknameChange() {
+  myNickname = null;
+  listSortMode = 'default';
+  try { localStorage.removeItem('myNickname'); } catch (e) {}
+  try { localStorage.removeItem('myIdentityPromptDismissed'); } catch (e) {}
+  renderMemberGrid();
+  maybeShowIdentityModal();
 }
 
 // 自分(myNickname)を設定しているときだけ選べる並び替え。「default」は読み込み順のまま。
@@ -3374,7 +3429,7 @@ function renderMyIdentityBar(dismissible, showSort) {
     changeBtn.type = 'button';
     changeBtn.className = 'secondary';
     changeBtn.textContent = '変更';
-    changeBtn.addEventListener('click', () => { myNickname = null; listSortMode = 'default'; renderMemberGrid(); });
+    changeBtn.addEventListener('click', beginMyNicknameChange);
     bar.appendChild(changeBtn);
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
@@ -3908,6 +3963,7 @@ function closeMemberDetail({ updateHash = true } = {}) {
   document.getElementById('member-detail-view').style.display = 'none';
   document.getElementById('member-grid-view').style.display = 'block';
   if (updateHash) history.pushState(null, '', location.pathname);
+  renderMemberGrid();
 }
 
 async function addTag(nickname, category, value) {
@@ -5147,6 +5203,83 @@ function buildMatchingSection(member) {
   return section;
 }
 
+function buildDetailIdentityCard(member) {
+  const card = document.createElement('div');
+  card.className = 'detail-identity-card';
+
+  const text = document.createElement('div');
+  text.className = 'detail-identity-text';
+  card.appendChild(text);
+
+  if (myNickname) {
+    const isMe = myNickname === member.nickname;
+    text.textContent = isMe
+      ? `${myNickname} として表示中です。このプロフィールのゆるマッチング設定を編集できます。`
+      : `${myNickname} として表示中です。このページは ${member.nickname} さんのプロフィールです。`;
+
+    if (!isMe) {
+      const myProfileBtn = document.createElement('button');
+      myProfileBtn.type = 'button';
+      myProfileBtn.className = 'secondary';
+      myProfileBtn.textContent = '自分のプロフィール';
+      myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
+      card.appendChild(myProfileBtn);
+    }
+
+    const changeBtn = document.createElement('button');
+    changeBtn.type = 'button';
+    changeBtn.className = 'secondary';
+    changeBtn.textContent = '変更';
+    changeBtn.addEventListener('click', () => {
+      beginMyNicknameChange();
+      openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
+    });
+    card.appendChild(changeBtn);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'secondary';
+    clearBtn.textContent = '解除';
+    clearBtn.addEventListener('click', () => {
+      clearMyNickname();
+      openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
+    });
+    card.appendChild(clearBtn);
+    return card;
+  }
+
+  text.textContent = '誰として表示するか未設定です。自分のニックネームを選ぶと、この画面から自分のゆるマッチング設定を編集できます。';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'ニックネームを入力...';
+  input.setAttribute('list', 'detail-my-identity-options');
+  input.setAttribute('autocomplete', 'off');
+  const datalist = document.createElement('datalist');
+  datalist.id = 'detail-my-identity-options';
+  directoryMembers.forEach(m => {
+    const option = document.createElement('option');
+    option.value = m.nickname;
+    datalist.appendChild(option);
+  });
+  const submit = () => {
+    if (!input.value.trim()) return;
+    setMyNickname(input.value.trim());
+    openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  card.appendChild(input);
+  card.appendChild(datalist);
+
+  const setBtn = document.createElement('button');
+  setBtn.type = 'button';
+  setBtn.textContent = '設定';
+  setBtn.addEventListener('click', submit);
+  card.appendChild(setBtn);
+
+  return card;
+}
+
 function buildIntroSection(member) {
   const section = document.createElement('div');
   section.className = 'detail-section';
@@ -5277,6 +5410,7 @@ function openMemberDetail(nickname, {
   head.appendChild(nameEl);
   head.appendChild(copyLinkBtn);
   content.appendChild(head);
+  content.appendChild(buildDetailIdentityCard(member));
   content.appendChild(buildPublicSettingsSection(member, {
     open: publicSettingsOpen,
     externalIntroPreviewOpen,
