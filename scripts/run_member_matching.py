@@ -27,6 +27,12 @@ topic, not only as a fallback -- two members hitting it off while a third
 listens in is part of the fun), so the match feels less like a cold random
 pairing.
 
+The announcement also links to a ゆるトーク page (index.html, ?view=yuru-talk&
+group=<id>) with the group's shared tags, conversation-starter questions
+(scripts/yuru_talk_questions.py), and cached related news (scripts/topic_news.py).
+That page's data is written to member_match_group_topics alongside the group
+itself; see docs/yuru-matching.md's "ゆるトーク画面" section for the full design.
+
 The dedicated Discord matching channel does not exist yet (pending
 agreement), so --post-to-discord is opt-in and the script no-ops the
 Discord step -- logging what it would have posted -- when
@@ -44,6 +50,7 @@ import os
 import random
 import re
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -52,11 +59,19 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+from topic_news import NEWS_ELIGIBLE_CATEGORIES, get_or_fetch_topic_news
+from yuru_talk_questions import questions_for_tag
+
 DISCORD_API_BASE = "https://discord.com/api/v10"
 USER_AGENT = "fire-community-map-member-matching/0.1"
 COOLDOWN_DAYS = 60  # avoid re-grouping the same pair within this window
 GROUP_SIZE = 4  # fixed group size; no fallback to smaller groups, see run_matching
 SCHEDULE_CONFIRM_THRESHOLD = 3  # of 4 group members reacting to the same date option
+# Base URL for the ゆるトーク page linked from the Discord announcement (docs/yuru-matching.md
+# "共通タグ・会話きっかけ質問・関連ニュース"). Overridable via env for local/preview deploys.
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://fire-community-map.vercel.app")
+# How many of the group's common tags to show on the ゆるトーク page (questions + news each).
+MAX_YURU_TALK_TAGS = 4
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -389,6 +404,53 @@ def pairwise_topics(members: list[dict[str, Any]]) -> list[tuple[str, str, str]]
     return results
 
 
+def build_common_tags(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Tags shared by 2+ members of the group, for the ゆるトーク page (docs/yuru-matching.md).
+
+    Unlike build_topic_suggestion (which wants a tag *everyone* shares), this is for the
+    "共通タグ" chips shown on the group's ゆるトーク page -- a tag shared by any 2+ members is
+    worth surfacing there (count is shown alongside it, e.g. "不動産 3/4"), sorted by how many
+    members share it. mbti/fire_status are excluded: short codes like "INTJ" don't make good
+    news-search or conversation-question material.
+    """
+    counts: dict[tuple[str, str], int] = {}
+    for category in TOPIC_TAG_CATEGORIES:
+        if category in ("mbti", "fire_status"):
+            continue
+        for member in members:
+            # A set (not the raw list) so a member with the same value tagged twice in this
+            # category still counts as one member sharing it, not two.
+            for value in set(member["tags"].get(category, [])):
+                key = (category, value)
+                counts[key] = counts.get(key, 0) + 1
+    tags = [
+        {"category": category, "label": TOPIC_CATEGORY_LABELS.get(category, category), "value": value, "count": count}
+        for (category, value), count in counts.items()
+        if count >= 2
+    ]
+    tags.sort(key=lambda t: (-t["count"], t["category"], t["value"]))
+    return tags
+
+
+def enrich_common_tags_with_questions_and_news(
+    common_tags: list[dict[str, Any]],
+    supabase_url: str,
+    service_role_key: str,
+    fetch_news: bool,
+) -> list[dict[str, Any]]:
+    """Attach conversation-starter questions (always) and cached/fetched news (best-effort, only
+    for news-eligible categories) to the top MAX_YURU_TALK_TAGS common tags."""
+    enriched = []
+    for tag in common_tags[:MAX_YURU_TALK_TAGS]:
+        entry = dict(tag, questions=questions_for_tag(tag["value"]))
+        if fetch_news and tag["category"] in NEWS_ELIGIBLE_CATEGORIES:
+            entry["news"] = get_or_fetch_topic_news(supabase_url, service_role_key, tag["value"])
+        else:
+            entry["news"] = []
+        enriched.append(entry)
+    return enriched
+
+
 def run_matching(
     eligible_nicknames: list[str],
     slot_index: dict[str, set[tuple[str, str]]],
@@ -459,6 +521,7 @@ def format_announcement(
     group_topic: str | None,
     pair_topics: list[tuple[str, str, str]],
     discord_user_ids: dict[str, str] | None = None,
+    yuru_talk_url: str | None = None,
 ) -> str:
     """Render the Discord announcement in ふぁいにゃ's voice (docs/fainya-persona.md).
 
@@ -492,6 +555,10 @@ def format_announcement(
         lines.append("")
         lines.append("💡 盛り上がりそうな話題:")
         lines.extend(f"- {t}" for t in topic_lines)
+
+    if yuru_talk_url:
+        lines.append("")
+        lines.append(f"🗨️ 話題のきっかけはこちら: {yuru_talk_url}")
 
     return "\n".join(lines)
 
@@ -622,6 +689,10 @@ def main() -> int:
         member_inputs = [member_topic_input(n) for n in match["members"]]
         match["group_topic"] = build_topic_suggestion(member_inputs)
         match["pair_topics"] = pairwise_topics(member_inputs) if len(member_inputs) > 2 else []
+        match["common_tags"] = build_common_tags(member_inputs)
+        # Generated up front (not by the DB default) so the ゆるトーク link can go in the same
+        # Discord announcement message that creates this row -- see the group insert below.
+        match["group_id"] = str(uuid.uuid4())
 
     print(f"Opted-in & due: {len(due_nicknames)} / matched this run: {len(matches)}")
     for match in matches:
@@ -650,6 +721,12 @@ def main() -> int:
         discord_user_ids = resolve_discord_user_ids(due_nicknames, guild_display_name_ids, name_overrides)
 
     for match in matches:
+        group_id = match["group_id"]
+        yuru_talk_url = f"{SITE_BASE_URL}/?view=yuru-talk&group={group_id}"
+        common_tags = enrich_common_tags_with_questions_and_news(
+            match.get("common_tags", []), supabase_url, service_role_key, fetch_news=True,
+        )
+
         message_id = None
         posted_at = None
         if args.post_to_discord:
@@ -657,6 +734,7 @@ def main() -> int:
                 mentioned_ids = [discord_user_ids[n] for n in match["members"] if n in discord_user_ids]
                 content = format_announcement(
                     match, match.get("group_topic"), match.get("pair_topics", []), discord_user_ids,
+                    yuru_talk_url=yuru_talk_url,
                 )
                 message_id = discord_post(channel_id, bot_token, content, mentioned_ids)
                 posted_at = datetime.now(timezone.utc).isoformat()
@@ -666,25 +744,38 @@ def main() -> int:
                     "Skipping Discord post; the match is still recorded.",
                 )
 
-        group_res = supabase_request(
+        supabase_request(
             "POST",
             f"{supabase_url}/rest/v1/member_match_groups",
             service_role_key,
             body=[{
+                "id": group_id,
                 "day_of_week": match["day_of_week"],
                 "time_slot": match["time_slot"],
                 "discord_message_id": message_id,
                 "posted_at": posted_at,
             }],
-            prefer="return=representation",
+            prefer="return=minimal",
         )
-        group_id = group_res[0]["id"]
 
         supabase_request(
             "POST",
             f"{supabase_url}/rest/v1/member_match_group_members",
             service_role_key,
             body=[{"group_id": group_id, "member_nickname": n} for n in match["members"]],
+            prefer="return=minimal",
+        )
+
+        supabase_request(
+            "POST",
+            f"{supabase_url}/rest/v1/member_match_group_topics",
+            service_role_key,
+            body=[{
+                "group_id": group_id,
+                "group_topic": match.get("group_topic"),
+                "pair_topics": [{"a": a, "b": b, "topic": t} for a, b, t in match.get("pair_topics", [])],
+                "common_tags": common_tags,
+            }],
             prefer="return=minimal",
         )
 

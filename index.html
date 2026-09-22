@@ -569,6 +569,118 @@
       font-size: 13px; font-weight: bold; color: #374151;
       margin: 18px 0 10px;
     }
+    /* ---- ゆるトーク (共通タグ・会話きっかけ質問・関連ニュース) ---- */
+    #yuru-talk-view {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
+      background: #f3f4f6;
+      display: none;
+    }
+    #yuru-talk-body {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+    .yuru-talk-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #111827;
+      margin: 0 0 4px;
+    }
+    .yuru-talk-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 18px;
+    }
+    .yuru-talk-members {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .yuru-talk-member-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 5px 12px 5px 5px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+    .yuru-talk-member-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #dbeafe; color: #1e40af;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: bold; overflow: hidden; flex-shrink: 0;
+    }
+    .yuru-talk-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .yuru-talk-card {
+      background: white;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .yuru-talk-card-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+      margin: 0 0 10px;
+    }
+    .yuru-talk-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .yuru-talk-tag {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #374151;
+      cursor: pointer;
+    }
+    .yuru-talk-tag.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: white;
+    }
+    .yuru-talk-tag-count {
+      font-weight: normal;
+      opacity: 0.75;
+      margin-left: 2px;
+    }
+    .yuru-talk-questions { list-style: none; margin: 0; padding: 0; }
+    .yuru-talk-questions li {
+      font-size: 13px;
+      color: #1f2937;
+      padding: 8px 0;
+      border-top: 1px solid #f3f4f6;
+    }
+    .yuru-talk-questions li:first-child { border-top: none; padding-top: 2px; }
+    .yuru-talk-news-item { display: block; padding: 8px 0; border-top: 1px solid #f3f4f6; text-decoration: none; }
+    .yuru-talk-news-item:first-child { border-top: none; padding-top: 2px; }
+    .yuru-talk-news-title { font-size: 12.5px; color: #1d4ed8; line-height: 1.5; }
+    .yuru-talk-news-source { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .yuru-talk-empty { font-size: 12px; color: #9ca3af; padding: 4px 0; }
+    .yuru-talk-topic-line { font-size: 13px; color: #1f2937; margin: 0 0 6px; }
+    .yuru-talk-error {
+      text-align: center;
+      color: #6b7280;
+      font-size: 13px;
+      padding: 60px 16px;
+    }
+    @media (max-width: 480px) {
+      #yuru-talk-body { padding: 16px 12px 40px; }
+      .yuru-talk-card { padding: 12px 14px; }
+    }
+
     /* ---- Usage guide view ---- */
     #usage-view {
       background: #ffffff;
@@ -1886,6 +1998,10 @@
   <div id="usage-body"></div>
 </div>
 
+<div id="yuru-talk-view">
+  <div id="yuru-talk-body"></div>
+</div>
+
 <img id="mascot-fainya" src="assets/fainya-mascot.png" alt="" aria-hidden="true">
 <img id="mascot-fainya-2" src="assets/fainya2-mascot.png" alt="" aria-hidden="true">
 
@@ -2645,12 +2761,22 @@ function goToMemberGrid() {
 
 function selectView(view) {
   if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
+  const isYuruTalk = view === 'yuru-talk';
   const isMap = view === 'map';
   const isCommunity = view === 'community';
   const isEvents = view === 'events';
   const isBookshelf = view === 'bookshelf';
   const isUsage = view === 'usage';
-  const isDirectory = !isMap && !isCommunity && !isEvents && !isBookshelf && !isUsage;
+  const isDirectory = !isYuruTalk && !isMap && !isCommunity && !isEvents && !isBookshelf && !isUsage;
+
+  // ゆるトークはDiscordの告知メッセージから直接開く共有リンク専用ページなので、通常のタブ
+  // ナビゲーション(#view-tabs)ごと隠して単独ページとして表示する。
+  document.getElementById('view-tabs').style.display = isYuruTalk ? 'none' : 'flex';
+  document.getElementById('yuru-talk-view').style.display = isYuruTalk ? 'block' : 'none';
+  if (isYuruTalk) {
+    renderYuruTalkView(new URLSearchParams(location.search).get('group'));
+    return;
+  }
 
   document.getElementById('tab-map').classList.toggle('active', isMap);
   document.getElementById('tab-directory').classList.toggle('active', isDirectory);
@@ -6457,6 +6583,202 @@ function buildCommunityPostsSection(member) {
 
   return wrap;
 }
+
+// ゆるトーク画面: Discordのマッチング告知メッセージから直接開く、URLを知っていれば誰でも
+// 見られる共有ページ(かずさんの判断、ログイン機構は作らない)。表示データはマッチング成立
+// と同時にscripts/run_member_matching.pyが書き込んだmember_match_group_topicsのスナップ
+// ショットをそのまま読むだけで、この画面側では何も計算しない。
+async function renderYuruTalkView(groupId) {
+  const body = document.getElementById('yuru-talk-body');
+  body.innerHTML = '<div class="yuru-talk-error">読み込み中…</div>';
+  if (!groupId) {
+    body.innerHTML = '<div class="yuru-talk-error">グループが指定されていません。Discordのマッチング告知メッセージのリンクから開いてください。</div>';
+    return;
+  }
+
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+  let members, topicsRows;
+  try {
+    const [membersRes, topicsRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/member_match_group_members?group_id=eq.${encodeURIComponent(groupId)}&select=member_nickname`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/member_match_group_topics?group_id=eq.${encodeURIComponent(groupId)}&select=group_topic,pair_topics,common_tags`, { headers }),
+    ]);
+    members = await membersRes.json();
+    topicsRows = await topicsRes.json();
+  } catch (err) {
+    body.innerHTML = '<div class="yuru-talk-error">読み込みに失敗しました。時間をおいて開き直してみてください。</div>';
+    return;
+  }
+
+  if (!Array.isArray(members) || members.length === 0) {
+    body.innerHTML = '<div class="yuru-talk-error">このグループが見つかりませんでした。リンクが古いか、まだ準備中の可能性があります。</div>';
+    return;
+  }
+
+  const nicknames = members.map(m => m.member_nickname);
+  let profileByNickname = {};
+  try {
+    const params = new URLSearchParams({
+      select: 'nickname,avatar_url',
+      nickname: `in.(${nicknames.map(n => `"${n.replace(/"/g, '\\"')}"`).join(',')})`,
+    });
+    const profilesRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?${params.toString()}`, { headers });
+    const profiles = await profilesRes.json();
+    if (Array.isArray(profiles)) profileByNickname = Object.fromEntries(profiles.map(p => [p.nickname, p]));
+  } catch (err) {
+    // プロフィール(アイコン)が引けなくても、ニックネームだけで表示は続行する。
+  }
+
+  const topics = (topicsRows && topicsRows[0]) || { group_topic: null, pair_topics: [], common_tags: [] };
+  const commonTags = Array.isArray(topics.common_tags) ? topics.common_tags : [];
+
+  body.innerHTML = '';
+
+  const title = document.createElement('h1');
+  title.className = 'yuru-talk-title';
+  title.textContent = '🗨️ ゆるトーク';
+  body.appendChild(title);
+
+  const subtitle = document.createElement('p');
+  subtitle.className = 'yuru-talk-subtitle';
+  subtitle.textContent = 'マッチしたメンバーの共通の興味・関心をもとに、気軽に会話をはじめてみましょう。';
+  body.appendChild(subtitle);
+
+  const memberRow = document.createElement('div');
+  memberRow.className = 'yuru-talk-members';
+  nicknames.forEach(nickname => {
+    const chip = document.createElement('div');
+    chip.className = 'yuru-talk-member-chip';
+    const avatar = document.createElement('span');
+    avatar.className = 'yuru-talk-member-avatar';
+    const avatarUrl = (profileByNickname[nickname] || {}).avatar_url;
+    if (avatarUrl) {
+      const img = document.createElement('img');
+      img.src = avatarUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = nickname.slice(0, 1);
+    }
+    chip.appendChild(avatar);
+    chip.appendChild(document.createTextNode(nickname));
+    memberRow.appendChild(chip);
+  });
+  body.appendChild(memberRow);
+
+  if (topics.group_topic || (topics.pair_topics || []).length) {
+    const topicCard = document.createElement('div');
+    topicCard.className = 'yuru-talk-card';
+    const heading = document.createElement('p');
+    heading.className = 'yuru-talk-card-title';
+    heading.textContent = '💡 盛り上がりそうな話題';
+    topicCard.appendChild(heading);
+    if (topics.group_topic) {
+      const line = document.createElement('p');
+      line.className = 'yuru-talk-topic-line';
+      line.textContent = `(全員) ${topics.group_topic}`;
+      topicCard.appendChild(line);
+    }
+    (topics.pair_topics || []).forEach(pt => {
+      if (pt.topic === topics.group_topic) return;
+      const line = document.createElement('p');
+      line.className = 'yuru-talk-topic-line';
+      line.textContent = `(${pt.a}さん×${pt.b}さん) ${pt.topic}`;
+      topicCard.appendChild(line);
+    });
+    body.appendChild(topicCard);
+  }
+
+  if (!commonTags.length) {
+    const empty = document.createElement('div');
+    empty.className = 'yuru-talk-card';
+    empty.innerHTML = '<p class="yuru-talk-empty">今回は共通のタグが見つかりませんでした。上の話題や自己紹介ページを参考に話してみてください。</p>';
+    body.appendChild(empty);
+    return;
+  }
+
+  const tagCard = document.createElement('div');
+  tagCard.className = 'yuru-talk-card';
+  const tagHeading = document.createElement('p');
+  tagHeading.className = 'yuru-talk-card-title';
+  tagHeading.textContent = `共通の話題 (${nicknames.length}人中、選んで話題をチェックしてみましょう)`;
+  tagCard.appendChild(tagHeading);
+  const tagRow = document.createElement('div');
+  tagRow.className = 'yuru-talk-tags';
+  tagCard.appendChild(tagRow);
+  body.appendChild(tagCard);
+
+  const detailCard = document.createElement('div');
+  detailCard.className = 'yuru-talk-card';
+  body.appendChild(detailCard);
+
+  function renderTagDetail(tag) {
+    detailCard.innerHTML = '';
+
+    const qHeading = document.createElement('p');
+    qHeading.className = 'yuru-talk-card-title';
+    qHeading.textContent = `「${tag.value}」で話してみましょう`;
+    detailCard.appendChild(qHeading);
+
+    const qList = document.createElement('ul');
+    qList.className = 'yuru-talk-questions';
+    (tag.questions || []).forEach(q => {
+      const li = document.createElement('li');
+      li.textContent = q;
+      qList.appendChild(li);
+    });
+    detailCard.appendChild(qList);
+
+    const newsHeading = document.createElement('p');
+    newsHeading.className = 'yuru-talk-card-title';
+    newsHeading.style.marginTop = '16px';
+    newsHeading.textContent = '📰 関連ニュース';
+    detailCard.appendChild(newsHeading);
+
+    const news = tag.news || [];
+    if (!news.length) {
+      const empty = document.createElement('p');
+      empty.className = 'yuru-talk-empty';
+      empty.textContent = '関連するニュースは見つかりませんでした。';
+      detailCard.appendChild(empty);
+    } else {
+      news.forEach(article => {
+        const a = document.createElement('a');
+        a.className = 'yuru-talk-news-item';
+        a.href = article.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'yuru-talk-news-title';
+        titleEl.textContent = article.title;
+        const sourceEl = document.createElement('div');
+        sourceEl.className = 'yuru-talk-news-source';
+        sourceEl.textContent = article.source || '';
+        a.appendChild(titleEl);
+        a.appendChild(sourceEl);
+        detailCard.appendChild(a);
+      });
+    }
+  }
+
+  commonTags.forEach((tag, index) => {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'yuru-talk-tag' + (index === 0 ? ' active' : '');
+    pill.innerHTML = `${tag.label}: ${tag.value} <span class="yuru-talk-tag-count">${tag.count}/${nicknames.length}</span>`;
+    pill.addEventListener('click', () => {
+      tagRow.querySelectorAll('.yuru-talk-tag').forEach(el => el.classList.remove('active'));
+      pill.classList.add('active');
+      renderTagDetail(tag);
+    });
+    tagRow.appendChild(pill);
+  });
+
+  renderTagDetail(commonTags[0]);
+}
+
+selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 </script>
 </body>
 </html>
