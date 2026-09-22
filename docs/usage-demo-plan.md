@@ -41,6 +41,9 @@ PlaywrightでFIREコミュニティマップを操作しながら画面キャプ
 - `guide-07-links.png`: リンク編集。
 - `guide-07b-member-posts-remove.png`: メンバー詳細に紐づく投稿の非表示操作。
 - `guide-07c-location-map.png`: 居住地編集とメンバー地図への反映。
+- `guide-15-yuru-matching-modal.png`: メンバータブで表示される本人確認ポップアップ。
+- `guide-15-yuru-matching-identity.png`: ゆるマッチング設定前の本人設定表示。
+- `guide-16-yuru-matching-settings.png`: ゆるマッチングの参加ON/OFF、頻度、曜日×時間帯、特定日の例外設定。
 - `guide-08-map-member.png`: 地図タブのメンバーレイヤー。
 - `guide-09-map-travel.png`: 地図タブの旅行グルメレイヤー。
 - `guide-10-events-upcoming.png`: 開催予定イベント。
