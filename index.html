@@ -2934,6 +2934,50 @@ function usageVideoBlock() {
   `;
 }
 
+const YURU_MATCHING_VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/usage-guide-media/yuru-matching-guide.mp4`;
+const YURU_MATCHING_VIDEO_CHAPTERS = [
+  { t: 0, label: '全体像' },
+  { t: 19, label: 'ニックネームを選ぶ' },
+  { t: 30, label: '誰として表示中か確認' },
+  { t: 43, label: '参加設定・空き時間登録' },
+  { t: 60, label: 'マッチ成立の通知' },
+  { t: 73, label: 'ゆるトーク画面を開く' },
+  { t: 85, label: '候補日への投票' },
+  { t: 100, label: '候補日が合わない場合' },
+  { t: 108, label: 'スレッドでの確認投稿' },
+  { t: 120, label: '開催決定・ボイスチャンネル' },
+  { t: 141, label: 'まとめ' },
+];
+
+function seekYuruMatchingVideo(seconds) {
+  const video = document.getElementById('yuru-matching-guide-video');
+  if (!video) return;
+  video.currentTime = seconds;
+  video.play();
+}
+
+function usageYuruMatchingVideoBlock() {
+  const chapterItems = YURU_MATCHING_VIDEO_CHAPTERS.map(c => `
+    <li>
+      <button type="button" class="usage-video-chapter" onclick="seekYuruMatchingVideo(${c.t})">
+        <span class="usage-video-chapter-time">${formatUsageVideoTime(c.t)}</span>
+        <span class="usage-video-chapter-label">${c.label}</span>
+      </button>
+    </li>
+  `).join('');
+  return `
+    <div class="usage-video-block">
+      <p class="usage-video-hint">動画で見たい方はこちら（音声解説つき、約2分半）</p>
+      <video id="yuru-matching-guide-video" class="usage-video" controls preload="metadata">
+        <source src="${YURU_MATCHING_VIDEO_URL}" type="video/mp4">
+      </video>
+      <ol class="usage-video-chapters">
+        ${chapterItems}
+      </ol>
+    </div>
+  `;
+}
+
 const DISCORD_GUIDE_VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/usage-guide-media/discord-guide.mp4`;
 const DISCORD_GUIDE_CHAPTERS = [
   { t: 0, label: '全体像' },
@@ -3149,6 +3193,7 @@ function renderUsageView() {
           <section class="usage-doc-section" id="usage-yuru-matching">
             <h2>ゆるマッチングを設定する</h2>
             <p>ゆるマッチングは、空いている曜日・時間帯が合うメンバー同士をDiscordの専用チャンネルで紹介する機能です。参加したい場合は、まず自分のニックネームを選び、自分のプロフィール詳細画面から参加ON/OFF、頻度、空いている時間帯を設定します。</p>
+            ${usageYuruMatchingVideoBlock()}
             <div class="usage-step-block" id="usage-yuru-matching-modal">
               <h3>1. メンバータブで自分のニックネームを選ぶ</h3>
               <p>メンバータブを開くと、「あなたのニックネームは？」というポップアップが表示されます。入力欄から自分のニックネームを選び、「設定する」を押してください。あとで閉じた場合でも、未設定のままなら次にメンバータブを開いた時や「ざっと見る」に戻った時に再表示されます。</p>
@@ -3166,8 +3211,10 @@ function renderUsageView() {
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-after">
               <h3>4. マッチしたらDiscordの「ゆるマッチング」チャンネルに通知が来る</h3>
-              <p>条件が合うメンバーが見つかると、Botが「#ゆるマッチング」チャンネルにマッチ相手を紹介する投稿をします。同じ投稿に「🗨️ 話題のきっかけはこちら」というリンクが付いており、クリックするとメンバー間の共通タグや話せそうなテーマ、関連ニュースを見られる専用ページ(ゆるトーク画面)が開きます。</p>
-              ${usageFigure('docs/usage-screenshots/guide-19-yuru-talk-page.jpg', 'ゆるトーク画面', '話題のきっかけリンクを開くと、共通タグ・会話きっかけ質問・関連ニュースが表示されます。当日話すときのネタとして使えます。')}
+              <p>条件が合うメンバーが見つかると、Botが「#ゆるマッチング」チャンネルにマッチ相手を紹介する投稿をします。投稿には盛り上がりそうな話題の候補と、「🗨️ 話題のきっかけはこちら」というリンクが付いています。</p>
+              ${usageFigure('docs/usage-screenshots/guide-19b-yuru-matching-announcement.png', 'マッチ成立の紹介投稿', 'Botがマッチしたメンバーと話題の候補、話題のきっかけリンクを紹介する投稿をします。')}
+              <p>「話題のきっかけはこちら」のリンクをクリックすると、メンバー間の共通タグや話せそうなテーマ、関連ニュースを見られる専用ページ(ゆるトーク画面)が開きます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-19-yuru-talk-page.jpg', 'ゆるトーク画面', 'リンクを開くと、共通タグ・会話きっかけ質問・関連ニュースが表示されます。当日話すときのネタとして使えます。')}
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-poll">
               <h3>5. 候補日にリアクションで投票する</h3>
