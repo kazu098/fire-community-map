@@ -4758,7 +4758,7 @@ const MATCHING_DAYS = [
 // 空き時間の登録は1時間単位(7時〜23時。深夜0〜6時は対象外)。「特定日の例外」グリッド
 // (旧OVERRIDE_HOURS)と同じ範囲を共有している。以前は午前/午後/夜の3段階だったが、
 // 「夜21時開始は遅い」というフィードバック(itチームDiscord、2026-09-23)を受けて
-// 1時間刻みに統一した。既存データは午前→9-11時、午後→13-17時、夜→18-19時として
+// 1時間刻みに統一した。既存データは午前→9-11時、午後→13-17時、夜→18-20時として
 // 移行する(supabase/member_availability_hourly_migration.sql参照)。
 const MATCHING_HOURS = Array.from({ length: 17 }, (_, h) => h + 7);
 const MATCHING_INTERVAL_OPTIONS = [

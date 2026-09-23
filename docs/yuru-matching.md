@@ -22,7 +22,7 @@
 ## データモデル(`supabase/member_matching.sql`)
 
 - `member_matching_settings`: メンバーごとの参加フラグ(`opted_in`)とマッチング頻度(`interval_days`: 2/3/7/14/30日)。`last_matched_at` はバッチ(service role)のみが更新する。
-- `member_availability`: 曜日(`day_of_week`)×時間(`hour`、0〜23の整数、1時間単位)の自己申告スロット。UIは7時〜23時のみ表示(`MATCHING_HOURS`)。以前は午前/午後/夜の3段階(`time_slot`)だったが、「夜21:00開始は遅い」というフィードバック(itチームDiscord、2026-09-23、たびおさんの提案)を受けて1時間刻みに変更した。既存データは午前→9-11時・午後→13-17時・夜→18-19時として移行し(`supabase/member_availability_hourly_migration.sql`、18時は昼夜どちらの範囲にも意図的に重複)、以降は各自「特定日の例外」と同じ1時間グリッドで手動調整する運用にした。`member_match_groups`もマッチング時に選ばれた共通の`hour`を1列で保持する(旧`time_slot`列から置き換え)。
+- `member_availability`: 曜日(`day_of_week`)×時間(`hour`、0〜23の整数、1時間単位)の自己申告スロット。UIは7時〜23時のみ表示(`MATCHING_HOURS`)。以前は午前/午後/夜の3段階(`time_slot`)だったが、「夜21:00開始は遅い」というフィードバック(itチームDiscord、2026-09-23、たびおさんの提案)を受けて1時間刻みに変更した。既存データは午前→9-11時・午後→13-17時・夜→18-20時として移行し(`supabase/member_availability_hourly_migration.sql`、18時は昼夜どちらの範囲にも意図的に重複)、以降は各自「特定日の例外」と同じ1時間グリッドで手動調整する運用にした。`member_match_groups`もマッチング時に選ばれた共通の`hour`を1列で保持する(旧`time_slot`列から置き換え)。
 - `member_match_groups` / `member_match_group_members`: マッチング結果の履歴。1グループ1行(`member_match_groups`)+所属メンバーの中間テーブル(`member_match_group_members`)という構成にしているのは、固定の`member_a`/`member_b`列だとグループサイズを変える度にスキーマ変更が必要になるため。再マッチングのクールダウン判定(60日、グループ内の全2人組み合わせが対象)と、Discordへの投稿状況(`discord_message_id`)の監査ログを兼ねる。
 
 既存の `member_tags`/`member_links` と同様オープン編集(anon write可)だが、書き込み範囲は列単位で絞ってある。`opted_in`/`interval_days` の更新をPostgRESTの `resolution=merge-duplicates` upsertで行うため、conflict対象列(`member_nickname`)と、`set_updated_at` トリガーが書き込む `updated_at` にも `UPDATE` 権限が必要な点に注意(値は実質変わらないが、Postgresは列単位の権限チェックをトリガー代入にも適用する)。

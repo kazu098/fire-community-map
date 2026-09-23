@@ -10,7 +10,7 @@
 -- することにした。既存データの引き継ぎルール(かずさんとの相談で決定):
 --   morning   -> 9, 10, 11 時   (9:00-12:00)
 --   afternoon -> 13, 14, 15, 16, 17 時 (13:00-18:00)
---   evening   -> 18, 19 時      (18:00-20:00)
+--   evening   -> 18, 19, 20 時  (18:00-21:00)
 -- 18時が昼/夜どちらのレンジにも含まれるのは意図的な重複(昼の遅め〜夜の早めを取りこぼさ
 -- ないため)。移行後は各自「特定日の例外」と同じ1時間グリッドで手動調整してもらう運用。
 
@@ -37,7 +37,7 @@ begin
       unnest(case m.time_slot
         when 'morning' then array[9, 10, 11]
         when 'afternoon' then array[13, 14, 15, 16, 17]
-        when 'evening' then array[18, 19]
+        when 'evening' then array[18, 19, 20]
       end) as h
     where m.hour is null;
 
