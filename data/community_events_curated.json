@@ -484,5 +484,20 @@
     "discord_channel_name": "オフ会",
     "discord_message_id": "1550045687524229170",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1550045687524229170"
+  },
+  {
+    "title": "9/29 葉山オフ会（BBQ）",
+    "tags": ["オフ会", "神奈川", "BBQ", "葉山"],
+    "starts_at": "2026-09-29T12:00:00+09:00",
+    "ends_at": "2026-09-29T20:00:00+09:00",
+    "format": "offline",
+    "prefecture": "神奈川県",
+    "location_label": "葉山（Champagne Bar Ingalleon周辺）",
+    "participant_count": 4,
+    "participation_note": "スレ主のみかんさん、たびおさん、Aki、閣下さんらが参加予定。JR逗子駅・逗子海岸からバスかタクシーで葉山入りしてBBQを行う。当日は新横浜のホテルに宿泊し、翌日の鎌倉観光や横浜・都内での2次会も検討されている。",
+    "summary": "神奈川県葉山でのBBQオフ会。逗子駅からバス・タクシーでアクセスし、Champagne Bar Ingalleon周辺でBBQを予定。当日は新横浜のホテルに宿泊し、翌日は鎌倉観光を検討するメンバーもいる。",
+    "discord_channel_name": "イベント用フォーラム",
+    "discord_message_id": "1552130038886039658",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1546043982394691634/1552130038886039658"
   }
 ]
