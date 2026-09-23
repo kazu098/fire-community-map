@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Availability-based random matching batch (ゆるマッチング).
 
-Groups opted-in members whose availability (weekday x time-of-day slot)
+Groups opted-in members whose availability (weekday x hour, 1-hour granularity)
 overlaps, at random -- no tag/embedding similarity involved. See GitHub
 issue #76 for the design background. Groups are always exactly GROUP_SIZE
 members (4); if fewer than that many compatible members are found in a
@@ -10,8 +10,8 @@ smaller group.
 
 For each member whose matching interval has elapsed (member_matching_settings
 .last_matched_at + interval_days <= today, or never matched):
-  1. Collect their registered availability slots (member_availability).
-  2. Randomly group eligible members who all share at least one slot,
+  1. Collect their registered availability hours (member_availability).
+  2. Randomly group eligible members who all share at least one hour,
      skipping any pair that was grouped together within the cooldown
      window (member_match_groups / member_match_group_members).
   3. Record the group in member_match_groups(+member_match_group_members)
@@ -79,12 +79,8 @@ DAY_LABELS = {
     "mon": "月", "tue": "火", "wed": "水", "thu": "木",
     "fri": "金", "sat": "土", "sun": "日",
 }
-SLOT_LABELS = {"morning": "午前", "afternoon": "午後", "evening": "夜"}
 # Weekday index (Monday=0, matching datetime.weekday()) for each day_of_week key.
 DAY_TO_WEEKDAY = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
-# A concrete clock time (JST) to propose for each loose time_slot, since availability
-# is only ever collected as a slot, not an exact time.
-SLOT_TIMES = {"morning": (10, 0), "afternoon": (14, 0), "evening": (21, 0)}
 DATE_OPTION_EMOJI = ["1️⃣", "2️⃣", "3️⃣"]
 
 # Categories worth surfacing as a shared-interest conversation starter, in
@@ -319,6 +315,16 @@ def _strip_trailing_decoration(name: str) -> str:
     return _TRAILING_DECORATION_RE.sub("", name).strip()
 
 
+def _dedecorated_unique_name_ids(guild_display_name_ids: dict[str, str]) -> dict[str, str]:
+    """De-decorated display name -> user id, keeping only unambiguous normalized names."""
+    by_name: dict[str, list[str]] = {}
+    for display_name, user_id in guild_display_name_ids.items():
+        dedecorated = _strip_trailing_decoration(display_name)
+        if dedecorated and dedecorated != display_name:
+            by_name.setdefault(dedecorated, []).append(user_id)
+    return {name: ids[0] for name, ids in by_name.items() if len(set(ids)) == 1}
+
+
 def load_discord_name_overrides(path: Path) -> dict[str, str]:
     """De-decorated site nickname -> curated Discord display name, from config/member_discord_name_map.csv.
 
@@ -344,10 +350,14 @@ def resolve_discord_user_ids(
     guild_display_name_ids: dict[str, str],
     name_overrides: dict[str, str],
 ) -> dict[str, str]:
-    """Site nickname -> Discord user id, trying an exact match first, then the curated override map."""
+    """Site nickname -> Discord user id, trying exact, normalized, then curated override matches."""
     resolved: dict[str, str] = {}
+    dedecorated_name_ids = _dedecorated_unique_name_ids(guild_display_name_ids)
     for nickname in nicknames:
         user_id = guild_display_name_ids.get(nickname)
+        if not user_id:
+            dedecorated_nickname = _strip_trailing_decoration(nickname)
+            user_id = dedecorated_name_ids.get(dedecorated_nickname)
         if not user_id:
             override_display_name = name_overrides.get(_strip_trailing_decoration(nickname))
             if override_display_name:
@@ -366,11 +376,11 @@ def is_due(setting: dict[str, Any], now: datetime) -> bool:
     return now - last >= timedelta(days=interval_days)
 
 
-def build_slot_index(availability: list[dict[str, Any]]) -> dict[str, set[tuple[str, str]]]:
-    """member_nickname -> set of (day_of_week, time_slot)."""
-    index: dict[str, set[tuple[str, str]]] = {}
+def build_slot_index(availability: list[dict[str, Any]]) -> dict[str, set[tuple[str, int]]]:
+    """member_nickname -> set of (day_of_week, hour)."""
+    index: dict[str, set[tuple[str, int]]] = {}
     for row in availability:
-        index.setdefault(row["member_nickname"], set()).add((row["day_of_week"], row["time_slot"]))
+        index.setdefault(row["member_nickname"], set()).add((row["day_of_week"], row["hour"]))
     return index
 
 
@@ -477,13 +487,13 @@ def enrich_common_tags_with_questions_and_news(
 
 def run_matching(
     eligible_nicknames: list[str],
-    slot_index: dict[str, set[tuple[str, str]]],
+    slot_index: dict[str, set[tuple[str, int]]],
     excluded_pairs: set[frozenset[str]],
     rng: random.Random,
     group_size: int = GROUP_SIZE,
 ) -> list[dict[str, Any]]:
     """Randomly group eligible members into exactly group_size-sized groups who all share an
-    availability slot.
+    availability hour.
 
     Greedy: shuffle the pool, then for each still-unmatched member, greedily add compatible
     candidates (a slot shared with everyone already in the group, and no recent-cooldown pair
@@ -529,11 +539,11 @@ def run_matching(
         if len(group) < group_size:
             continue
 
-        day_of_week, time_slot = rng.choice(sorted(common_slots))
+        day_of_week, hour = rng.choice(sorted(common_slots))
         results.append({
             "members": group,
             "day_of_week": day_of_week,
-            "time_slot": time_slot,
+            "hour": hour,
         })
         matched.update(group)
 
@@ -554,7 +564,7 @@ def format_announcement(
     """
     members = match["members"]
     day = DAY_LABELS.get(match["day_of_week"], match["day_of_week"])
-    slot = SLOT_LABELS.get(match["time_slot"], match["time_slot"])
+    hour = match["hour"]
     discord_user_ids = discord_user_ids or {}
 
     def mention(nickname: str) -> str:
@@ -564,7 +574,7 @@ def format_announcement(
     names = "、".join(mention(n) for n in members)
     lines = [
         f"🐾 {names}がマッチしたにゃ♪",
-        f"みんな「{day}曜{slot}」が空いているみたい",
+        f"みんな「{day}曜{hour}時」が空いているみたい",
     ]
 
     topic_lines = []
@@ -587,14 +597,13 @@ def format_announcement(
     return "\n".join(lines)
 
 
-def next_occurrences(day_of_week: str, time_slot: str, now: datetime, count: int = 3) -> list[datetime]:
-    """The next `count` occurrences of day_of_week at the slot's fixed clock time (JST), one
-    week apart, starting from the first one at least a day out (so there's notice to plan)."""
+def next_occurrences(day_of_week: str, hour: int, now: datetime, count: int = 3) -> list[datetime]:
+    """The next `count` occurrences of day_of_week at the given clock hour (JST), one week
+    apart, starting from the first one at least a day out (so there's notice to plan)."""
     now_jst = now.astimezone(JST)
-    hour, minute = SLOT_TIMES[time_slot]
     target_weekday = DAY_TO_WEEKDAY[day_of_week]
     days_ahead = (target_weekday - now_jst.weekday()) % 7
-    first = now_jst.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=days_ahead)
+    first = now_jst.replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
     if first <= now_jst + timedelta(days=1):
         first += timedelta(days=7)
     return [first + timedelta(weeks=i) for i in range(count)]
@@ -604,10 +613,9 @@ WEEKDAY_KANJI = ["月", "火", "水", "木", "金", "土", "日"]
 OPTION_NUMBERS = ["①", "②", "③"]
 
 
-def format_schedule_proposal(day_of_week: str, time_slot: str, dates: list[datetime]) -> str:
+def format_schedule_proposal(day_of_week: str, hour: int, dates: list[datetime]) -> str:
     day = DAY_LABELS.get(day_of_week, day_of_week)
-    slot = SLOT_LABELS.get(time_slot, time_slot)
-    lines = [f"🐾 {day}曜{slot}が共通しているみたいです！日程を決めましょう。", ""]
+    lines = [f"🐾 {day}曜{hour}時が共通しているみたいです！日程を決めましょう。", ""]
     for number, date in zip(OPTION_NUMBERS, dates):
         weekday_kanji = WEEKDAY_KANJI[date.weekday()]
         lines.append(f"{number} {date.month}/{date.day}({weekday_kanji}) {date.hour:02d}:{date.minute:02d}〜")
@@ -670,7 +678,7 @@ def main() -> int:
             return json.loads(res.read().decode("utf-8"))
 
     settings = get("/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at&opted_in=eq.true")
-    availability = get("/rest/v1/member_availability?select=member_nickname,day_of_week,time_slot")
+    availability = get("/rest/v1/member_availability?select=member_nickname,day_of_week,hour")
     recent_groups = get(
         f"/rest/v1/member_match_groups?select=id&created_at=gte.{quote((now - timedelta(days=COOLDOWN_DAYS)).isoformat())}"
     )
@@ -721,7 +729,7 @@ def main() -> int:
     print(f"Opted-in & due: {len(due_nicknames)} / matched this run: {len(matches)}")
     for match in matches:
         names = " / ".join(match["members"])
-        print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{SLOT_LABELS[match['time_slot']]})")
+        print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{match['hour']}時)")
         if match.get("group_topic"):
             print(f"    group topic: {match['group_topic']}")
         for a, b, topic in match.get("pair_topics", []):
@@ -775,7 +783,7 @@ def main() -> int:
             body=[{
                 "id": group_id,
                 "day_of_week": match["day_of_week"],
-                "time_slot": match["time_slot"],
+                "hour": match["hour"],
                 "discord_message_id": message_id,
                 "posted_at": posted_at,
             }],
@@ -804,8 +812,8 @@ def main() -> int:
         )
 
         if args.post_to_discord and channel_id and bot_token and message_id:
-            dates = next_occurrences(match["day_of_week"], match["time_slot"], now)
-            schedule_content = format_schedule_proposal(match["day_of_week"], match["time_slot"], dates)
+            dates = next_occurrences(match["day_of_week"], match["hour"], now)
+            schedule_content = format_schedule_proposal(match["day_of_week"], match["hour"], dates)
             schedule_message_id = discord_post(channel_id, bot_token, schedule_content)
             for emoji in DATE_OPTION_EMOJI[: len(dates)]:
                 discord_add_reaction(channel_id, schedule_message_id, bot_token, emoji)

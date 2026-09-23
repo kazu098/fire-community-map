@@ -42,7 +42,7 @@ alter table public.member_match_schedules
 comment on table public.member_match_schedules is
   'Date-scheduling follow-up for one member_match_groups row: 3 proposed dates posted as a reaction poll, confirmed once 3+ group members react to the same option, with an optional temporary voice channel for the confirmed date. Written by the matching batch scripts with the service role key only.';
 comment on column public.member_match_schedules.proposed_dates is
-  'The 3 candidate datetimes offered (next 3 occurrences of the group''s matched day-of-week, at a fixed time-of-day for the matched time_slot).';
+  'The 3 candidate datetimes offered (next 3 occurrences of the group''s matched day-of-week, at the group''s matched hour).';
 comment on column public.member_match_schedules.discord_message_id is
   'The reaction-poll message (1️⃣/2️⃣/3️⃣), separate from the original match announcement.';
 comment on column public.member_match_schedules.confirmed_source is
