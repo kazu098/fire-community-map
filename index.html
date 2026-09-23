@@ -1774,21 +1774,25 @@
       font-size: 12px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px;
       background: white;
     }
+    .availability-grid-scroll {
+      overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 4px;
+    }
     .availability-grid {
       display: grid;
-      grid-template-columns: 36px repeat(3, 1fr);
-      gap: 4px;
-      max-width: 360px;
+      grid-template-columns: 28px repeat(17, 28px);
+      gap: 3px;
+      width: max-content;
+      user-select: none;
     }
     .availability-grid .availability-head {
-      font-size: 11px; color: #9ca3af; text-align: center; font-weight: bold;
+      font-size: 10px; color: #9ca3af; text-align: center; font-weight: bold;
     }
     .availability-grid .availability-day-label {
       font-size: 12px; color: #374151; display: flex; align-items: center;
     }
     .availability-cell {
       border: 1px solid #d1d5db; border-radius: 6px; background: white;
-      font-size: 16px; font-weight: bold; padding: 8px 0; cursor: pointer; color: #cbd5e1;
+      font-size: 12px; font-weight: bold; padding: 6px 0; cursor: pointer; color: #cbd5e1;
       transition: background 0.1s, border-color 0.1s;
     }
     .availability-cell:hover:not(:disabled) {
@@ -3433,7 +3437,7 @@ async function loadDirectory() {
     fetchBookshelfBooks(),
     fetch(`${SUPABASE_URL}/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
-    fetch(`${SUPABASE_URL}/rest/v1/member_availability?select=member_nickname,day_of_week,time_slot`,
+    fetch(`${SUPABASE_URL}/rest/v1/member_availability?select=member_nickname,day_of_week,hour`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
     fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?select=member_nickname,override_date,hour,is_available`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
@@ -3467,7 +3471,7 @@ async function loadDirectory() {
 
   const availabilityByNickname = {};
   availability.forEach(a => {
-    (availabilityByNickname[a.member_nickname] ??= []).push({ day_of_week: a.day_of_week, time_slot: a.time_slot });
+    (availabilityByNickname[a.member_nickname] ??= []).push({ day_of_week: a.day_of_week, hour: a.hour });
   });
 
   const availabilityOverridesByNickname = {};
@@ -4751,11 +4755,12 @@ const MATCHING_DAYS = [
   { key: 'sat', label: '土' },
   { key: 'sun', label: '日' },
 ];
-const MATCHING_SLOTS = [
-  { key: 'morning', label: '午前' },
-  { key: 'afternoon', label: '午後' },
-  { key: 'evening', label: '夜' },
-];
+// 空き時間の登録は1時間単位(7時〜23時。深夜0〜6時は対象外)。「特定日の例外」グリッド
+// (旧OVERRIDE_HOURS)と同じ範囲を共有している。以前は午前/午後/夜の3段階だったが、
+// 「夜21時開始は遅い」というフィードバック(itチームDiscord、2026-09-23)を受けて
+// 1時間刻みに統一した。既存データは午前→9-11時、午後→13-17時、夜→18-20時として
+// 移行する(supabase/member_availability_hourly_migration.sql参照)。
+const MATCHING_HOURS = Array.from({ length: 17 }, (_, h) => h + 7);
 const MATCHING_INTERVAL_OPTIONS = [
   { days: 2, label: '2日に1回' },
   { days: 3, label: '3日に1回' },
@@ -4927,10 +4932,10 @@ async function upsertMatchingSettings(nickname, patch) {
   return true;
 }
 
-async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
+async function toggleAvailability(nickname, dayOfWeek, hour, enable) {
   let ok;
   if (enable) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?on_conflict=member_nickname,day_of_week,time_slot`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?on_conflict=member_nickname,day_of_week,hour`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -4938,7 +4943,7 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
         'Content-Type': 'application/json',
         Prefer: 'resolution=ignore-duplicates,return=minimal',
       },
-      body: JSON.stringify([{ member_nickname: nickname, day_of_week: dayOfWeek, time_slot: timeSlot }]),
+      body: JSON.stringify([{ member_nickname: nickname, day_of_week: dayOfWeek, hour }]),
     });
     ok = res.ok;
     if (!ok) console.warn('availability save failed', res.status, await res.text());
@@ -4946,7 +4951,7 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
     const params = new URLSearchParams({
       member_nickname: `eq.${nickname}`,
       day_of_week: `eq.${dayOfWeek}`,
-      time_slot: `eq.${timeSlot}`,
+      hour: `eq.${hour}`,
     });
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?${params.toString()}`, {
       method: 'DELETE',
@@ -4960,8 +4965,50 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
 
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (member) {
-    member.availability = member.availability.filter(a => !(a.day_of_week === dayOfWeek && a.time_slot === timeSlot));
-    if (enable) member.availability.push({ day_of_week: dayOfWeek, time_slot: timeSlot });
+    member.availability = member.availability.filter(a => !(a.day_of_week === dayOfWeek && a.hour === hour));
+    if (enable) member.availability.push({ day_of_week: dayOfWeek, hour });
+  }
+  return true;
+}
+
+// 1回のドラッグ操作で複数マス(同じ曜日の連続する時間)をまとめてON/OFFするためのバッチ版。
+async function toggleAvailabilityBatch(nickname, dayOfWeek, hours, enable) {
+  if (hours.length === 0) return true;
+  let ok;
+  if (enable) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?on_conflict=member_nickname,day_of_week,hour`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=ignore-duplicates,return=minimal',
+      },
+      body: JSON.stringify(hours.map(hour => ({ member_nickname: nickname, day_of_week: dayOfWeek, hour }))),
+    });
+    ok = res.ok;
+    if (!ok) console.warn('availability save failed', res.status, await res.text());
+  } else {
+    const params = new URLSearchParams({
+      member_nickname: `eq.${nickname}`,
+      day_of_week: `eq.${dayOfWeek}`,
+      hour: `in.(${hours.join(',')})`,
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?${params.toString()}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    ok = res.ok;
+    if (!ok) console.warn('availability delete failed', res.status, await res.text());
+  }
+
+  if (!ok) return false;
+
+  const member = directoryMembers.find(m => m.nickname === nickname);
+  if (member) {
+    const hourSet = new Set(hours);
+    member.availability = member.availability.filter(a => !(a.day_of_week === dayOfWeek && hourSet.has(a.hour)));
+    if (enable) hours.forEach(hour => member.availability.push({ day_of_week: dayOfWeek, hour }));
   }
   return true;
 }
@@ -4971,8 +5018,6 @@ async function toggleAvailability(nickname, dayOfWeek, timeSlot, enable) {
 // 提案)を踏まえた機能。曜日×時間帯(午前/午後/夜)の毎週パターンはアプリ全体を1時間刻みにする
 // ほどの負担はかけたくない一方、特定日の例外だけは1時間単位で指定できると便利、という要望に
 // 合わせている。詳細は docs/yuru-matching.md 参照。
-const OVERRIDE_HOURS = Array.from({ length: 17 }, (_, h) => h + 7); // 7時〜23時(深夜0〜6時は対象外)
-
 function formatOverrideDate(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) return dateStr;
@@ -5232,7 +5277,7 @@ function buildAvailabilityOverrideSection(member, { editable }) {
   renderGrid = function renderGridImpl() {
     grid.innerHTML = '';
     const dateStr = dateInput.value;
-    OVERRIDE_HOURS.forEach(hour => {
+    MATCHING_HOURS.forEach(hour => {
       const existing = cellVisualState(dateStr, hour);
       const cell = document.createElement('button');
       cell.type = 'button';
@@ -5303,13 +5348,15 @@ function buildMatchingSection(member) {
     section.appendChild(statusBadge);
 
     if (isOptedIn) {
+      const scroll = document.createElement('div');
+      scroll.className = 'availability-grid-scroll';
       const grid = document.createElement('div');
       grid.className = 'availability-grid';
       grid.appendChild(document.createElement('div'));
-      MATCHING_SLOTS.forEach(slot => {
+      MATCHING_HOURS.forEach(hour => {
         const head = document.createElement('div');
         head.className = 'availability-head';
-        head.textContent = slot.label;
+        head.textContent = String(hour);
         grid.appendChild(head);
       });
       MATCHING_DAYS.forEach(day => {
@@ -5317,15 +5364,15 @@ function buildMatchingSection(member) {
         dayLabel.className = 'availability-day-label';
         dayLabel.textContent = day.label;
         grid.appendChild(dayLabel);
-        MATCHING_SLOTS.forEach(slot => {
-          const isOn = member.availability.some(a => a.day_of_week === day.key && a.time_slot === slot.key);
+        MATCHING_HOURS.forEach(hour => {
+          const isOn = member.availability.some(a => a.day_of_week === day.key && a.hour === hour);
           const cell = document.createElement('div');
           cell.className = `availability-cell readonly${isOn ? ' is-on' : ''}`;
-          cell.textContent = isOn ? '○' : '×';
           grid.appendChild(cell);
         });
       });
-      section.appendChild(grid);
+      scroll.appendChild(grid);
+      section.appendChild(scroll);
     }
     const readonlyOverrideSection = buildAvailabilityOverrideSection(member, { editable: false });
     if (readonlyOverrideSection) section.appendChild(readonlyOverrideSection);
@@ -5386,49 +5433,100 @@ function buildMatchingSection(member) {
   frequencyRow.appendChild(frequencySelect);
   section.appendChild(frequencyRow);
 
+  const scroll = document.createElement('div');
+  scroll.className = 'availability-grid-scroll';
   const grid = document.createElement('div');
   grid.className = 'availability-grid';
   grid.appendChild(document.createElement('div'));
-  MATCHING_SLOTS.forEach(slot => {
+  MATCHING_HOURS.forEach(hour => {
     const head = document.createElement('div');
     head.className = 'availability-head';
-    head.textContent = slot.label;
+    head.textContent = String(hour);
     grid.appendChild(head);
   });
+
+  // 曜日×時間帯(旧: 午前/午後/夜)の3マス程度ならクリック連打でも良かったが、1時間刻み
+  // (7〜23時 x 7曜日 = 119マス)になったので、特定日の例外グリッドと同じドラッグ・ペイント
+  // 方式にしている。mousedownで最初のマスの状態から「今回は登録するのか解除するのか」を
+  // 決め、ドラッグ中に通ったマス(複数の曜日をまたいでもよい)すべてに同じ操作を適用し、
+  // マスを離した時に曜日ごとにまとめて1回のバッチAPI呼び出しで保存する。ドラッグせず
+  // 1マスだけクリックした場合もこの仕組みの中で単なる1マスのドラッグとして扱われる。
+  let dragState = null;
+  const cellsByKey = new Map();
+
+  function cellKey(dayKey, hour) { return `${dayKey}:${hour}`; }
+
+  function paintCell(cell, on) {
+    cell.classList.toggle('is-on', on);
+    cell.textContent = on ? '○' : '×';
+    cell.title = on ? 'クリックで「空きなし」に変更' : 'クリックで「空きあり」に変更';
+    cell.setAttribute('aria-pressed', String(on));
+  }
+
+  function syncGridFromSource() {
+    cellsByKey.forEach((cell, key) => {
+      const [dayKey, hourStr] = key.split(':');
+      const isOn = member.availability.some(a => a.day_of_week === dayKey && a.hour === Number(hourStr));
+      paintCell(cell, isOn);
+    });
+  }
+
+  function finishDrag() {
+    if (!grid.isConnected) {
+      document.removeEventListener('mouseup', finishDrag);
+      dragState = null;
+      return;
+    }
+    if (!dragState) return;
+    const { wantOn, byDay } = dragState;
+    dragState = null;
+    (async () => {
+      status.textContent = '保存中...';
+      let ok = true;
+      for (const [dayKey, hours] of byDay.entries()) {
+        const result = await toggleAvailabilityBatch(member.nickname, dayKey, [...hours], wantOn);
+        if (!result) ok = false;
+      }
+      status.textContent = ok ? '保存しました' : '保存できませんでした';
+      syncGridFromSource();
+    })();
+  }
+  document.addEventListener('mouseup', finishDrag);
+
   MATCHING_DAYS.forEach(day => {
     const dayLabel = document.createElement('div');
     dayLabel.className = 'availability-day-label';
     dayLabel.textContent = day.label;
     grid.appendChild(dayLabel);
-    MATCHING_SLOTS.forEach(slot => {
-      const isOn = member.availability.some(a => a.day_of_week === day.key && a.time_slot === slot.key);
+    MATCHING_HOURS.forEach(hour => {
+      const isOn = member.availability.some(a => a.day_of_week === day.key && a.hour === hour);
       const cell = document.createElement('button');
       cell.type = 'button';
       cell.className = `availability-cell${isOn ? ' is-on' : ''}`;
       cell.textContent = isOn ? '○' : '×';
       cell.title = isOn ? 'クリックで「空きなし」に変更' : 'クリックで「空きあり」に変更';
       cell.setAttribute('aria-pressed', String(isOn));
-      cell.addEventListener('click', async () => {
-        cell.disabled = true;
-        status.textContent = '保存中...';
-        const nextOn = !cell.classList.contains('is-on');
-        const ok = await toggleAvailability(member.nickname, day.key, slot.key, nextOn);
-        if (ok) {
-          cell.classList.toggle('is-on', nextOn);
-          cell.textContent = nextOn ? '○' : '×';
-          cell.title = nextOn ? 'クリックで「空きなし」に変更' : 'クリックで「空きあり」に変更';
-          cell.setAttribute('aria-pressed', String(nextOn));
-        }
-        cell.disabled = false;
-        status.textContent = ok ? '保存しました' : '保存できませんでした';
+      cellsByKey.set(cellKey(day.key, hour), cell);
+      cell.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const wantOn = !cell.classList.contains('is-on');
+        dragState = { wantOn, byDay: new Map([[day.key, new Set([hour])]]) };
+        paintCell(cell, wantOn);
+      });
+      cell.addEventListener('mouseenter', () => {
+        if (!dragState) return;
+        if (!dragState.byDay.has(day.key)) dragState.byDay.set(day.key, new Set());
+        dragState.byDay.get(day.key).add(hour);
+        paintCell(cell, dragState.wantOn);
       });
       grid.appendChild(cell);
     });
   });
-  section.appendChild(grid);
+  scroll.appendChild(grid);
+  section.appendChild(scroll);
   const legend = document.createElement('div');
   legend.className = 'availability-legend';
-  legend.textContent = 'マスをクリックすると ○（空きあり）/ ×（空きなし）が切り替わります。';
+  legend.textContent = 'マスをクリック、またはドラッグすると ○（空きあり）/ ×（空きなし）が切り替わります。';
   section.appendChild(legend);
   section.appendChild(status);
 

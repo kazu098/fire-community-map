@@ -2,12 +2,12 @@
 -- docs/yuru-matching.md and the itチーム Discord thread 2026-09-14/15,
 -- https://discord.com/channels/1389921372683112539/1514597598357491742/1549054660126580778).
 --
--- The recurring day_of_week x time_slot pattern in member_availability (3
--- coarse slots: morning/afternoon/evening) stays the default input. This
--- table lets a member additionally mark specific calendar dates (typically
--- the next 3 weeks to a month) as available or unavailable, at 1-hour
--- granularity, for weeks where their usual pattern doesn't hold. Hourly was
--- chosen over the 3-slot enum here because that's what was actually
+-- The recurring day_of_week x hour pattern in member_availability stays the default
+-- input. This table lets a member additionally mark specific calendar dates (typically
+-- the next 3 weeks to a month) as available or unavailable, at 1-hour granularity, for
+-- weeks where their usual pattern doesn't hold. Hourly was chosen here first (before
+-- member_availability itself moved to hourly granularity in 2026-09-23 -- see
+-- member_availability_hourly_migration.sql) because that's what was actually
 -- requested (Hiro-shi@GL's proposal explicitly says "1時間ごと" is too much
 -- to ask app-wide, but wants it for this specific-date override). Same
 -- open-editing + audit-trail pattern as member_availability (anon

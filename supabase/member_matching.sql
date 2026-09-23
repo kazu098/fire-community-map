@@ -72,8 +72,14 @@ using (true)
 with check (true);
 
 -- ================================================================
--- Availability (weekday x time-of-day slots)
+-- Availability (weekday x hour)
 -- ================================================================
+-- Was originally 3 coarse time_slot values (morning/afternoon/evening); changed to
+-- 1-hour granularity (see itチームDiscord 2026-09-23, たびおさんの提案-- a fixed
+-- 21:00 evening start felt late for some members) to match the hourly grain already
+-- used by member_availability_overrides. For an existing database, apply
+-- member_availability_hourly_migration.sql once instead of this create table
+-- (which only runs on a fresh install).
 
 create table if not exists public.member_availability (
   id uuid primary key default gen_random_uuid(),
@@ -81,15 +87,15 @@ create table if not exists public.member_availability (
   day_of_week text not null check (
     day_of_week in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
   ),
-  time_slot text not null check (
-    time_slot in ('morning', 'afternoon', 'evening')
-  ),
+  hour integer not null check (hour >= 0 and hour <= 23),
   created_at timestamptz not null default now(),
-  unique (member_nickname, day_of_week, time_slot)
+  unique (member_nickname, day_of_week, hour)
 );
 
 comment on table public.member_availability is
-  'Self-reported weekday x time-of-day availability slots for the availability-based random matching (ゆるマッチング) feature. Not tied to similarity/tags.';
+  'Self-reported weekday x hour availability slots for the availability-based random matching (ゆるマッチング) feature. Not tied to similarity/tags.';
+comment on column public.member_availability.hour is
+  'Hour of day in JST (0-23), the start of a 1-hour block. E.g. 10 means 10:00-11:00. The UI only offers 7-23 (see MATCHING_HOURS in index.html), matching member_availability_overrides.';
 
 create index if not exists member_availability_member_nickname_idx
   on public.member_availability (member_nickname);
@@ -133,9 +139,7 @@ create table if not exists public.member_match_groups (
   day_of_week text not null check (
     day_of_week in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
   ),
-  time_slot text not null check (
-    time_slot in ('morning', 'afternoon', 'evening')
-  ),
+  hour integer not null check (hour >= 0 and hour <= 23),
   discord_message_id text,
   posted_at timestamptz,
   created_at timestamptz not null default now()
@@ -143,6 +147,8 @@ create table if not exists public.member_match_groups (
 
 comment on table public.member_match_groups is
   'A matched group (default size 3, falls back to 2) from the availability-based random matching batch. Used to compute the re-match cooldown (via member_match_group_members) and as an audit trail. Written by the batch script with the service role key only.';
+comment on column public.member_match_groups.hour is
+  'The overlapping hour (JST, 0-23) the group shared, chosen at random among their common availability. Was time_slot (morning/afternoon/evening) before member_availability moved to hourly granularity -- see member_availability_hourly_migration.sql.';
 
 create index if not exists member_match_groups_created_at_idx on public.member_match_groups (created_at);
 
