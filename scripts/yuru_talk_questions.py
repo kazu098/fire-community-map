@@ -9,6 +9,12 @@
 
 QUESTION_BANK でカバーしていないタグ値には questions_for_tag() が汎用の
 フォールバック質問を返す。
+
+mbti/fire_status(例: "INTJ-A", "サイドFIRE目指し中")は値が短い記号やラベルで、
+「〜を始めたきっかけは？」のような汎用フォールバックだと不自然になるため、
+category を受け取って専用のフォールバック文言を使う(かずさんのフィードバック、
+2026-09-23: マッチング相手との共通点がインデックス投資だけだと寂しいので、
+共通のMBTI/FIREタイプも会話のきっかけとして活かしたい)。
 """
 
 from __future__ import annotations
@@ -154,10 +160,25 @@ _GENERIC_QUESTIONS = [
     "「{value}」を始めた・興味を持ったきっかけは何ですか？",
 ]
 
+# mbti/fire_status用の専用フォールバック(「INTJ-Aを始めたきっかけ」のような不自然な
+# 文にならないよう、汎用フォールバックとは別に用意している)。
+_CATEGORY_FALLBACK_QUESTIONS: dict[str, list[str]] = {
+    "mbti": [
+        "同じ「{value}」タイプとして、当てはまると思う特徴はありますか？",
+        "MBTIの診断はどこで受けましたか？",
+    ],
+    "fire_status": [
+        "「{value}」というステータスに、今どんな心境ですか？",
+        "そこに至るまでで一番大きかった転機は何でしたか？",
+    ],
+}
 
-def questions_for_tag(value: str) -> list[str]:
-    """タグの値から会話のきっかけ質問を1〜2個返す。QUESTION_BANK未収録なら汎用質問にフォールバック。"""
+
+def questions_for_tag(value: str, category: str | None = None) -> list[str]:
+    """タグの値から会話のきっかけ質問を1〜2個返す。QUESTION_BANK未収録なら、category別の
+    フォールバック(mbti/fire_status)、それも無ければ汎用フォールバックを使う。"""
     curated = QUESTION_BANK.get(value)
     if curated:
         return curated
-    return [q.format(value=value) for q in _GENERIC_QUESTIONS]
+    fallback = _CATEGORY_FALLBACK_QUESTIONS.get(category or "", _GENERIC_QUESTIONS)
+    return [q.format(value=value) for q in fallback]

@@ -6826,6 +6826,16 @@ function buildCommunityPostsSection(member) {
   return wrap;
 }
 
+// 関連記事の公開日を「9/20」のような短い表記にする(タイムゾーン厳密性より見た目の
+// わかりやすさを優先)。日付が取れない記事(RSSのpubDateが欠けている等)ではnullを返し、
+// 呼び出し側でソース名だけ表示する。
+function formatPublishedDate(isoString) {
+  if (!isoString) return null;
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
 // ゆるトーク画面: Discordのマッチング告知メッセージから直接開く、URLを知っていれば誰でも
 // 見られる共有ページ(かずさんの判断、ログイン機構は作らない)。表示データはマッチング成立
 // と同時にscripts/run_member_matching.pyが書き込んだmember_match_group_topicsのスナップ
@@ -6975,14 +6985,14 @@ async function renderYuruTalkView(groupId) {
     const newsHeading = document.createElement('p');
     newsHeading.className = 'yuru-talk-card-title';
     newsHeading.style.marginTop = '16px';
-    newsHeading.textContent = '📰 関連ニュース';
+    newsHeading.textContent = '📰 関連記事';
     detailCard.appendChild(newsHeading);
 
     const news = tag.news || [];
     if (!news.length) {
       const empty = document.createElement('p');
       empty.className = 'yuru-talk-empty';
-      empty.textContent = '関連するニュースは見つかりませんでした。';
+      empty.textContent = '関連する記事は見つかりませんでした。';
       detailCard.appendChild(empty);
     } else {
       news.forEach(article => {
@@ -6996,7 +7006,10 @@ async function renderYuruTalkView(groupId) {
         titleEl.textContent = article.title;
         const sourceEl = document.createElement('div');
         sourceEl.className = 'yuru-talk-news-source';
-        sourceEl.textContent = article.source || '';
+        // publishedAtは新しい順に並んでいるが、見た目でも鮮度がわかるように日付を出す
+        // (「できるだけタイムリーなニュースを表示したい」というフィードバック、2026-09-23)。
+        const publishedLabel = formatPublishedDate(article.published_at);
+        sourceEl.textContent = [article.source, publishedLabel].filter(Boolean).join(' · ');
         a.appendChild(titleEl);
         a.appendChild(sourceEl);
         detailCard.appendChild(a);

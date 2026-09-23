@@ -410,13 +410,15 @@ def build_common_tags(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Unlike build_topic_suggestion (which wants a tag *everyone* shares), this is for the
     "共通タグ" chips shown on the group's ゆるトーク page -- a tag shared by any 2+ members is
     worth surfacing there (count is shown alongside it, e.g. "不動産 3/4"), sorted by how many
-    members share it. mbti/fire_status are excluded: short codes like "INTJ" don't make good
-    news-search or conversation-question material.
+    members share it. mbti/fire_status are included too (as of 2026-09-23): a shared MBTI or
+    FIRE-status tag is already surfaced as a topic hint in the Discord announcement (see
+    _shared_tag_topic), so leaving it out of the ゆるトーク page's common tags made the page look
+    sparse whenever it was the only thing two members had in common -- questions_for_tag() has
+    a dedicated fallback for these two categories, and news is simply skipped for them
+    (NEWS_ELIGIBLE_CATEGORIES) since short codes like "INTJ" don't make good news-search material.
     """
     counts: dict[tuple[str, str], int] = {}
     for category in TOPIC_TAG_CATEGORIES:
-        if category in ("mbti", "fire_status"):
-            continue
         for member in members:
             # A set (not the raw list) so a member with the same value tagged twice in this
             # category still counts as one member sharing it, not two.
@@ -432,6 +434,27 @@ def build_common_tags(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return tags
 
 
+def _select_diverse_tags(common_tags: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    """Pick up to `limit` tags from common_tags (already sorted by count desc), preferring one
+    tag per distinct category before taking a second tag from any category.
+
+    Without this, a group sharing several "interest" values (e.g. ヨガ, 旅行) could fill the
+    whole MAX_YURU_TALK_TAGS budget with same-category tags and crowd out a shared mbti/
+    fire_status tag entirely, even though that one might be the more fun conversation starter --
+    e.g. a group whose only other overlap is investment-related tags felt "寒い" (flat) on the
+    ゆるトーク page despite also sharing an MBTI type (かずさんのフィードバック、2026-09-23).
+    """
+    seen_categories: set[str] = set()
+    primary, rest = [], []
+    for tag in common_tags:
+        if tag["category"] not in seen_categories:
+            primary.append(tag)
+            seen_categories.add(tag["category"])
+        else:
+            rest.append(tag)
+    return (primary + rest)[:limit]
+
+
 def enrich_common_tags_with_questions_and_news(
     common_tags: list[dict[str, Any]],
     supabase_url: str,
@@ -439,12 +462,13 @@ def enrich_common_tags_with_questions_and_news(
     fetch_news: bool,
 ) -> list[dict[str, Any]]:
     """Attach conversation-starter questions (always) and cached/fetched news (best-effort, only
-    for news-eligible categories) to the top MAX_YURU_TALK_TAGS common tags."""
+    for news-eligible categories) to up to MAX_YURU_TALK_TAGS common tags, picked for category
+    diversity (see _select_diverse_tags)."""
     enriched = []
-    for tag in common_tags[:MAX_YURU_TALK_TAGS]:
-        entry = dict(tag, questions=questions_for_tag(tag["value"]))
+    for tag in _select_diverse_tags(common_tags, MAX_YURU_TALK_TAGS):
+        entry = dict(tag, questions=questions_for_tag(tag["value"], tag["category"]))
         if fetch_news and tag["category"] in NEWS_ELIGIBLE_CATEGORIES:
-            entry["news"] = get_or_fetch_topic_news(supabase_url, service_role_key, tag["value"])
+            entry["news"] = get_or_fetch_topic_news(supabase_url, service_role_key, tag["value"], tag["category"])
         else:
             entry["news"] = []
         enriched.append(entry)
