@@ -930,8 +930,10 @@
     }
     .usage-figure img {
       display: block;
-      width: 100%;
+      width: auto;
+      max-width: 100%;
       height: auto;
+      margin: 0 auto;
       background: #f3f4f6;
     }
     .usage-figure figcaption {
@@ -3163,9 +3165,26 @@ function renderUsageView() {
               ${usageFigure('docs/usage-screenshots/guide-16-yuru-matching-settings.png', 'ゆるマッチング設定', '参加ON/OFF、マッチング頻度、曜日×時間帯、特定日の例外をプロフィール詳細から設定します。')}
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-after">
-              <h3>4. マッチしたらDiscordで日程を決める</h3>
-              <p>条件が合うメンバーが見つかると、BotがDiscordのゆるマッチングチャンネルに紹介投稿をします。投稿後はスレッド内で候補日を相談し、候補日がまとまった場合はBotが確認投稿を出します。参加メンバーが確認すると、開催決定として再投稿されます。</p>
-              <div class="usage-note">ゆるマッチングは気軽な会話のきっかけ作りです。設定した空き時間は候補作成の参考に使われますが、実際に集まる日はDiscord上で相談して決められます。</div>
+              <h3>4. マッチしたらDiscordの「ゆるマッチング」チャンネルに通知が来る</h3>
+              <p>条件が合うメンバーが見つかると、Botが「#ゆるマッチング」チャンネルにマッチ相手を紹介する投稿をします。同じ投稿に「🗨️ 話題のきっかけはこちら」というリンクが付いており、クリックするとメンバー間の共通タグや話せそうなテーマ、関連ニュースを見られる専用ページ(ゆるトーク画面)が開きます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-19-yuru-talk-page.jpg', 'ゆるトーク画面', '話題のきっかけリンクを開くと、共通タグ・会話きっかけ質問・関連ニュースが表示されます。当日話すときのネタとして使えます。')}
+            </div>
+            <div class="usage-step-block" id="usage-yuru-matching-poll">
+              <h3>5. 候補日にリアクションで投票する</h3>
+              <p>紹介投稿に続けて、Botが3つの候補日時を1️⃣2️⃣3️⃣のリアクション付きで投稿します。行ける日のリアクションを押してください。3人以上が同じ候補に集まると、その時点で開催決定に進みます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-17-yuru-matching-poll.png', '候補日への投票', '行ける候補日のリアクションを押すだけで投票できます。3人以上集まった候補が採用されます。')}
+            </div>
+            <div class="usage-step-block" id="usage-yuru-matching-thread">
+              <h3>6. 候補日が合わなければスレッドでテキスト相談する</h3>
+              <p>提示された3つの候補日がどれも合わない場合は、そのままスレッド内でテキストで日程を相談して構いません。Botはスレッドの発言も定期的に確認していて、候補日以外の日に3人以上が前向きな発言をしていると検知した場合、「この日で決定する場合は✅」という確認投稿を出します。</p>
+              ${usageFigure('docs/usage-screenshots/guide-17b-yuru-matching-thread-negotiation.png', 'スレッドでの日程相談', '候補日が合わない場合は、スレッド内で普通に日程をやり取りしてOKです。')}
+              ${usageFigure('docs/usage-screenshots/guide-17c-yuru-matching-thread-confirm.png', 'Botによる日程の確認投稿', '候補外の日程でまとまりそうな場合、Botが確認の✅投稿を出します。3人以上が✅すると、その日程で開催決定になります。')}
+            </div>
+            <div class="usage-step-block" id="usage-yuru-matching-confirmed">
+              <h3>7. 3人以上集まると開催決定・専用ボイスチャンネルが作成される</h3>
+              <p>候補日への投票、またはスレッドでの✅確認のいずれかで3人以上集まると、Botが「🎉開催決定！」と投稿し、そのマッチしたメンバーだけが入れる一時的なボイスチャンネルを作成します。当日はそのボイスチャンネルに入って話してください。通話が終わって一定時間経つと、チャンネルは自動的に削除されます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-18-yuru-matching-confirmed.png', '開催決定・専用ボイスチャンネル', '3人以上集まると開催決定になり、そのグループだけが入れる専用のボイスチャンネルが自動で作成されます。')}
+              <div class="usage-note">ゆるマッチングは気軽な会話のきっかけ作りです。設定した空き時間は候補作成の参考に使われますが、実際に集まる日はDiscord上で相談して決められます。どの候補にも3人集まらないまま日程が過ぎた場合は、通知なく静かに終了します。</div>
             </div>
           </section>
 
