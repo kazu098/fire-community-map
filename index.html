@@ -1779,13 +1779,28 @@
     }
     .availability-grid {
       display: grid;
-      grid-template-columns: 28px repeat(17, 28px);
+      grid-template-columns: 32px repeat(17, 28px);
       gap: 3px;
       width: max-content;
       user-select: none;
     }
     .availability-grid .availability-head {
       font-size: 10px; color: #9ca3af; text-align: center; font-weight: bold;
+      min-height: 22px; display: flex; align-items: center; justify-content: center;
+    }
+    .availability-grid .availability-corner {
+      position: relative; min-height: 24px; overflow: hidden;
+    }
+    .availability-grid .availability-corner::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(to top right, transparent calc(50% - 1px), #e5e7eb calc(50% - 1px), #e5e7eb calc(50% + 1px), transparent calc(50% + 1px));
+    }
+    .availability-grid .availability-corner .corner-label-day {
+      position: absolute; left: 1px; bottom: 0; font-size: 7px; color: #9ca3af; line-height: 1; white-space: nowrap;
+    }
+    .availability-grid .availability-corner .corner-label-hour {
+      position: absolute; right: 1px; top: 0; font-size: 7px; color: #9ca3af; line-height: 1; white-space: nowrap;
     }
     .availability-grid .availability-day-label {
       font-size: 12px; color: #374151; display: flex; align-items: center;
@@ -4761,6 +4776,22 @@ const MATCHING_DAYS = [
 // 1時間刻みに統一した。既存データは午前→9-11時、午後→13-17時、夜→18-20時として
 // 移行する(supabase/member_availability_hourly_migration.sql参照)。
 const MATCHING_HOURS = Array.from({ length: 17 }, (_, h) => h + 7);
+
+// 空き時間グリッドの左上マスに、斜線区切りで「曜日/時」の軸ラベルを表示する。
+// 横スクロールを増やさずに軸の意味を伝えるため、列を増やす代わりにこの1マスを使う。
+function buildAvailabilityCornerCell() {
+  const corner = document.createElement('div');
+  corner.className = 'availability-corner';
+  const dayLabel = document.createElement('span');
+  dayLabel.className = 'corner-label-day';
+  dayLabel.textContent = '曜日';
+  const hourLabel = document.createElement('span');
+  hourLabel.className = 'corner-label-hour';
+  hourLabel.textContent = '時';
+  corner.appendChild(dayLabel);
+  corner.appendChild(hourLabel);
+  return corner;
+}
 const MATCHING_INTERVAL_OPTIONS = [
   { days: 2, label: '2日に1回' },
   { days: 3, label: '3日に1回' },
@@ -5352,7 +5383,7 @@ function buildMatchingSection(member) {
       scroll.className = 'availability-grid-scroll';
       const grid = document.createElement('div');
       grid.className = 'availability-grid';
-      grid.appendChild(document.createElement('div'));
+      grid.appendChild(buildAvailabilityCornerCell());
       MATCHING_HOURS.forEach(hour => {
         const head = document.createElement('div');
         head.className = 'availability-head';
@@ -5437,7 +5468,7 @@ function buildMatchingSection(member) {
   scroll.className = 'availability-grid-scroll';
   const grid = document.createElement('div');
   grid.className = 'availability-grid';
-  grid.appendChild(document.createElement('div'));
+  grid.appendChild(buildAvailabilityCornerCell());
   MATCHING_HOURS.forEach(hour => {
     const head = document.createElement('div');
     head.className = 'availability-head';
