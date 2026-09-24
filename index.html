@@ -1779,7 +1779,7 @@
     }
     .availability-grid {
       display: grid;
-      grid-template-columns: 28px repeat(17, 28px);
+      grid-template-columns: 28px repeat(16, 28px) 34px;
       gap: 3px;
       width: max-content;
       user-select: none;
@@ -5353,10 +5353,10 @@ function buildMatchingSection(member) {
       const grid = document.createElement('div');
       grid.className = 'availability-grid';
       grid.appendChild(document.createElement('div'));
-      MATCHING_HOURS.forEach(hour => {
+      MATCHING_HOURS.forEach((hour, i) => {
         const head = document.createElement('div');
         head.className = 'availability-head';
-        head.textContent = String(hour);
+        head.textContent = i === MATCHING_HOURS.length - 1 ? `${hour}時` : String(hour);
         grid.appendChild(head);
       });
       MATCHING_DAYS.forEach(day => {
@@ -5438,10 +5438,10 @@ function buildMatchingSection(member) {
   const grid = document.createElement('div');
   grid.className = 'availability-grid';
   grid.appendChild(document.createElement('div'));
-  MATCHING_HOURS.forEach(hour => {
+  MATCHING_HOURS.forEach((hour, i) => {
     const head = document.createElement('div');
     head.className = 'availability-head';
-    head.textContent = String(hour);
+    head.textContent = i === MATCHING_HOURS.length - 1 ? `${hour}時` : String(hour);
     grid.appendChild(head);
   });
 
