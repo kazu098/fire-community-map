@@ -334,15 +334,16 @@ def confirm_schedule_date(
             except RuntimeError as exc:
                 print(f"  scheduled event creation failed: {exc}")
 
+        mention_prefix = " ".join(f"<@{user_id}>" for user_id in sorted(group_user_ids))
         date_line = (
-            f"🎉 開催決定！{date.month}/{date.day}({matching.WEEKDAY_KANJI[date.weekday()]}) "
+            f"{mention_prefix}\n🎉 開催決定！{date.month}/{date.day}({matching.WEEKDAY_KANJI[date.weekday()]}) "
             f"{date.hour:02d}:{date.minute:02d}〜"
         )
         confirmation = (
             f"{date_line}\n当日はこちらの専用通話部屋（<#{voice_channel_id}>）からどうぞ🔒🎙️（終了後に自動で消えます）"
             if voice_channel_id else date_line
         )
-        matching.discord_post(post_channel_id, bot_token, confirmation)
+        matching.discord_post(post_channel_id, bot_token, confirmation, list(group_user_ids))
         patch_body: dict[str, Any] = {
             "status": "confirmed",
             "confirmed_date": date.isoformat(),
