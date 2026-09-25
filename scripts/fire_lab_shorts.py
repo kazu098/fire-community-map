@@ -21,8 +21,32 @@ from typing import Any
 DEFAULT_WORK_DIR = Path("/private/tmp/fire-lab-shorts")
 CAPTION_GAP_TOLERANCE = 0.35
 CAPTION_EDGE_TOLERANCE = 0.35
-MAX_CAPTION_LINE_CHARS = 15
+# These limits are derived from each ASS style's Fontsize/MarginL/MarginR in
+# write_ass: available_width = 1080 - MarginL - MarginR, and a Hiragino Sans GB
+# CJK glyph advances at ~1.0em, so max_chars = floor(available_width / Fontsize)
+# (measured with PIL against the actual system font). Static text fields
+# (header/hook/footer/topic cards) are single Dialogue lines with no spaces
+# for libass to auto-wrap on, so a line past this limit runs off both edges
+# of the frame instead of wrapping. Caption body lines rely on the same
+# limit, using the smaller of the Default/Accent styles' budgets so either
+# style stays safe.
+MAX_CAPTION_LINE_CHARS = 9
+HEADER_MAX_CHARS = 14
+HOOK_MAX_CHARS = 10
+FOOTER_MAX_CHARS = 19
+TOPIC_CARD_MAX_CHARS = 15
 MAX_CAPTION_CHUNK_CHARS = 26
+# adeclip repairs samples that were hard-clipped in the source recording
+# (digital clipping can't be un-clipped exactly, but interpolating across the
+# flattened peaks removes the audible crackle); afftdn takes the noise floor
+# down a bit. alimiter caps PCM peaks at -6 dBFS, with auto-leveling (its
+# default) turned off -- alimiter's "level" option otherwise renormalizes the
+# output back up toward the ceiling regardless of `limit`, which silently
+# defeated the headroom this is meant to provide. The -6 dB target (rather
+# than -1 dB) leaves room for the lossy AAC encode that follows, which
+# reconstructs inter-sample peaks that overshoot the source PCM's peak by up
+# to ~1 dB. Applied to the final rendered audio only.
+AUDIO_RESTORE_FILTER = "adeclip,afftdn=nf=-25,alimiter=limit=0.501:level=false"
 DEFAULT_WHISPER_MODEL = "large-v3"
 WHISPER_MAX_GAP = 0.6
 WHISPER_MIN_EVENT_CHARS = 8
@@ -43,8 +67,22 @@ ACCENT_BAND_COLORS = {
     "green": "0x1B6E45",
     "blue": "0x1565A8",
     "gold": "0xA8790A",
+    "purple": "0x6A1B9A",
+    "teal": "0x00838F",
+    "pink": "0xAD1457",
+    "orange": "0xE65100",
+    "navy": "0x1A237E",
+    "charcoal": "0x263238",
 }
 DEFAULT_ACCENT_BAND_COLOR = ACCENT_BAND_COLORS["gold"]
+PARTICIPANT_AVATAR_SIZE = 96
+PARTICIPANT_GRID_POSITIONS = [
+    {"avatar_x": 300, "avatar_y": 610, "text_x": 96, "text_y": 760},
+    {"avatar_x": 684, "avatar_y": 610, "text_x": 560, "text_y": 760},
+    {"avatar_x": 300, "avatar_y": 970, "text_x": 96, "text_y": 1120},
+    {"avatar_x": 684, "avatar_y": 970, "text_x": 560, "text_y": 1120},
+    {"avatar_x": 492, "avatar_y": 790, "text_x": 330, "text_y": 1520},
+]
 
 
 @dataclass(frozen=True)
@@ -101,6 +139,88 @@ def ass_escape(text: str) -> str:
         .replace("}", "\\}")
         .replace("\n", "\\N")
     )
+
+
+def ass_color(value: str, fallback: str = "#ffffff") -> str:
+    raw = (value or fallback).strip()
+    if raw.startswith("0x") and len(raw) == 8:
+        raw = "#" + raw[2:]
+    if not re.fullmatch(r"#[0-9A-Fa-f]{6}", raw):
+        raw = fallback
+    red = raw[1:3]
+    green = raw[3:5]
+    blue = raw[5:7]
+    return f"&H{blue}{green}{red}&"
+
+
+def ffmpeg_color(value: str, fallback: str = "#ffffff") -> str:
+    raw = (value or fallback).strip()
+    if raw.startswith("#") and len(raw) == 7:
+        return "0x" + raw[1:]
+    if raw.startswith("0x") and len(raw) == 8:
+        return raw
+    return "0x" + fallback.lstrip("#")
+
+
+def drawtext_escape(text: str) -> str:
+    return (
+        text.replace("\\", r"\\")
+        .replace(":", r"\:")
+        .replace("'", r"\'")
+        .replace("%", r"\%")
+    )
+
+
+def resolve_asset_path(path: str | None, manifest_path: Path) -> Path | None:
+    if not path:
+        return None
+    resolved = Path(path).expanduser()
+    if resolved.is_absolute():
+        return resolved
+    manifest_relative = manifest_path.parent / resolved
+    if manifest_relative.exists():
+        return manifest_relative
+    return Path.cwd() / resolved
+
+
+def resolve_media_input(path: str | None, manifest_path: Path) -> str | None:
+    if not path:
+        return None
+    raw = path.strip()
+    if raw.startswith(("http://", "https://")):
+        return raw
+    resolved = resolve_asset_path(raw, manifest_path)
+    return str(resolved) if resolved else None
+
+
+def shell_escape_filter_path(path: Path) -> str:
+    return str(path).replace("'", r"'\''")
+
+
+def clip_participants(manifest: dict[str, Any], clip: dict[str, Any]) -> list[dict[str, Any]]:
+    participants = clip.get("participants")
+    if participants is None:
+        participants = manifest.get("participants", [])
+    if not isinstance(participants, list):
+        raise SystemExit(f"{clip['slug']}: participants must be an array")
+    return [participant for participant in participants if isinstance(participant, dict)]
+
+
+def participant_position(index: int, participant: dict[str, Any]) -> dict[str, int]:
+    position = PARTICIPANT_GRID_POSITIONS[min(index, len(PARTICIPANT_GRID_POSITIONS) - 1)].copy()
+    custom = participant.get("position")
+    if isinstance(custom, dict):
+        for key in ("avatar_x", "avatar_y", "text_x", "text_y"):
+            if key in custom:
+                position[key] = int(custom[key])
+    return position
+
+
+def clip_topic_cards(clip: dict[str, Any]) -> list[dict[str, Any]]:
+    topic_cards = clip.get("topic_cards", [])
+    if not isinstance(topic_cards, list):
+        raise SystemExit(f"{clip['slug']}: topic_cards must be an array")
+    return [card for card in topic_cards if isinstance(card, dict)]
 
 
 def read_manifest(path: Path) -> dict[str, Any]:
@@ -450,19 +570,69 @@ def group_words_into_events(
     for word in words:
         text = word["word"]
         if current is None:
-            current = {"start": word["start"], "end": word["end"], "text": text}
+            current = {"start": word["start"], "end": word["end"], "text": text, "words": [word]}
             continue
         gap = word["start"] - current["end"]
         ends_sentence = current["text"].rstrip().endswith(("。", "、", "！", "？"))
         if gap > max_gap or (ends_sentence and len(current["text"]) >= min_event_chars):
             events.append(current)
-            current = {"start": word["start"], "end": word["end"], "text": text}
+            current = {"start": word["start"], "end": word["end"], "text": text, "words": [word]}
         else:
             current["end"] = word["end"]
             current["text"] += text
+            current["words"].append(word)
     if current is not None:
         events.append(current)
     return events
+
+
+def chunk_words_by_length(
+    words: list[dict[str, Any]],
+    max_chars: int,
+) -> list[list[dict[str, Any]]]:
+    """Group words into caption-sized chunks without ever splitting a word.
+
+    Character-count chunking (chunk_text) is fine for text that already has
+    punctuation to split on, but casual ASR transcripts of spoken Japanese
+    rarely do. Falling back to a raw character slice there cuts particles and
+    conjugations in half (e.g. "じゃない" -> "じ" + "ゃない"). Chunking by
+    whole words, using the word-level timestamps whisper already gives us,
+    avoids that entirely.
+    """
+    chunks: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    current_len = 0
+    for word in words:
+        word_len = len(word["word"])
+        if current and current_len + word_len > max_chars:
+            chunks.append(current)
+            current = []
+            current_len = 0
+        current.append(word)
+        current_len += word_len
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def wrap_words(words: list[dict[str, Any]]) -> str:
+    """Two-line wrap that only ever breaks between words, never inside one."""
+    full_text = "".join(word["word"] for word in words)
+    if len(full_text) <= MAX_CAPTION_LINE_CHARS or len(words) < 2:
+        return full_text
+    target = len(full_text) / 2
+    best_index = 0
+    best_diff = None
+    acc = 0
+    for index, word in enumerate(words[:-1]):
+        acc += len(word["word"])
+        diff = abs(acc - target)
+        if best_diff is None or diff < best_diff:
+            best_diff = diff
+            best_index = index
+    line1 = "".join(word["word"] for word in words[: best_index + 1])
+    line2 = "".join(word["word"] for word in words[best_index + 1 :])
+    return f"{line1}\n{line2}" if line2 else line1
 
 
 def build_whisper_captions(
@@ -480,12 +650,21 @@ def build_whisper_captions(
     for index, segment in enumerate(clip["segments"]):
         words = load_or_transcribe_words(clip, index, segment, source, out_dir, dry_run, force, model_size)
         for event in group_words_into_events(words):
-            text = apply_corrections(event["text"], corrections)
-            if not text.strip():
-                continue
-            captions.extend(
-                split_caption(output_offset + event["start"], output_offset + event["end"], text)
-            )
+            for chunk in chunk_words_by_length(event["words"], MAX_CAPTION_CHUNK_CHARS):
+                raw_text = "".join(word["word"] for word in chunk)
+                text = apply_corrections(raw_text, corrections)
+                if not text.strip():
+                    continue
+                start = output_offset + chunk[0]["start"]
+                end = output_offset + chunk[-1]["end"]
+                if text == raw_text:
+                    wrapped = wrap_words(chunk)
+                else:
+                    # A correction changed the text, so the per-word split
+                    # points no longer line up with it; fall back to a plain
+                    # character-midpoint wrap for just this chunk.
+                    wrapped = wrap_caption(text)
+                captions.append({"start": start, "end": end, "text": wrapped, "accent": False})
         output_offset += seconds(segment["end"]) - seconds(segment["start"])
     return fill_caption_edges_and_gaps(captions, clip_duration(clip))
 
@@ -679,11 +858,17 @@ def get_captions(
     raise SystemExit(f"Unknown caption_source: {source}")
 
 
-def write_ass(clip: dict[str, Any], captions: list[dict[str, Any]], out_path: Path) -> None:
+def write_ass(
+    manifest: dict[str, Any],
+    clip: dict[str, Any],
+    captions: list[dict[str, Any]],
+    out_path: Path,
+) -> None:
     duration = clip_duration(clip)
     header = ass_escape(clip.get("header", "FIRE経験者のリアル"))
     hook = ass_escape(clip.get("hook", clip["title"]))
-    footer = ass_escape(clip.get("footer", "▼ 本編は下のリンクから"))
+    footer = ass_escape(clip.get("footer", "続きは本編→登録もぜひ"))
+    topic_cards = clip_topic_cards(clip)
 
     lines = [
         "[Script Info]",
@@ -700,6 +885,7 @@ def write_ass(clip: dict[str, Any], captions: list[dict[str, Any]], out_path: Pa
         "Style: Default,Hiragino Sans GB,82,&H00FFFFFF,&H000000FF,&H00000000,&HE0111111,-1,0,0,0,100,100,0,0,3,4,0,2,120,120,560,1",
         "Style: Accent,Hiragino Sans GB,90,&H00FFFFFF,&H000000FF,&H001880A0,&HDD8C7914,-1,0,0,0,100,100,0,0,3,4,0,2,120,120,560,1",
         "Style: Footer,Hiragino Sans GB,50,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,2,60,60,436,1",
+        "Style: TopicCard,Hiragino Sans GB,58,&H00FFFFFF,&H000000FF,&H00000000,&HCC111111,-1,0,0,0,100,100,0,0,3,4,0,8,80,80,720,1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
@@ -709,6 +895,19 @@ def write_ass(clip: dict[str, Any], captions: list[dict[str, Any]], out_path: Pa
         # always reads as a fixed CTA like the reference video.
         f"Dialogue: 1,0:00:00.00,{ass_time(duration)},Footer,,0,0,0,,{footer}",
     ]
+    for card in topic_cards:
+        text = str(card.get("text") or "").strip()
+        if not text:
+            continue
+        start = card.get("start", 0)
+        end = card.get("end", duration)
+        x = int(card.get("x", 540))
+        y = int(card.get("y", 690))
+        lines.append(
+            "Dialogue: 2,"
+            f"{ass_time(start)},{ass_time(end)},TopicCard,,0,0,0,,"
+            f"{{\\pos({x},{y})}}{ass_escape(text)}"
+        )
     for caption in captions:
         style = "Accent" if caption.get("accent") else "Default"
         text = ass_escape(caption["text"])
@@ -781,6 +980,36 @@ def validate_clip(
     return errors
 
 
+def validate_static_text(clip: dict[str, Any]) -> list[str]:
+    """Header/hook/footer/topic-card text is rendered as-is with no automatic
+    wrapping (unlike captions, which get \\n line breaks), so an oversized
+    line simply runs off both edges of the frame. Catch that here instead of
+    finding out from a rendered video."""
+    errors: list[str] = []
+    slug = clip["slug"]
+    fields = [
+        ("header", clip.get("header", "FIRE経験者のリアル"), HEADER_MAX_CHARS),
+        ("hook", clip.get("hook", clip.get("title", "")), HOOK_MAX_CHARS),
+        ("footer", clip.get("footer", "続きは本編→登録もぜひ"), FOOTER_MAX_CHARS),
+    ]
+    for field_name, text, limit in fields:
+        for line in str(text).splitlines() or [str(text)]:
+            if len(line) > limit:
+                errors.append(
+                    f"{slug}: {field_name} line is too long for its style "
+                    f"({len(line)} chars, max {limit}): {line}"
+                )
+    for card in clip_topic_cards(clip):
+        text = str(card.get("text") or "")
+        for line in text.splitlines() or [text]:
+            if len(line) > TOPIC_CARD_MAX_CHARS:
+                errors.append(
+                    f"{slug}: topic card line is too long "
+                    f"({len(line)} chars, max {TOPIC_CARD_MAX_CHARS}): {line}"
+                )
+    return errors
+
+
 def validate_manifest(
     manifest: dict[str, Any],
     out_dir: Path,
@@ -791,6 +1020,7 @@ def validate_manifest(
         captions = get_captions(manifest, clip, json3_events, out_dir)
         allow_gaps = caption_source(manifest, clip) in ("whisper", "hybrid")
         errors.extend(validate_clip(clip, captions, allow_gaps=allow_gaps))
+        errors.extend(validate_static_text(clip))
     if errors:
         joined = "\n".join(f"- {error}" for error in errors)
         raise SystemExit(f"Manifest validation failed:\n{joined}")
@@ -802,7 +1032,201 @@ def clip_duration(clip: dict[str, Any]) -> float:
     return sum(seconds(segment["end"]) - seconds(segment["start"]) for segment in clip["segments"])
 
 
-def ffmpeg_filter(clip: dict[str, Any], ass_path: Path) -> tuple[str, list[str]]:
+def layout_dir(out_dir: Path) -> Path:
+    return out_dir / "layouts"
+
+
+def layout_background_path(out_dir: Path, clip: dict[str, Any]) -> Path:
+    return layout_dir(out_dir) / f"{clip['slug']}_background.png"
+
+
+def layout_overlay_path(out_dir: Path, clip: dict[str, Any]) -> Path:
+    return layout_dir(out_dir) / f"{clip['slug']}_overlay.png"
+
+
+def layout_participant_ass_path(out_dir: Path, clip: dict[str, Any]) -> Path:
+    return layout_dir(out_dir) / f"{clip['slug']}_participants.ass"
+
+
+def write_participant_ass(
+    manifest: dict[str, Any],
+    clip: dict[str, Any],
+    out_path: Path,
+) -> None:
+    participants = clip_participants(manifest, clip)
+    lines = [
+        "[Script Info]",
+        "ScriptType: v4.00+",
+        "PlayResX: 1080",
+        "PlayResY: 1920",
+        "",
+        "[V4+ Styles]",
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+        "Style: ParticipantName,Hiragino Sans GB,38,&H00FFFFFF,&H000000FF,&H00000000,&HCC111111,-1,0,0,0,100,100,0,0,3,2,0,7,0,0,0,1",
+        "Style: ParticipantCaption,Hiragino Sans GB,46,&H00111111,&H000000FF,&H00FFFFFF,&HDDFFFFFF,-1,0,0,0,100,100,0,0,3,2,0,7,0,0,0,1",
+        "",
+        "[Events]",
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+    ]
+    for index, participant in enumerate(participants):
+        name = str(participant.get("name") or "").strip()
+        caption = str(participant.get("caption") or "").strip()
+        if not name and not caption:
+            continue
+        position = participant_position(index, participant)
+        color = ass_color(str(participant.get("color") or "#f97316"))
+        if name:
+            lines.append(
+                "Dialogue: 3,0:00:00.00,0:00:01.00,ParticipantName,,0,0,0,,"
+                f"{{\\pos({position['text_x']},{position['text_y']})\\c{color}}}{ass_escape(name)}"
+            )
+        if caption:
+            lines.append(
+                "Dialogue: 2,0:00:00.00,0:00:01.00,ParticipantCaption,,0,0,0,,"
+                f"{{\\pos({position['text_x']},{position['text_y'] + 42})}}{ass_escape(caption)}"
+            )
+    out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def layout_background_filter(
+    manifest: dict[str, Any],
+    clip: dict[str, Any],
+    manifest_path: Path,
+) -> tuple[list[str], str]:
+    background = resolve_media_input(
+        str(clip.get("background_image") or manifest.get("background_image") or ""),
+        manifest_path,
+    )
+    if background:
+        return (
+            ["-i", background],
+            "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
+            "crop=1080:1920,boxblur=10:2,eq=brightness=-0.08:saturation=1.12[bg]",
+        )
+    background_color = str(
+        clip.get("background_color")
+        or manifest.get("background_color")
+        or ("0x77BDF2" if clip_participants(manifest, clip) else "0x101010")
+    )
+    return ([], f"color=c={background_color}:s=1080x1920:d=1[bg]")
+
+
+def build_layout_images(
+    manifest: dict[str, Any],
+    clip: dict[str, Any],
+    manifest_path: Path,
+    out_dir: Path,
+    dry_run: bool,
+    force: bool = False,
+) -> tuple[Path, Path]:
+    layouts = layout_dir(out_dir)
+    layouts.mkdir(parents=True, exist_ok=True)
+    bg_path = layout_background_path(out_dir, clip)
+    overlay_path = layout_overlay_path(out_dir, clip)
+    ass_path = layout_participant_ass_path(out_dir, clip)
+
+    bg_inputs, bg_filter = layout_background_filter(manifest, clip, manifest_path)
+    if force or not bg_path.exists():
+        command = [
+            "ffmpeg",
+            "-y",
+            *bg_inputs,
+            "-filter_complex",
+            bg_filter,
+            "-map",
+            "[bg]",
+            "-frames:v",
+            "1",
+            "-update",
+            "1",
+            str(bg_path),
+        ]
+        run(command, dry_run=dry_run)
+
+    participants = clip_participants(manifest, clip)
+    write_participant_ass(manifest, clip, ass_path)
+    if force or not overlay_path.exists():
+        input_args: list[str] = []
+        parts = ["color=c=black@0.0:s=1080x1920:d=1,format=rgba[overlay0]"]
+        comp_label = "overlay0"
+        next_input = 0
+        for index, participant in enumerate(participants):
+            avatar = resolve_media_input(str(participant.get("avatar") or ""), manifest_path)
+            if avatar is None:
+                continue
+            input_args.extend(["-i", avatar])
+            size = int(participant.get("avatar_size") or PARTICIPANT_AVATAR_SIZE)
+            position = participant_position(index, participant)
+            avatar_label = f"layout_avatar{index}"
+            next_comp = f"overlay{index + 1}"
+            parts.append(
+                f"[{next_input}:v]scale={size}:{size}:force_original_aspect_ratio=increase,"
+                f"crop={size}:{size},format=rgba[{avatar_label}]"
+            )
+            parts.append(
+                f"[{comp_label}][{avatar_label}]overlay=x={position['avatar_x']}:"
+                f"y={position['avatar_y']}:shortest=1[{next_comp}]"
+            )
+            comp_label = next_comp
+            next_input += 1
+        text_index = 0
+        for index, participant in enumerate(participants):
+            name = str(participant.get("name") or "").strip()
+            caption = str(participant.get("caption") or "").strip()
+            if not name and not caption:
+                continue
+            position = participant_position(index, participant)
+            color = ffmpeg_color(str(participant.get("color") or "#f97316"))
+            if name:
+                next_comp = f"overlay_text{text_index}"
+                parts.append(
+                    f"[{comp_label}]drawtext=font='Hiragino Sans GB':"
+                    f"text='{drawtext_escape(name)}':x={position['text_x']}:"
+                    f"y={position['text_y']}:fontsize=32:fontcolor={color}:"
+                    "box=1:boxcolor=black@0.0:boxborderw=4"
+                    f"[{next_comp}]"
+                )
+                comp_label = next_comp
+                text_index += 1
+            if caption:
+                next_comp = f"overlay_text{text_index}"
+                parts.append(
+                    f"[{comp_label}]drawtext=font='Hiragino Sans GB':"
+                    f"text='{drawtext_escape(caption)}':x={position['text_x']}:"
+                    f"y={position['text_y'] + 36}:fontsize=36:fontcolor=0x111111:"
+                    "box=1:boxcolor=white@0.95:boxborderw=8"
+                    f"[{next_comp}]"
+                )
+                comp_label = next_comp
+                text_index += 1
+        parts.append(f"[{comp_label}]format=rgba[overlay]")
+        command = [
+            "ffmpeg",
+            "-y",
+            *input_args,
+            "-filter_complex",
+            ";".join(parts),
+            "-map",
+            "[overlay]",
+            "-frames:v",
+            "1",
+            "-update",
+            "1",
+            str(overlay_path),
+        ]
+        run(command, dry_run=dry_run)
+
+    return bg_path, overlay_path
+
+
+def ffmpeg_filter(
+    manifest: dict[str, Any],
+    clip: dict[str, Any],
+    ass_path: Path,
+    manifest_path: Path,
+    bg_path: Path | None = None,
+    overlay_path: Path | None = None,
+) -> tuple[str, list[str], list[str]]:
     parts: list[str] = []
     concat_refs: list[str] = []
     for index, segment in enumerate(clip["segments"]):
@@ -812,19 +1236,71 @@ def ffmpeg_filter(clip: dict[str, Any], ass_path: Path) -> tuple[str, list[str]]
         parts.append(f"[0:a]atrim=start={start}:end={end},asetpts=PTS-STARTPTS[a{index}]")
         concat_refs.append(f"[v{index}][a{index}]")
     parts.append("".join(concat_refs) + f"concat=n={len(concat_refs)}:v=1:a=1[vcat][acat]")
-    escaped_ass = str(ass_path).replace("'", r"'\''")
+    # Source recordings for this show are amateur multi-mic interviews and
+    # regularly clip a couple dB above 0 dBFS with an audible noise floor.
+    # adeclip interpolates over the clipped samples and afftdn knocks down
+    # the noise floor; neither changes overall loudness.
+    parts.append(f"[acat]{AUDIO_RESTORE_FILTER}[aout]")
+
+    input_args: list[str] = []
+    next_input = 1
+    duration = clip_duration(clip)
+    participants = clip_participants(manifest, clip)
+    if bg_path is not None:
+        input_args.extend(["-loop", "1", "-i", str(bg_path)])
+        parts.append(f"[{next_input}:v]scale=1080:1920,setsar=1[base]")
+        next_input += 1
+    else:
+        background_color = str(
+            clip.get("background_color")
+            or manifest.get("background_color")
+            or ("0x77BDF2" if participants else "0x101010")
+        )
+        parts.append(f"color=c={background_color}:s=1080x1920:d={duration:.3f}[base]")
+
+    parts.append("[vcat]scale=1080:-2:flags=lanczos,fps=30[vmain]")
+    parts.append("[base][vmain]overlay=x=(W-w)/2:y=500:shortest=1[comp0]")
+
+    comp_label = "comp0"
+    if overlay_path is not None:
+        input_args.extend(["-loop", "1", "-i", str(overlay_path)])
+        parts.append(f"[{next_input}:v]scale=1080:1920,format=rgba[fixed_overlay]")
+        parts.append(f"[{comp_label}][fixed_overlay]overlay=x=0:y=0:shortest=1[comp1]")
+        comp_label = "comp1"
+        next_input += 1
+
+    escaped_ass = shell_escape_filter_path(ass_path)
     band_color = ACCENT_BAND_COLORS.get(clip.get("accent", "gold"), DEFAULT_ACCENT_BAND_COLOR)
     parts.append(
-        "[vcat]scale=1080:-2:flags=lanczos,"
-        "pad=1080:1920:(ow-iw)/2:500:color=0x101010,"
+        f"[{comp_label}]"
         f"drawbox=x=0:y={HOOK_BAND_TOP}:w=1080:h={HOOK_BAND_HEIGHT}:color={band_color}@{BAND_OPACITY}:t=fill,"
         f"drawbox=x=0:y={FOOTER_BAND_TOP}:w=1080:h={FOOTER_BAND_HEIGHT}:color={band_color}@{BAND_OPACITY}:t=fill,"
         f"fps=30,subtitles='{escaped_ass}'[vout]"
     )
-    return ";".join(parts), ["[vout]", "[acat]"]
+    return ";".join(parts), ["[vout]", "[aout]"], input_args
 
 
-def render(manifest: dict[str, Any], manifest_path: Path, work_dir: Path, dry_run: bool) -> list[Path]:
+def build_layouts(
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    work_dir: Path,
+    dry_run: bool,
+    force: bool,
+) -> list[tuple[Path, Path]]:
+    out_dir = video_dir(manifest, work_dir)
+    built: list[tuple[Path, Path]] = []
+    for clip in manifest["clips"]:
+        built.append(build_layout_images(manifest, clip, manifest_path, out_dir, dry_run, force=force))
+    return built
+
+
+def render(
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    work_dir: Path,
+    dry_run: bool,
+    force_layout: bool = False,
+) -> list[Path]:
     out_dir = video_dir(manifest, work_dir)
     outputs_dir = out_dir / "outputs"
     subtitles_dir = outputs_dir / "subtitles"
@@ -844,13 +1320,19 @@ def render(manifest: dict[str, Any], manifest_path: Path, work_dir: Path, dry_ru
         ass_path = subtitles_dir / f"{slug}.ass"
         out_path = outputs_dir / f"{slug}.mp4"
         captions = get_captions(manifest, clip, json3_events, out_dir)
-        write_ass(clip, captions, ass_path)
-        filter_graph, maps = ffmpeg_filter(clip, ass_path)
+        write_ass(manifest, clip, captions, ass_path)
+        bg_path, overlay_path = build_layout_images(
+            manifest, clip, manifest_path, out_dir, dry_run, force=force_layout
+        )
+        filter_graph, maps, input_args = ffmpeg_filter(
+            manifest, clip, ass_path, manifest_path, bg_path=bg_path, overlay_path=overlay_path
+        )
         command = [
             "ffmpeg",
             "-y",
             "-i",
             str(source),
+            *input_args,
             "-filter_complex",
             filter_graph,
             "-map",
@@ -906,7 +1388,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--step",
-        choices=["download", "transcript", "transcribe-whisper", "validate", "render", "all"],
+        choices=["download", "transcript", "transcribe-whisper", "validate", "build-layout", "render", "all"],
         default="render",
         help="Pipeline step to run",
     )
@@ -945,8 +1427,13 @@ def main() -> None:
             json3_events = load_json3_events(find_json3_path(manifest, args.work_dir))
         validate_manifest(manifest, out_dir, json3_events)
         print("Manifest validation passed")
+    if args.step == "build-layout":
+        built = build_layouts(manifest, args.manifest, args.work_dir, args.dry_run, args.force)
+        for bg_path, overlay_path in built:
+            print(f"Wrote {bg_path}")
+            print(f"Wrote {overlay_path}")
     if args.step in ("render", "all"):
-        rendered = render(manifest, args.manifest, args.work_dir, args.dry_run)
+        rendered = render(manifest, args.manifest, args.work_dir, args.dry_run, force_layout=args.force)
         for path in rendered:
             print(f"Wrote {path}")
 
