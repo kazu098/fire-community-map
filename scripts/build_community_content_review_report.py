@@ -34,8 +34,16 @@ TRAVEL_PLACE_RE = re.compile(
     r"(北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄|温泉|駅|空港|ホテル|旅館|カフェ|ランチ|レストラン|食堂|市場|神社|寺|城|公園|美術館|博物館|観光|旅行|帰省|出張|遠征|maps\.app\.goo\.gl|google\.com/maps|tabelog\.com|食べログ)",
     re.IGNORECASE,
 )
+TRAVEL_STRONG_PLACE_RE = re.compile(
+    r"(maps\.app\.goo\.gl|google\.com/maps|tabelog\.com|食べログ|ホテル|旅館|温泉|空港|駅|神社|寺|城|美術館|博物館|市場|レストラン|食堂|カフェ)",
+    re.IGNORECASE,
+)
 CONSULTATION_HINT_RE = re.compile(
     r"(相談|質問|どう|どなたか|おすすめ|教えて|悩|迷|困|経験|知見|対策|注意|比較|メリット|デメリット|制度|保険|税|投資|介護|医療|子育て|不動産)",
+    re.IGNORECASE,
+)
+LOW_VALUE_CONSULTATION_RE = re.compile(
+    r"(綺麗でした|きれいでした|楽しかった|嬉しかった|腹が立った|カップル|夕日|日が暮れ|散歩|仕事してました|行ってきました)",
     re.IGNORECASE,
 )
 BOOK_HINT_RE = re.compile(r"(読了|読みました|本|書籍|著者|Kindle|Audible|『.+?』|「.+?」)", re.IGNORECASE)
@@ -116,11 +124,13 @@ def candidate_reason(item: dict[str, Any]) -> str | None:
             return "画像付きで場所の手がかりがある旅行グルメ投稿。地図追加候補です。"
         if image_count:
             return "画像付き旅行投稿ですが、場所の確定確認が必要です。"
-        if TRAVEL_PLACE_RE.search(text) and text_len >= 30:
+        if TRAVEL_STRONG_PLACE_RE.search(text) and text_len >= 30:
             return "場所の手がかりがある旅行グルメ投稿。画像なしでも一覧候補として確認できます。"
         return None
 
     if content_type in REVIEW_CANDIDATE_TYPES:
+        if LOW_VALUE_CONSULTATION_RE.search(text):
+            return None
         if text_len >= 80 and CONSULTATION_HINT_RE.search(text):
             return "暮らしの知恵として残す価値がありそうな相談・知見投稿。内容確認が必要です。"
         if text_len >= 140:

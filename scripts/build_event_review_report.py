@@ -32,6 +32,15 @@ def read_json(path: Path, fallback: Any) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_id_set(path: Path | None) -> set[str]:
+    if not path or not path.exists():
+        return set()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise SystemExit(f"{path} must contain a JSON array.")
+    return {str(item) for item in payload}
+
+
 def already_curated_ids(curated: list[dict[str, Any]]) -> set[str]:
     return {str(item["discord_message_id"]) for item in curated if item.get("discord_message_id")}
 
@@ -70,8 +79,10 @@ def build_report(
     limit: int,
     lookback_hours: float,
     min_score: int,
+    exclude_message_ids: set[str] | None = None,
 ) -> tuple[int, str]:
     curated_ids = already_curated_ids(curated)
+    excluded_ids = exclude_message_ids or set()
     cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
     candidates = []
     for item in raw:
@@ -81,7 +92,7 @@ def build_report(
         if posted_at is None or posted_at < cutoff:
             continue
         message_id = str(item.get("discord_message_id") or "")
-        if not message_id or message_id in curated_ids:
+        if not message_id or message_id in curated_ids or message_id in excluded_ids:
             continue
         channel_name = str(item.get("channel_name") or "")
         if channel_name not in CHANNEL_REVIEW_NAMES:
@@ -136,6 +147,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--lookback-hours", type=float, default=26)
     parser.add_argument("--min-score", type=int, default=3)
+    parser.add_argument("--exclude-message-ids")
     args = parser.parse_args()
 
     raw = read_json(Path(args.raw), [])
@@ -145,7 +157,8 @@ def main() -> int:
     if not isinstance(curated, list):
         raise SystemExit(f"{args.curated} must contain a JSON array.")
 
-    count, report = build_report(raw, curated, args.limit, args.lookback_hours, args.min_score)
+    exclude_message_ids = read_id_set(Path(args.exclude_message_ids)) if args.exclude_message_ids else set()
+    count, report = build_report(raw, curated, args.limit, args.lookback_hours, args.min_score, exclude_message_ids)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(report + "\n", encoding="utf-8")

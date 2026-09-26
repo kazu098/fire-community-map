@@ -7,8 +7,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
+  pull-requests: write
 
 jobs:
   sync-events:
@@ -39,6 +40,39 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 scripts/sync_scheduled_events.py
 
+      - name: Auto-review safe event supplements
+        run: |
+          python3 scripts/auto_review_event_candidates.py \
+            --raw tmp/community_events_raw.json \
+            --curated data/community_events_curated.json \
+            --applied-message-ids-output tmp/community_events_auto_applied_message_ids.json \
+            --pr-body-output tmp/community_events_auto_review_pr_body.md \
+            --summary-output tmp/community_events_auto_review_summary.json \
+            --lookback-hours 26 \
+            --min-score 3
+
+      - name: Create auto-review pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- data/community_events_curated.json; then
+            echo "No auto-reviewed event changes."
+            exit 0
+          fi
+          python3 -m json.tool data/community_events_curated.json > /dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="auto/community-events-review-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
+          git add data/community_events_curated.json
+          git commit -m "Auto-review community event candidates"
+          git push origin "$branch"
+          gh pr create \
+            --title "Auto-review community event candidates" \
+            --body-file tmp/community_events_auto_review_pr_body.md \
+            --base main \
+            --head "$branch"
+
       - name: Build review-needed report
         run: |
           python3 scripts/build_event_review_report.py \
@@ -47,7 +81,8 @@ jobs:
             --output tmp/community_events_review_needed.md \
             --count-output tmp/community_events_review_count.txt \
             --lookback-hours 26 \
-            --min-score 3
+            --min-score 3 \
+            --exclude-message-ids tmp/community_events_auto_applied_message_ids.json
 
       - name: Create review issue
         if: ${{ hashFiles('tmp/community_events_review_count.txt') != '' }}

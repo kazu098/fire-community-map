@@ -52,6 +52,8 @@ python3 scripts/load_community_events.py
 
 - Discordの「イベント作成」機能で作られたサーバーイベントは、自動で `community_events` にupsertします。
 - Discordの予定一覧から消えたサーバーイベントは、開催済みとして画面に残すため自動削除しません。削除したい場合だけ `scripts/sync_scheduled_events.py --delete-stale` を使います。
+- 自由文の候補は `scripts/auto_review_event_candidates.py` が先に確認し、既存のcuratedイベントへ安全に紐づく補足だけを `data/community_events_curated.json` へ反映して自動PRを作成します。PR本文には、反映対象のDiscordリンク、反映内容、自動判断できずIssueに残した件数を記載します。
+- 新規イベント作成、参加人数の推定、場所未確定の判断などは自動反映せず、従来通りレビューIssueに残します。
 - チャンネル投稿由来のイベント候補は自動投入せず、直近3日分から告知・募集らしい投稿だけを抽出します。
 - 人手確認が必要な候補がある場合は、GitHub Issue `イベント候補の確認が必要です - YYYY-MM-DD` を作成します。
 
