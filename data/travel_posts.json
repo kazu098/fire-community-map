@@ -1,5 +1,50 @@
 [
   {
+    "discord_message_id": "1553720364163538984",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1553720364163538984",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "こーいち",
+    "avatar_path": "data/travel-avatars/1434a11d8c51.png",
+    "avatarColor": "#f97316",
+    "init": "こ",
+    "prefecture": "宮崎県",
+    "municipality_optional": null,
+    "lat": 31.91111,
+    "lng": 131.42389,
+    "date": "2026/09/27",
+    "posted_at": "2026-09-27T10:50:01.545000+00:00",
+    "comment": "前から念願だった地元の有名ラーメン店に。\n\n朝ラーをやっていて、お値段安くあっさり豚骨。\n\n宮崎のラーメンは豚骨ベースだけど、出汁は魚介、植物も使った旨味が美味過ぎました😋\n\n自分が食べたのは朝ラーチャーシュー麺🍜\n\n拉麺男\nhttps://tabelog.com/miyazaki/A4501/A450101/45000172/",
+    "photos": [
+      "data/travel-photos/1553720364163538984-1.jpg",
+      "data/travel-photos/1553720364163538984-2.jpg",
+      "data/travel-photos/1553720364163538984-3.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1553658098416357518",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1553658098416357518",
+    "discord_channel_name": "旅行",
+    "nickname": "こーいち",
+    "avatar_path": "data/travel-avatars/09a4fe6974cb.png",
+    "avatarColor": "#f97316",
+    "init": "こ",
+    "prefecture": "宮崎県",
+    "municipality_optional": null,
+    "lat": 31.91111,
+    "lng": 131.42389,
+    "date": "2026/09/27",
+    "posted_at": "2026-09-27T06:42:36.234000+00:00",
+    "comment": "久々に自分の郷里宮崎へ。今回は1人で帰省。\n\n曇りの予報に油断していたら晴れの陽気と暑さにびっくり。",
+    "photos": [
+      "data/travel-photos/1553658098416357518-1.jpg",
+      "data/travel-photos/1553658098416357518-2.jpg",
+      "data/travel-photos/1553658098416357518-3.jpg",
+      "data/travel-photos/1553658098416357518-4.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1552274600849571890",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1552274600849571890",
     "discord_channel_name": "グルメ・料理",
