@@ -4,9 +4,13 @@
 This intentionally handles only narrow, repeatable cases:
 
 - the Discord message belongs to a thread that already has a curated event
-- the message text contains a recognized operational update
+- the message text contains a recognized operational-update keyword
+  (schedule/venue/weather/headcount changes, confirmations, etc.)
 
-Anything else stays in the review issue.
+When both hold, the raw message text is appended verbatim as a dated bullet
+to that event's participation_note. Nothing is rewritten or summarized, and
+new events, participant-count guesses, and unresolved venues are never
+touched -- those stay in the review issue for a human to judge.
 """
 
 from __future__ import annotations
@@ -22,6 +26,18 @@ from build_event_review_report import build_report, read_json
 
 
 JST = timezone(timedelta(hours=9))
+
+OPERATIONAL_UPDATE_RE = re.compile(
+    r"(決定|確定|変更|中止|延期|順延|キャンセル|人数|定員|募集|締切|集合|解散|"
+    r"場所|会場|時間|日程|天候|天気|雨天|割り勘|持ち寄り|参加費|貸切)"
+)
+
+
+def format_note_entry(item: dict[str, Any]) -> str:
+    posted_at = str(item.get("posted_at") or "")
+    date_label = posted_at[:10] if posted_at else ""
+    text = normalize(item.get("content") or "")
+    return f"({date_label}) {text}" if date_label else text
 
 
 def discord_thread_id(permalink: str | None) -> str | None:
@@ -58,53 +74,27 @@ def set_if_changed(event: dict[str, Any], key: str, value: Any) -> bool:
 
 
 def apply_known_supplement(event: dict[str, Any], item: dict[str, Any]) -> list[str]:
-    """Return human-readable applied changes."""
+    """Return human-readable applied changes.
+
+    Generic rule: the message is a reply inside an already-curated event's
+    thread (checked by the caller) and its text matches an operational-update
+    keyword. The raw text is appended as-is to participation_note -- no
+    rewriting, retitling, or tag changes, since those require judgment this
+    script cannot make safely.
+    """
     text = normalize(f"{item.get('thread_name') or ''} {item.get('content') or ''}")
-    changes: list[str] = []
+    if not OPERATIONAL_UPDATE_RE.search(text):
+        return []
 
-    if "那須ハイランド" in str(event.get("title") or "") and re.search(r"運行予定機種|ビッグバーン|XDダークライド|F²|F2", text):
-        note = (
-            "10/25で日程確定・貸切予約済み。最初で最後の遊園地貸し切りオフ会。"
-            "絶叫プランはF²をビッグバーンコースターへ変更し、VRライドシアター XDダークライドと合わせて希望を出す方向。"
-            "天候や日没条件が厳しい場合はF²へ戻す可能性あり。宿泊するか日帰りかは各自選択。"
-        )
-        summary = (
-            "株主優待を利用して、一般営業終了後の2時間で那須ハイランドパークを貸し切るオフ会。"
-            "子ども連れ参加も想定。日本駐車場開発の株主優待変更により、貸切利用は今回が最初で最後になる可能性がある。"
-            "運行予定機種はビッグバーンコースターとVRライドシアター XDダークライドを軸に調整している。"
-        )
-        if set_if_changed(event, "participation_note", note):
-            changes.append("運行予定機種の希望内容を participation_note に反映")
-        if set_if_changed(event, "summary", summary):
-            changes.append("運行予定機種の概要を summary に反映")
-        if not changes:
-            changes.append("運行予定機種の補足は既に反映済み")
+    entry = format_note_entry(item)
+    if not entry or entry in str(event.get("participation_note") or ""):
+        return []
 
-    if "葉山オフ会" in str(event.get("title") or "") and re.search(r"天気|天候|プランB|ホームパーティー|手巻き|割り勘|持ち寄り", text):
-        if set_if_changed(event, "title", "9/29 葉山オフ会（手巻きパーティー）"):
-            changes.append("タイトルを手巻きパーティーへ更新")
-        if set_if_changed(event, "tags", ["オフ会", "神奈川", "手巻きパーティー", "葉山"]):
-            changes.append("タグを手巻きパーティー前提に更新")
-        if set_if_changed(event, "location_label", "葉山（Champagne Bar Ingalleonのバースペース）"):
-            changes.append("会場をバースペースへ更新")
-        note = (
-            "スレ主のみかんさん、たびおさん、Aki、閣下さんらが参加予定。"
-            "天候悪化見込みのため海岸BBQからバースペースでのホームパーティー形式に変更し、"
-            "飲み物と手巻きの準備をベースに、持ち寄りも併用する予定。"
-            "購入品は申告して最後に合算・割り勘にする案。"
-        )
-        summary = (
-            "神奈川県葉山でのオフ会。天候を踏まえ、当初の海岸BBQからChampagne Bar Ingalleonの"
-            "バースペースでの手巻きパーティーへプランBに切り替える予定。持ち寄りも交えながら交流する。"
-        )
-        if set_if_changed(event, "participation_note", note):
-            changes.append("雨天代替プランを participation_note に反映")
-        if set_if_changed(event, "summary", summary):
-            changes.append("雨天代替プランを summary に反映")
-        if not changes:
-            changes.append("雨天代替プランの補足は既に反映済み")
-
-    return changes
+    existing_note = str(event.get("participation_note") or "").strip()
+    updated_note = f"{existing_note}\n{entry}" if existing_note else entry
+    if set_if_changed(event, "participation_note", updated_note):
+        return ["スレッド内の運営更新情報を participation_note に追記"]
+    return []
 
 
 def write_pr_body(path: Path, applied: list[dict[str, Any]], remaining_count: int) -> None:
