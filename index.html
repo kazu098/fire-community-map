@@ -2084,6 +2084,28 @@ function avatarUrl(path) {
   return `${SUPABASE_URL}/storage/v1/object/public/${path}`;
 }
 
+// discord_user_id はテーブル一括selectでは取得できない(anon/authenticatedの
+// SELECT権限を列単位で外している)ため、1人分ずつこのRPC経由で取得する。
+const discordUserIdCache = new Map();
+async function fetchMemberDiscordUserId(nickname) {
+  if (discordUserIdCache.has(nickname)) return discordUserIdCache.get(nickname);
+  let discordUserId = null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_member_discord_user_id`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_nickname: nickname }),
+    });
+    if (res.ok) discordUserId = await res.json();
+  } catch (e) {}
+  discordUserIdCache.set(nickname, discordUserId || null);
+  return discordUserId || null;
+}
+
 function initials(nickname) {
   return nickname ? [...nickname][0] : '?';
 }
@@ -3338,7 +3360,7 @@ function ensureDirectoryLoaded() {
 
 async function fetchDirectoryProfiles() {
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
-  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public,discord_user_id';
+  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
   const baseSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text';
   const fullRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${fullSelect}&order=nickname`, { headers });
   if (fullRes.ok) return fullRes.json();
@@ -4907,20 +4929,23 @@ function buildConsultationSection(member, { autoOpen = false } = {}) {
   });
   actions.appendChild(copyBtn);
 
-  if (member.discord_user_id) {
-    const dmLink = document.createElement('a');
-    dmLink.href = `https://discord.com/users/${member.discord_user_id}`;
-    dmLink.target = '_blank';
-    dmLink.rel = 'noopener';
-    dmLink.className = 'secondary';
-    dmLink.textContent = 'DiscordのDMを開く ↗';
-    actions.appendChild(dmLink);
-  } else {
-    const noDm = document.createElement('span');
-    noDm.className = 'detail-field-hint';
-    noDm.textContent = 'このメンバーのDiscordアカウントとの紐付けがまだ済んでいないため、DMリンクは表示できません。Discord上でニックネームを検索してDMを送ってください。';
-    actions.appendChild(noDm);
-  }
+  const dmSlot = document.createElement('span');
+  dmSlot.className = 'detail-field-hint';
+  dmSlot.textContent = 'Discordのリンクを確認中…';
+  actions.appendChild(dmSlot);
+  fetchMemberDiscordUserId(member.nickname).then(discordUserId => {
+    if (discordUserId) {
+      const dmLink = document.createElement('a');
+      dmLink.href = `https://discord.com/users/${discordUserId}`;
+      dmLink.target = '_blank';
+      dmLink.rel = 'noopener';
+      dmLink.className = 'secondary';
+      dmLink.textContent = 'DiscordのDMを開く ↗';
+      dmSlot.replaceWith(dmLink);
+    } else {
+      dmSlot.textContent = 'このメンバーのDiscordアカウントとの紐付けがまだ済んでいないため、DMリンクは表示できません。Discord上でニックネームを検索してDMを送ってください。';
+    }
+  });
   draftWrap.appendChild(actions);
 
   openBtn.addEventListener('click', () => {
