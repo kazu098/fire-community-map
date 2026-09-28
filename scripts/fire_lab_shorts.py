@@ -36,6 +36,16 @@ HOOK_MAX_CHARS = 10
 FOOTER_MAX_CHARS = 19
 TOPIC_CARD_MAX_CHARS = 15
 MAX_CAPTION_CHUNK_CHARS = 26
+AUDIO_BITRATE_KBPS = 128
+# Upload targets (Discord's free-tier attachment limit, some ad platforms,
+# etc.) commonly cap at 20MB. Rendering at a fixed CRF alone doesn't respect
+# that -- file size then depends on footage complexity and clip length, and a
+# 60s+ clip of busy handheld footage can land well over it. Target a bit
+# under the real ceiling to leave room for container/moov overhead, and cap
+# the video bitrate (via -maxrate/-bufsize alongside CRF) only when a clip's
+# natural bitrate would exceed it, so short/simple clips are unaffected.
+TARGET_OUTPUT_MB = 19.0
+MIN_VIDEO_BITRATE_KBPS = 600
 # adeclip repairs samples that were hard-clipped in the source recording
 # (digital clipping can't be un-clipped exactly, but interpolating across the
 # flattened peaks removes the audible crackle); afftdn takes the noise floor
@@ -62,6 +72,15 @@ HOOK_BAND_HEIGHT = 200
 FOOTER_BAND_TOP = 1390
 FOOTER_BAND_HEIGHT = 130
 BAND_OPACITY = 0.92
+# The footer CTA is persistent for the whole clip (see write_ass), but a
+# static element that's been on screen for a minute reads as background
+# chrome by the time the video ends -- the exact moment a viewer decides
+# whether to follow through. Popping it slightly larger for the closing
+# stretch draws the eye back to it right as the clip wraps up, without
+# introducing a second competing on-screen element.
+FOOTER_EMPHASIS_SECONDS = 1.5
+FOOTER_EMPHASIS_SCALE = 118
+FOOTER_EMPHASIS_POP_MS = 300
 ACCENT_BAND_COLORS = {
     "red": "0xB71C1C",
     "green": "0x1B6E45",
@@ -891,10 +910,19 @@ def write_ass(
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
         f"Dialogue: 1,0:00:00.00,{ass_time(duration)},Header,,0,0,0,,{header}",
         f"Dialogue: 1,0:00:00.00,{ass_time(duration)},Hook,,0,0,0,,{hook}",
-        # Persistent for the whole clip, not just after captions end, so it
-        # always reads as a fixed CTA like the reference video.
-        f"Dialogue: 1,0:00:00.00,{ass_time(duration)},Footer,,0,0,0,,{footer}",
     ]
+    # Persistent for the whole clip, not just after captions end, so it
+    # always reads as a fixed CTA like the reference video. It pops slightly
+    # larger for the closing stretch (see FOOTER_EMPHASIS_* above) so the eye
+    # is drawn back to it right as the clip ends, instead of it having faded
+    # into background chrome by then.
+    emphasis_start = max(duration - FOOTER_EMPHASIS_SECONDS, 0.0)
+    if emphasis_start > 0:
+        lines.append(f"Dialogue: 1,0:00:00.00,{ass_time(emphasis_start)},Footer,,0,0,0,,{footer}")
+    emphasis_tag = f"{{\\fscx100\\fscy100\\t(0,{FOOTER_EMPHASIS_POP_MS},\\fscx{FOOTER_EMPHASIS_SCALE}\\fscy{FOOTER_EMPHASIS_SCALE})}}"
+    lines.append(
+        f"Dialogue: 1,{ass_time(emphasis_start)},{ass_time(duration)},Footer,,0,0,0,,{emphasis_tag}{footer}"
+    )
     for card in topic_cards:
         text = str(card.get("text") or "").strip()
         if not text:
@@ -1030,6 +1058,15 @@ def clip_duration(clip: dict[str, Any]) -> float:
     if "duration" in clip:
         return seconds(clip["duration"])
     return sum(seconds(segment["end"]) - seconds(segment["start"]) for segment in clip["segments"])
+
+
+def video_bitrate_cap_kbps(duration: float) -> int:
+    """Max average video bitrate that keeps the rendered file under
+    TARGET_OUTPUT_MB for a clip of this length, given the fixed audio
+    bitrate. Floored at MIN_VIDEO_BITRATE_KBPS so very long clips degrade
+    gracefully instead of collapsing to an unusably low bitrate."""
+    target_kbps = (TARGET_OUTPUT_MB * 8 * 1024) / duration - AUDIO_BITRATE_KBPS
+    return max(int(target_kbps), MIN_VIDEO_BITRATE_KBPS)
 
 
 def layout_dir(out_dir: Path) -> Path:
@@ -1327,6 +1364,7 @@ def render(
         filter_graph, maps, input_args = ffmpeg_filter(
             manifest, clip, ass_path, manifest_path, bg_path=bg_path, overlay_path=overlay_path
         )
+        video_bitrate_cap = video_bitrate_cap_kbps(clip_duration(clip))
         command = [
             "ffmpeg",
             "-y",
@@ -1345,10 +1383,14 @@ def render(
             "veryfast",
             "-crf",
             "23",
+            "-maxrate",
+            f"{video_bitrate_cap}k",
+            "-bufsize",
+            f"{video_bitrate_cap * 2}k",
             "-c:a",
             "aac",
             "-b:a",
-            "128k",
+            f"{AUDIO_BITRATE_KBPS}k",
             "-movflags",
             "+faststart",
             str(out_path),
