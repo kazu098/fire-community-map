@@ -1,5 +1,45 @@
 [
   {
+    "discord_message_id": "1553985150851747913",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1553985150851747913",
+    "discord_channel_name": "旅行",
+    "nickname": "みなくさ",
+    "avatar_path": "data/travel-avatars/6421d2b455c8.png",
+    "avatarColor": "#f97316",
+    "init": "み",
+    "prefecture": "熊本県",
+    "municipality_optional": null,
+    "lat": 32.78972,
+    "lng": 130.74167,
+    "date": "2026/09/28",
+    "posted_at": "2026-09-28T04:22:11.611000+00:00",
+    "comment": "時間ありすぎるので熊本空港内のチョコザップでマッサージです。",
+    "photos": [
+      "data/travel-photos/1553985150851747913-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1553973653308178474",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1553973653308178474",
+    "discord_channel_name": "旅行",
+    "nickname": "みなくさ",
+    "avatar_path": "data/travel-avatars/5fc753975a0a.png",
+    "avatarColor": "#f97316",
+    "init": "み",
+    "prefecture": "大阪府",
+    "municipality_optional": null,
+    "lat": 34.68639,
+    "lng": 135.52,
+    "date": "2026/09/28",
+    "posted_at": "2026-09-28T03:36:30.383000+00:00",
+    "comment": "これから天草に乗り継ぐのですが一旦熊本で出されまして。。。13時50分以降しかチェックインできないらしい。\nなお大阪からの姉は出なくてもいいよう？\nダイヤモンド💎クラスだから？🤔\n時間ありすぎるのでお昼食べようかな。中に入れないので熊本的なものないけど🥺。\n天気は、台風近づいてるのでダメかな💦",
+    "photos": [
+      "data/travel-photos/1553973653308178474-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1553720364163538984",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1553720364163538984",
     "discord_channel_name": "グルメ・料理",
