@@ -15,6 +15,12 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 東京都、神奈川県,神奈川県,,prefecture,35.44778,139.6425,manual_alias,本人確認により神奈川県として扱う
 三重県四日市市,三重県,四日市市,municipality,34.965,136.6244,manual_alias,市代表点
 熊本県熊本市,熊本県,熊本市,municipality,32.8031,130.7079,manual_alias,市代表点
+天草,熊本県,天草市,municipality,32.459,130.193,manual_alias,天草市本渡周辺の旅行投稿から市代表点として扱う
+天草市,熊本県,天草市,municipality,32.459,130.193,manual_alias,天草市本渡周辺の旅行投稿から市代表点として扱う
+天草地魚料理いけすやまもと,熊本県,天草市,spot,32.459,130.193,manual_alias,天草市南新町10-11の店舗投稿から代表点として扱う
+天草地魚料理 いけすやまもと,熊本県,天草市,spot,32.459,130.193,manual_alias,天草市南新町10-11の店舗投稿から代表点として扱う
+いけすやまもと,熊本県,天草市,spot,32.459,130.193,manual_alias,天草市南新町10-11の店舗投稿から代表点として扱う
+熊本空港,熊本県,上益城郡益城町,spot,32.8373,130.8551,manual_alias,阿蘇くまもと空港周辺の旅行投稿から空港代表点として扱う
 神奈川県川崎市,神奈川県,川崎市,municipality,35.5308,139.7036,manual_alias,市代表点
 埼玉県さいたま市,埼玉県,さいたま市,municipality,35.8617,139.6455,manual_alias,市代表点
 千葉県千葉市,千葉県,千葉市,municipality,35.6073,140.1063,manual_alias,市代表点
