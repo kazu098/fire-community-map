@@ -1,10 +1,16 @@
-name: Generate F研通信 draft
+name: Sync F研通信 source data
+
+# This workflow only syncs Discord data and commits it to the note-draft-sync
+# branch. A scheduled Claude Code cloud agent (routine) reads that branch
+# ~1 hour later, writes the actual note draft itself (following
+# prompts/fken_tsushin_note_draft.md), and posts it to a GitHub issue.
+# See docs/note-activity-draft.md for the full pipeline.
 
 on:
   schedule:
-    # 20:30 UTC = 05:30 JST on the 15th: create the current month's first-half draft.
+    # 20:30 UTC = 05:30 JST on the 15th: sync data for the current month's first-half draft.
     - cron: "30 20 14 * *"
-    # 20:30 UTC = 05:30 JST on the month-end day: create the current month's second-half draft.
+    # 20:30 UTC = 05:30 JST on the month-end day: sync data for the current month's second-half draft.
     - cron: "30 20 27-30 * *"
   workflow_dispatch:
     inputs:
@@ -20,8 +26,7 @@ on:
           - second
 
 permissions:
-  contents: read
-  issues: write
+  contents: write
 
 jobs:
   generate:
@@ -95,26 +100,30 @@ jobs:
             --output tmp/community_posts_raw.json \
             --state-file tmp/community_posts_sync_state.json
 
-      - name: Generate note draft
+      - name: Write period metadata
         if: steps.period.outputs.skip != 'true'
         run: |
-          python3 scripts/generate_note_activity_draft.py \
-            --month "${{ steps.period.outputs.month }}" \
-            --half "${{ steps.period.outputs.half }}" \
-            --events-raw tmp/community_events_raw.json \
-            --posts-raw tmp/community_posts_raw.json \
-            --output "${{ steps.period.outputs.output }}"
+          cat > tmp/note_draft_period.json <<EOF
+          {
+            "month": "${{ steps.period.outputs.month }}",
+            "half": "${{ steps.period.outputs.half }}",
+            "label": "${{ steps.period.outputs.label }}",
+            "issue_title": "F研通信下書き ${{ steps.period.outputs.month }} ${{ steps.period.outputs.label }}",
+            "synced_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
 
-      - name: Create review issue
+      - name: Commit synced data to note-draft-sync branch
         if: steps.period.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          title="F研通信下書き ${{ steps.period.outputs.month }} ${{ steps.period.outputs.label }}"
-          body_file="${{ steps.period.outputs.output }}"
-          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body-file "$body_file"
-          else
-            gh issue create --title "$title" --body-file "$body_file"
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan note-draft-sync
+          git rm -rf --cached . > /dev/null
+          git add -f \
+            tmp/note_draft_period.json \
+            tmp/community_events_raw.json \
+            tmp/community_posts_raw.json \
+            data/community_events_curated.json
+          git commit -m "Sync F研通信 source data: ${{ steps.period.outputs.month }} ${{ steps.period.outputs.label }}"
+          git push --force origin note-draft-sync
