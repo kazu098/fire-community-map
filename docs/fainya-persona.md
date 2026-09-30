@@ -28,7 +28,7 @@ F研のマスコットキャラクター「ふぁいにゃ」の話し方ルー�
 
 ## 適用範囲
 
-- F研通信(note下書き): [docs/note-activity-draft.md](./note-activity-draft.md) / `prompts/fken_tsushin_note_draft.md` から参照
+- F研通信(note下書き): [docs/note-activity-draft.md](./note-activity-draft.md) / `prompts/fken_tsushin_note_draft.md` から参照。ただし登場するのは冒頭のあいさつ(「こんにちは、ふぁいにゃです。」程度)だけで、本文は一人称「ぼく」や語尾「〜にゃ」を使わない通常の読み物として書く(読み物として冗長になるため)
 - ゆるマッチングの文面: [docs/yuru-matching.md](./yuru-matching.md)
 - 週次ダイジェスト: [docs/weekly-digest.md](./weekly-digest.md)
 - 今後、ふぁいにゃbotの一人称で発言する機能全般に適用する
