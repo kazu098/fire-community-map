@@ -307,6 +307,7 @@ def confirm_schedule_date(
     bot_token: str,
     bot_user_id: str,
     nicknames: list[str],
+    group_user_ids: set[str],
     confirmed_user_ids: set[str],
     date: datetime,
     reaction_count: int,
@@ -315,10 +316,11 @@ def confirm_schedule_date(
 ) -> None:
     print(f"Confirming schedule {schedule_id}: {nicknames} -> {date.isoformat()} ({reaction_count} via {source})")
     voice_channel_id = None
+    target_user_ids = group_user_ids or confirmed_user_ids
     if not dry_run:
         try:
             voice_channel_id = create_voice_channel(
-                guild_id, f"ゆるマッチング_{date.month}{date.day:02d}", list(confirmed_user_ids), bot_user_id, bot_token,
+                guild_id, f"ゆるマッチング_{date.month}{date.day:02d}", list(target_user_ids), bot_user_id, bot_token,
             )
         except RuntimeError as exc:
             print(f"  voice channel creation failed, confirming date only: {exc}")
@@ -334,7 +336,7 @@ def confirm_schedule_date(
             except RuntimeError as exc:
                 print(f"  scheduled event creation failed: {exc}")
 
-        mention_prefix = " ".join(f"<@{user_id}>" for user_id in sorted(confirmed_user_ids))
+        mention_prefix = " ".join(f"<@{user_id}>" for user_id in sorted(target_user_ids))
         date_line = (
             f"{mention_prefix}\n🎉 開催決定！{date.month}/{date.day}({matching.WEEKDAY_KANJI[date.weekday()]}) "
             f"{date.hour:02d}:{date.minute:02d}〜"
@@ -343,7 +345,7 @@ def confirm_schedule_date(
             f"{date_line}\n当日はこちらの専用通話部屋（<#{voice_channel_id}>）からどうぞ🔒🎙️（終了後に自動で消えます）"
             if voice_channel_id else date_line
         )
-        matching.discord_post(post_channel_id, bot_token, confirmation, list(confirmed_user_ids))
+        matching.discord_post(post_channel_id, bot_token, confirmation, list(target_user_ids))
         patch_body: dict[str, Any] = {
             "status": "confirmed",
             "confirmed_date": date.isoformat(),
@@ -417,8 +419,6 @@ def confirm_schedules(
                 except RuntimeError as exc:
                     print(f"  could not fetch match message thread for {schedule['id']}: {exc}")
 
-        nickname_by_user_id = {v: k for k, v in discord_user_ids.items()}
-
         date_reactors: dict[datetime, set[str]] = {}
         counts: list[tuple[datetime, int]] = []
         for date, emoji in zip(proposed_dates, matching.DATE_OPTION_EMOJI):
@@ -430,10 +430,9 @@ def confirm_schedules(
 
         if best_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
             confirmed_user_ids = date_reactors[best_date]
-            confirmed_nicknames = [nickname_by_user_id[uid] for uid in confirmed_user_ids if uid in nickname_by_user_id]
             confirm_schedule_date(
                 supabase_url, service_role_key, schedule["id"], guild_id, channel_id, bot_token,
-                bot_user_id, confirmed_nicknames, confirmed_user_ids, best_date, best_count, "reaction_poll", dry_run,
+                bot_user_id, nicknames, group_user_ids, confirmed_user_ids, best_date, best_count, "reaction_poll", dry_run,
             )
             continue
 
@@ -443,10 +442,9 @@ def confirm_schedules(
             reactors = fetch_reactors(thread_id, thread_confirmation_message_id, THREAD_CONFIRM_EMOJI, bot_token) & group_user_ids
             confirm_count = len(reactors)
             if confirm_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
-                confirmed_nicknames = [nickname_by_user_id[uid] for uid in reactors if uid in nickname_by_user_id]
                 confirm_schedule_date(
                     supabase_url, service_role_key, schedule["id"], guild_id, thread_id, bot_token,
-                    bot_user_id, confirmed_nicknames, reactors, thread_confirmation_date, confirm_count,
+                    bot_user_id, nicknames, group_user_ids, reactors, thread_confirmation_date, confirm_count,
                     "thread_confirmation", dry_run,
                 )
                 continue
