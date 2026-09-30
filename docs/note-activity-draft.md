@@ -62,4 +62,13 @@ python3 scripts/generate_note_activity_draft.py \
 
 画像はDiscord添付画像のURLを「画像候補」として出します。Discord CDNのURLは期限切れになることがあるため、noteに載せる写真は下書き確認時に早めに保存・アップロードしてください。
 
-自動実行する場合は、毎月15日12:00以降に `--half first`、月末12:00以降に同月の `--half second` を実行します。GitHub Actions化する場合も、最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
+自動実行する場合は、毎月15日12:00以降に `--half first`、月末12:00以降に同月の `--half second` を実行します。最終的には生成されたMarkdownを投稿担当者が確認してからnoteへ貼り付けます。
+
+## 月2回の自動生成パイプライン
+
+このスクリプト(`generate_note_activity_draft.py`)は決定論的なテンプレート生成のみを行い、AI APIは呼び出しません。実際にnoteへ出す下書きの本文は、`prompts/fken_tsushin_note_draft.md` のルールに従ってClaudeが直接執筆します(従量課金のAnthropic APIキーは使わない方針)。月2回の自動実行はこの2段構成です。
+
+1. **`.github/workflows/generate-note-draft.yml`**(GitHub Actions): 毎月15日と月末のJST 05:30に、`fetch_community_events.py` / `fetch_community_posts.py` でDiscordを同期し、生データと対象期間(`month`/`half`)を `note-draft-sync` ブランチに強制pushする。Discordの秘密鍵(`DISCORD_BOT_TOKEN` 等)はここにしか置かない。
+2. **Claude Codeのスケジュール済みクラウドエージェント**(claude.ai/code/routines): 上記の約1時間後に起動し、`note-draft-sync` ブランチの生データと `tmp/note_draft_period.json` を読み、`prompts/fken_tsushin_note_draft.md` と `docs/fainya-persona.md` に従って本文を執筆し、`gh issue create`/`comment` でIssueに投稿する。
+
+`note-draft-sync` ブランチはその都度force-pushされる一時データ置き場で、履歴を積み上げる想定ではありません。
