@@ -1,5 +1,27 @@
 [
   {
+    "discord_message_id": "1554789983427104798",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1554789983427104798",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "カサドール（自給自足系投資家）",
+    "avatar_path": "data/travel-avatars/9c0808ca0948.png",
+    "avatarColor": "#f97316",
+    "init": "カ",
+    "prefecture": "鹿児島県",
+    "municipality_optional": "奄美大島",
+    "lat": 28.37725,
+    "lng": 129.49379,
+    "date": "2026/09/30",
+    "posted_at": "2026-09-30T09:40:18.650000+00:00",
+    "comment": "奄美の有名レストランをまねて明太モズクアオリイカクリームパスタを作ったら本家超えてました‼️本家はアオリイカは入ってないからかな？\nリピート確定！",
+    "photos": [
+      "data/travel-photos/1554789983427104798-1.jpg",
+      "data/travel-photos/1554789983427104798-2.jpg",
+      "data/travel-photos/1554789983427104798-3.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1554279198863130724",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1554279198863130724",
     "discord_channel_name": "旅行",
