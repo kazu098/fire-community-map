@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1555489216887263324",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1555489216887263324",
+    "discord_channel_name": "旅行",
+    "nickname": "Hiro-shi＠GL",
+    "avatar_path": "data/travel-avatars/d7a9d9a4088a.png",
+    "avatarColor": "#f97316",
+    "init": "H",
+    "prefecture": "岩手県",
+    "municipality_optional": "北上市",
+    "lat": 39.29931,
+    "lng": 141.08918,
+    "date": "2026/10/02",
+    "posted_at": "2026-10-02T07:58:48.898000+00:00",
+    "comment": "今日から数日間、岩手県北上市周辺をうろうろします。",
+    "photos": [
+      "data/travel-photos/1555489216887263324-1.jpg"
+    ],
+    "location_source": "geolonia"
+  },
+  {
     "discord_message_id": "1554789983427104798",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1554789983427104798",
     "discord_channel_name": "グルメ・料理",
