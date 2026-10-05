@@ -15,6 +15,9 @@ create unique index if not exists member_profiles_discord_user_id_key
   on public.member_profiles (discord_user_id)
   where discord_user_id is not null;
 
+-- Supabase grants EXECUTE on new public functions to anon by default, which
+-- `from public` alone does not remove, so anon is revoked explicitly.
+
 -- Nickname of the member the current session belongs to, or null when the
 -- caller is not signed in with Discord or their Discord account is not
 -- linked to any member_profiles row.
@@ -36,7 +39,7 @@ $$;
 comment on function public.current_member_nickname() is
   'Nickname of the member linked to the signed-in Discord account (auth.identities.provider_id = member_profiles.discord_user_id); null if not signed in or not a known member. RLS policies key off this.';
 
-revoke execute on function public.current_member_nickname() from public;
+revoke execute on function public.current_member_nickname() from public, anon;
 
 grant execute on function public.current_member_nickname() to authenticated;
 
@@ -52,6 +55,6 @@ as $$
   select public.current_member_nickname() is not null;
 $$;
 
-revoke execute on function public.is_community_member() from public;
+revoke execute on function public.is_community_member() from public, anon;
 
 grant execute on function public.is_community_member() to authenticated;
