@@ -2753,21 +2753,16 @@ const CATEGORY_META = {
   fire_status:      { label: 'FIREステータス', bg: '#fff7ed', text: '#c2410c' },
   mbti:             { label: 'MBTI', bg: '#f5f3ff', text: '#6d28d9' },
   skill:            { label: 'スキル', bg: '#ecfdf5', text: '#047857' },
-  // consultation/wants_to_know/interest/chat_topicは色だけだと見分けづらいとのフィードバックを受け、
-  // 絵文字アイコンを先頭に付けて区別しやすくしている(他カテゴリは色のみで十分区別できるため付けていない)。
-  consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e', icon: '🤝' },
-  wants_to_know:    { label: '知りたいこと', bg: '#e0f2fe', text: '#0369a1', icon: '🔍' },
-  interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d', icon: '🎨' },
-  chat_topic:       { label: '興味あるテーマや話題', bg: '#f0fdf4', text: '#15803d', icon: '💬' },
+  consultation:     { label: '相談できること', bg: '#fef3c7', text: '#92400e' },
+  wants_to_know:    { label: '知りたいこと', bg: '#e0f2fe', text: '#0369a1' },
+  interest:         { label: '趣味・興味', bg: '#fdf2f8', text: '#be185d' },
+  chat_topic:       { label: '興味あるテーマや話題', bg: '#f0fdf4', text: '#15803d' },
   affiliation:      { label: '所属活動・部活', bg: '#f1f5f9', text: '#334155' },
 };
 const CATEGORY_ORDER = ['investment_style', 'fire_status', 'mbti', 'skill', 'consultation', 'wants_to_know', 'interest', 'chat_topic', 'affiliation'];
-// タグチップの表示テキスト(アイコン付与)とホバー時のtitle(カテゴリ名を明示)。
-// 色だけでは「相談できること」「知りたいこと」「趣味・興味」「興味あるテーマ」のようなカテゴリが
-// 見分けづらいというフィードバックを受けて追加(かずさんのフィードバック、2026-10-05)。
-function tagChipText(meta, value) {
-  return meta.icon ? `${meta.icon} ${value}` : value;
-}
+// タグチップのホバー時のtitle(カテゴリ名を明示)。色だけでは「相談できること」「知りたいこと」
+// 「趣味・興味」「興味あるテーマ」のようなカテゴリが見分けづらいというフィードバックを受けて追加
+// (かずさんのフィードバック、2026-10-05)。当初はアイコンも付けたが、シンプルさを優先しツールチップのみに変更。
 function tagChipTitle(meta, value) {
   return `${meta.label}：「${value}」`;
 }
@@ -4024,7 +4019,7 @@ function renderMemberGrid() {
       chip.className = 'mini-tag';
       chip.style.background = meta.bg;
       chip.style.color = meta.text;
-      chip.textContent = tagChipText(meta, value);
+      chip.textContent = value;
       chip.title = `${tagChipTitle(meta, value)}（クリックで絞り込む）`;
       chip.addEventListener('click', e => {
         e.stopPropagation();
@@ -4082,7 +4077,7 @@ function buildMemberListTagBlock(label, values, meta) {
     chip.className = 'mini-tag';
     chip.style.background = meta.bg;
     chip.style.color = meta.text;
-    chip.textContent = tagChipText(meta, value);
+    chip.textContent = value;
     chip.title = tagChipTitle(meta, value);
     row.appendChild(chip);
   });
@@ -4146,7 +4141,7 @@ function renderMemberList(filtered) {
           chip.className = 'mini-tag shared-tag-chip';
           chip.style.background = meta.bg;
           chip.style.color = meta.text;
-          chip.textContent = tagChipText(meta, value);
+          chip.textContent = value;
           chip.title = tagChipTitle(meta, value);
           row.appendChild(chip);
         });
@@ -4188,7 +4183,7 @@ function renderMemberList(filtered) {
         chip.className = 'mini-tag';
         chip.style.background = meta.bg;
         chip.style.color = meta.text;
-        chip.textContent = tagChipText(meta, value);
+        chip.textContent = value;
         chip.title = tagChipTitle(meta, value);
         row.appendChild(chip);
       });
