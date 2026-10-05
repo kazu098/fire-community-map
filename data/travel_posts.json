@@ -1,5 +1,96 @@
 [
   {
+    "discord_message_id": "1556316031662821436",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1556316031662821436",
+    "discord_channel_name": "旅行",
+    "nickname": "とみお",
+    "avatar_path": "data/travel-avatars/59ce529eb4ef.png",
+    "avatarColor": "#f97316",
+    "init": "と",
+    "prefecture": "鹿児島県",
+    "municipality_optional": null,
+    "lat": 31.56028,
+    "lng": 130.55806,
+    "date": "2026/10/04",
+    "posted_at": "2026-10-04T14:44:16.902000+00:00",
+    "comment": "島内旅行で島のオーベルジュへ🍽️\nかごしま観光応援割で60%OFFでお得に泊まれました🉐",
+    "photos": [
+      "data/travel-photos/1556316031662821436-1.jpg",
+      "data/travel-photos/1556316031662821436-2.jpg",
+      "data/travel-photos/1556316031662821436-3.jpg",
+      "data/travel-photos/1556316031662821436-4.jpg",
+      "data/travel-photos/1556316031662821436-5.jpg",
+      "data/travel-photos/1556316031662821436-6.jpg",
+      "data/travel-photos/1556316031662821436-7.jpg",
+      "data/travel-photos/1556316031662821436-8.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1556299666478604338",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1556299666478604338",
+    "discord_channel_name": "旅行",
+    "nickname": "Hiro-shi＠GL",
+    "avatar_path": "data/travel-avatars/a7fcd76debfb.png",
+    "avatarColor": "#f97316",
+    "init": "H",
+    "prefecture": "岩手県",
+    "municipality_optional": "花巻市",
+    "lat": 39.30303,
+    "lng": 140.96874,
+    "date": "2026/10/04",
+    "posted_at": "2026-10-04T13:39:15.138000+00:00",
+    "comment": "今日は北上から北上して観光。\n盛岡八幡宮の社殿と鉛温泉藤三旅館の入口、破風の八の字の形が一緒。立湯に入ります。",
+    "photos": [
+      "data/travel-photos/1556299666478604338-1.jpg",
+      "data/travel-photos/1556299666478604338-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1556252052450181172",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1556252052450181172",
+    "discord_channel_name": "旅行",
+    "nickname": "butabutakun",
+    "avatar_path": "data/travel-avatars/99ec83d2a961.png",
+    "avatarColor": "#f97316",
+    "init": "b",
+    "prefecture": "北海道",
+    "municipality_optional": "網走市",
+    "lat": 44.00547,
+    "lng": 144.29312,
+    "date": "2026/10/04",
+    "posted_at": "2026-10-04T10:30:03.069000+00:00",
+    "comment": "網走監獄はゴールデンカムイの聖地でした。残念ながら天井からぶら下がる白石は工事中につき包まれてました😆",
+    "photos": [
+      "data/travel-photos/1556252052450181172-1.jpg",
+      "data/travel-photos/1556252052450181172-2.jpg",
+      "data/travel-photos/1556252052450181172-3.jpg",
+      "data/travel-photos/1556252052450181172-4.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1556120202423443461",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1556120202423443461",
+    "discord_channel_name": "旅行",
+    "nickname": "butabutakun",
+    "avatar_path": "data/travel-avatars/76e56f70029a.png",
+    "avatarColor": "#f97316",
+    "init": "b",
+    "prefecture": "北海道",
+    "municipality_optional": "網走市",
+    "lat": 44.00547,
+    "lng": 144.29312,
+    "date": "2026/10/04",
+    "posted_at": "2026-10-04T01:46:07.573000+00:00",
+    "comment": "網走監獄",
+    "photos": [
+      "data/travel-photos/1556120202423443461-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1555489216887263324",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1555489216887263324",
     "discord_channel_name": "旅行",
