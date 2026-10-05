@@ -2023,7 +2023,7 @@
     <h1>FIRE研究所 コミュニティマップ</h1>
     <p id="login-gate-message"></p>
     <button type="button" id="login-gate-button"></button>
-    <p id="login-gate-note">Discordの許可画面では、ユーザー名・アイコンの確認と、メールアドレスの確認が求められます。メールアドレスはログイン基盤(Supabase)にのみ保存され、このサイトの画面には表示されません。メッセージの閲覧や送信はできません。</p>
+    <p id="login-gate-note">Discordの許可画面では、ユーザー名・アイコンなどの確認のみ求められます。メールアドレスは取得しません。メッセージの閲覧や送信もできません。</p>
   </div>
 </div>
 
@@ -2265,31 +2265,19 @@ function restoreHashAfterLogin() {
   } catch (e) {}
 }
 
-// ログインに使うSupabaseのプロバイダ。標準の 'discord' は必ずメールアドレスを要求するため、
-// identify だけを要求するカスタムプロバイダ 'custom:discord-id'(api/discord-userinfo.js 経由)
-// へ移行する。動作確認が済むまでは ?auth_provider=custom で切り替える(このブラウザに保存、
-// ?auth_provider=discord で戻す)。
-const AUTH_PROVIDER_KEY = 'authOAuthProvider';
-const AUTH_CUSTOM_PROVIDER = 'custom:discord-id';
-function readAuthProvider() {
-  try {
-    const param = new URLSearchParams(location.search).get('auth_provider');
-    if (param === 'custom') localStorage.setItem(AUTH_PROVIDER_KEY, AUTH_CUSTOM_PROVIDER);
-    if (param === 'discord') localStorage.removeItem(AUTH_PROVIDER_KEY);
-    return localStorage.getItem(AUTH_PROVIDER_KEY) || 'discord';
-  } catch (e) {
-    return 'discord';
-  }
-}
-const AUTH_OAUTH_PROVIDER = readAuthProvider();
+// ログインに使うSupabaseのプロバイダ。標準の 'discord' はスコープに email を必ず含める
+// (メールアドレスを収集してしまう)ため使わない。identify だけを要求するカスタムプロバイダ
+// 'custom:discord-id' を使い、ユーザー情報は api/discord-userinfo.js を経由して受け取る。
+const AUTH_OAUTH_PROVIDER = 'custom:discord-id';
 
 async function signInWithDiscord() {
   if (!sb) return;
   try { localStorage.setItem(AUTH_RETURN_HASH_KEY, location.hash || ''); } catch (e) {}
-  const options = { redirectTo: location.origin + location.pathname };
-  // カスタムプロバイダのスコープ(identifyのみ)はSupabase側の設定で決まる。
-  if (AUTH_OAUTH_PROVIDER === 'discord') options.scopes = 'identify';
-  const { error } = await sb.auth.signInWithOAuth({ provider: AUTH_OAUTH_PROVIDER, options });
+  // スコープ(identifyのみ)はSupabase側のカスタムプロバイダ設定で決まる。
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: AUTH_OAUTH_PROVIDER,
+    options: { redirectTo: location.origin + location.pathname },
+  });
   if (error) console.warn('discord sign-in failed', error);
 }
 
