@@ -610,7 +610,10 @@
       font-size: 13px;
       font-weight: bold;
       color: #374151;
+      text-decoration: none;
+      cursor: pointer;
     }
+    .yuru-talk-member-chip:hover { background: #f3f4f6; border-color: #d1d5db; }
     .yuru-talk-member-avatar {
       width: 24px; height: 24px; border-radius: 50%;
       background: #dbeafe; color: #1e40af;
@@ -7062,8 +7065,12 @@ async function renderYuruTalkView(groupId) {
   const memberRow = document.createElement('div');
   memberRow.className = 'yuru-talk-members';
   nicknames.forEach(nickname => {
-    const chip = document.createElement('div');
+    // メンバーのニックネームタブをクリックしたら詳細ページに飛べるように、通常のメンバー
+    // 詳細リンクと同じ#member/<nickname>形式のURLにする(クリックすると「リンクをコピー」
+    // ボタンと同じURLへ遷移し、ゆるトーク専用ページを離れて通常のディレクトリ画面が開く)。
+    const chip = document.createElement('a');
     chip.className = 'yuru-talk-member-chip';
+    chip.href = `${location.origin}${location.pathname}#member/${encodeURIComponent(nickname)}`;
     const avatar = document.createElement('span');
     avatar.className = 'yuru-talk-member-avatar';
     const avatarUrl = (profileByNickname[nickname] || {}).avatar_url;
