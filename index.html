@@ -6948,7 +6948,13 @@ function communityPostMonthSearchTerms(value) {
   ];
 }
 
+// Discordログイン中は、投稿者本人が自分の本・旅行の投稿だけ削除できる(相談系は複数人のスレッド
+// で投稿者名を出さないため削除不可。DB側のRLSも同じ条件、supabase/member_auth_policies_posts.sql)。
+// 未ログイン(互換期間)は従来どおり。
 function canRemoveCommunityPost(post) {
+  if (authMemberNickname) {
+    return ['book', 'travel'].includes(post.content_type) && post.member_nickname === authMemberNickname;
+  }
   return post.content_type === 'book' || Boolean(post.member_nickname);
 }
 
@@ -7167,12 +7173,15 @@ function buildCommunityPostsSection(member) {
       const item = document.createElement('div');
       item.className = 'detail-community-item';
 
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'detail-community-remove';
-      removeBtn.textContent = '✕';
-      removeBtn.title = '非表示にする';
-      removeBtn.addEventListener('click', () => deleteCommunityPost(post));
-      item.appendChild(removeBtn);
+      // ログイン中は本人の本・旅行のみ。未ログイン(互換期間)は従来どおり常に表示。
+      if (!authMemberNickname || canRemoveCommunityPost(post)) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'detail-community-remove';
+        removeBtn.textContent = '✕';
+        removeBtn.title = '非表示にする';
+        removeBtn.addEventListener('click', () => deleteCommunityPost(post));
+        item.appendChild(removeBtn);
+      }
 
       if (post.title) {
         const itemTitle = document.createElement('div');
