@@ -2167,10 +2167,42 @@ async function applyAuthSession(session) {
   });
 }
 
+// ログインの有効期限切れ(401)を黙って失敗させず、再ログインに誘導する。
+// ログイン中のユーザーのJWTを付けたSupabaseへのリクエストが401を返したときだけ働く。
+let authExpiredBannerShown = false;
+function showAuthExpiredBanner() {
+  if (authExpiredBannerShown) return;
+  authExpiredBannerShown = true;
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:3000;background:#1f2937;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:flex;gap:10px;align-items:center;max-width:90vw;';
+  const text = document.createElement('span');
+  text.textContent = 'ログインの有効期限が切れました。もう一度ログインしてください。';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = '再ログイン';
+  button.style.cssText = 'background:#5865f2;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-weight:bold;cursor:pointer;';
+  button.addEventListener('click', signInWithDiscord);
+  banner.append(text, button);
+  document.body.appendChild(banner);
+}
+
+function installAuthExpiredHandler() {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const res = await originalFetch(input, init);
+    try {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (res.status === 401 && authSession && url.startsWith(SUPABASE_URL)) showAuthExpiredBanner();
+    } catch (e) {}
+    return res;
+  };
+}
+
 async function initAuth() {
   if (!AUTH_LOGIN_ENABLED) return;
   try {
     const { createClient } = await import(SUPABASE_JS_URL);
+    installAuthExpiredHandler();
     sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
     });
@@ -2228,8 +2260,7 @@ async function fetchMemberDiscordUserId(nickname) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_member_discord_user_id`, {
       method: 'POST',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...authHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ p_nickname: nickname }),
@@ -2462,8 +2493,7 @@ async function updateMemberLocationMap(nickname, location) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_member_location_map`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
@@ -2588,11 +2618,11 @@ async function loadMembers() {
   const [locRes, profRes] = await Promise.all([
     fetch(
       `${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng,avatar_path&map_lat=not.is.null&order=nickname`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      { headers: authHeaders() }
     ),
     fetch(
       `${SUPABASE_URL}/rest/v1/member_profiles?select=nickname`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      { headers: authHeaders() }
     ),
   ]);
   const members = await locRes.json();
@@ -2747,7 +2777,7 @@ async function fetchDeletedTravelMessageIds() {
       content_type: 'eq.travel',
     });
     const res = await fetch(`${SUPABASE_URL}/rest/v1/community_posts_history?${params.toString()}`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+      { headers: authHeaders() });
     if (!res.ok) return new Set();
     const rows = await res.json();
     return new Set(rows.map(row => String(row.discord_message_id)));
@@ -3499,7 +3529,7 @@ function ensureDirectoryLoaded() {
 }
 
 async function fetchDirectoryProfiles() {
-  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+  const headers = authHeaders();
   const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
   const baseSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text';
   const fullRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${fullSelect}&order=nickname`, { headers });
@@ -3541,7 +3571,7 @@ async function fetchCommunityPosts() {
   const select = 'id,member_nickname,content_type,title,summary,discord_message_id,discord_author_display_name,discord_permalink,posted_at';
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/community_posts?select=${select}&order=posted_at.desc`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+      { headers: authHeaders() });
     if (!res.ok) {
       console.warn('community_posts fetch failed (table may not exist yet). Community tab will be empty.', res.status);
       return [];
@@ -3558,7 +3588,7 @@ async function fetchCommunityEvents() {
   const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/community_events?select=${select}&order=starts_at.desc`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+      { headers: authHeaders() });
     if (!res.ok) {
       console.warn('community_events fetch failed (table may not exist yet). Events tab will be empty.', res.status);
       if (isLocalPreview) return await fetchLocalCommunityEvents();
@@ -3576,7 +3606,7 @@ async function fetchBookshelfBooks() {
   const select = 'id,source,member_nickname,title,author_name,amazon_url,thumbnail_url,drive_pdf_url,sort_order';
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/bookshelf_books?select=${select}&order=source,sort_order`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+      { headers: authHeaders() });
     if (!res.ok) {
       console.warn('bookshelf_books fetch failed (table may not exist yet). Bookshelf tab will be empty.', res.status);
       return [];
@@ -3604,20 +3634,20 @@ async function loadDirectory() {
   const [profiles, tags, linksRes, locationsRes, communityPostsData, communityEventsData, bookshelfBooksData, matchingSettingsRes, availabilityRes, availabilityOverridesRes] = await Promise.all([
     fetchDirectoryProfiles(),
     fetchAllRows(`${SUPABASE_URL}/rest/v1/member_tags?select=member_nickname,category,value&order=category,sort_order,created_at`,
-      { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }),
+      authHeaders()),
     fetch(`${SUPABASE_URL}/rest/v1/member_links?select=member_nickname,label,url&order=created_at`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+      { headers: authHeaders() }),
     fetch(`${SUPABASE_URL}/rest/v1/member_locations?select=nickname,location_text,prefecture,municipality_optional,map_lat,map_lng&map_lat=not.is.null`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+      { headers: authHeaders() }),
     fetchCommunityPosts(),
     fetchCommunityEvents(),
     fetchBookshelfBooks(),
     fetch(`${SUPABASE_URL}/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+      { headers: authHeaders() }),
     fetch(`${SUPABASE_URL}/rest/v1/member_availability?select=member_nickname,day_of_week,hour`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+      { headers: authHeaders() }),
     fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?select=member_nickname,override_date,hour,is_available`,
-      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }),
+      { headers: authHeaders() }),
   ]);
   const links = await linksRes.json();
   const locations = await locationsRes.json();
@@ -4452,8 +4482,7 @@ async function addTag(nickname, category, value) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_tags?on_conflict=member_nickname,category,value`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
@@ -4487,8 +4516,7 @@ async function moveTag(nickname, category, index, direction) {
     {
       method: 'PATCH',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...authHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ sort_order: i }),
@@ -4506,7 +4534,7 @@ async function deleteTag(nickname, category, value) {
   });
   await fetch(`${SUPABASE_URL}/rest/v1/member_tags?${params.toString()}`, {
     method: 'DELETE',
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    headers: authHeaders(),
   });
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
@@ -4527,8 +4555,7 @@ async function addLink(nickname, labelInput, urlInput) {
   await fetch(`${SUPABASE_URL}/rest/v1/member_links`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
@@ -4545,7 +4572,7 @@ async function deleteLink(nickname, url) {
   });
   await fetch(`${SUPABASE_URL}/rest/v1/member_links?${params.toString()}`, {
     method: 'DELETE',
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    headers: authHeaders(),
   });
   await refreshDirectory();
   openMemberDetail(nickname, { updateHash: false });
@@ -4556,8 +4583,7 @@ async function saveIntro(nickname, text) {
   await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
     method: 'PATCH',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
@@ -4579,8 +4605,7 @@ async function saveLocation(nickname, text) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
       method: 'PATCH',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...authHeaders(),
         'Content-Type': 'application/json',
         Prefer: 'return=minimal',
       },
@@ -4606,8 +4631,7 @@ async function saveExternalIntro(nickname, text) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
     method: 'PATCH',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
@@ -4684,8 +4708,7 @@ async function savePublicSetting(nickname, field, value, button, status) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_member_profile_publication`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
@@ -5176,8 +5199,7 @@ async function upsertMatchingSettings(nickname, patch) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_matching_settings`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
@@ -5198,8 +5220,7 @@ async function toggleAvailability(nickname, dayOfWeek, hour, enable) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?on_conflict=member_nickname,day_of_week,hour`, {
       method: 'POST',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...authHeaders(),
         'Content-Type': 'application/json',
         Prefer: 'resolution=ignore-duplicates,return=minimal',
       },
@@ -5215,7 +5236,7 @@ async function toggleAvailability(nickname, dayOfWeek, hour, enable) {
     });
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?${params.toString()}`, {
       method: 'DELETE',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      headers: authHeaders(),
     });
     ok = res.ok;
     if (!ok) console.warn('availability delete failed', res.status, await res.text());
@@ -5239,8 +5260,7 @@ async function toggleAvailabilityBatch(nickname, dayOfWeek, hours, enable) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?on_conflict=member_nickname,day_of_week,hour`, {
       method: 'POST',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...authHeaders(),
         'Content-Type': 'application/json',
         Prefer: 'resolution=ignore-duplicates,return=minimal',
       },
@@ -5256,7 +5276,7 @@ async function toggleAvailabilityBatch(nickname, dayOfWeek, hours, enable) {
     });
     const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability?${params.toString()}`, {
       method: 'DELETE',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      headers: authHeaders(),
     });
     ok = res.ok;
     if (!ok) console.warn('availability delete failed', res.status, await res.text());
@@ -5292,8 +5312,7 @@ async function addAvailabilityOverrideBatch(nickname, dateStr, hours, isAvailabl
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?on_conflict=member_nickname,override_date,hour`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders(),
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
@@ -5325,7 +5344,7 @@ async function deleteAvailabilityOverrideBatch(nickname, dateStr, hours) {
   });
   const res = await fetch(`${SUPABASE_URL}/rest/v1/member_availability_overrides?${params.toString()}`, {
     method: 'DELETE',
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    headers: authHeaders(),
   });
   if (!res.ok) {
     console.warn('availability override delete failed', res.status, await res.text());
@@ -6994,7 +7013,7 @@ async function deleteCommunityPost(post) {
   const params = new URLSearchParams({ id: `eq.${post.id}` });
   await fetch(`${SUPABASE_URL}/rest/v1/community_posts?${params.toString()}`, {
     method: 'DELETE',
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    headers: authHeaders(),
   });
   communityPosts = communityPosts.filter(p => p.id !== post.id);
   if (post.content_type === 'travel') removeTravelPostMarker(post);
@@ -7206,7 +7225,7 @@ async function renderYuruTalkView(groupId) {
     return;
   }
 
-  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+  const headers = authHeaders();
   let members, topicsRows;
   try {
     const [membersRes, topicsRes] = await Promise.all([
