@@ -253,6 +253,13 @@
     }
     #auth-button.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #dbeafe; }
     /* ---- ログイン必須の入口画面(?login=required のときだけ使う) ---- */
+    /* ログイン中に他人の詳細ページを開いたときは編集UIを出さない(DB側のRLSでも本人以外は拒否される) */
+    #detail-content.detail-readonly .detail-tag button,
+    #detail-content.detail-readonly .add-tag-form,
+    #detail-content.detail-readonly .detail-link-remove,
+    #detail-content.detail-readonly .intro-icon-btn,
+    #detail-content.detail-readonly .public-settings { display: none !important; }
+    .detail-readonly-note { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
     #login-gate {
       display: none; position: fixed; inset: 0; z-index: 5000;
       background: #f3f4f6; align-items: center; justify-content: center; padding: 16px;
@@ -3890,6 +3897,11 @@ onAuthStateChanged(({ session, memberNickname }) => {
   }
 });
 
+// ログイン中は本人のプロフィールだけ編集できる(DB側のRLSと同じ条件)。未ログインは従来どおり。
+function canEditMember(nickname) {
+  return !authMemberNickname || authMemberNickname === nickname;
+}
+
 // 自分(myNickname)を設定しているときだけ選べる並び替え。「default」は読み込み順のまま。
 let listSortMode = 'default';
 
@@ -6056,6 +6068,14 @@ function openMemberDetail(nickname, {
 
   const content = document.getElementById('detail-content');
   content.innerHTML = '';
+  const readonly = !canEditMember(member.nickname);
+  content.classList.toggle('detail-readonly', readonly);
+  if (readonly) {
+    const note = document.createElement('p');
+    note.className = 'detail-readonly-note';
+    note.textContent = 'Discordでログイン中は、自分のプロフィールだけ編集できます。';
+    content.appendChild(note);
+  }
 
   const head = document.createElement('div');
   head.id = 'detail-head';
