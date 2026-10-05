@@ -252,6 +252,23 @@
       padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;
     }
     #auth-button.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #dbeafe; }
+    /* ---- ログイン必須の入口画面(?login=required のときだけ使う) ---- */
+    #login-gate {
+      display: none; position: fixed; inset: 0; z-index: 5000;
+      background: #f3f4f6; align-items: center; justify-content: center; padding: 16px;
+    }
+    #login-gate.visible { display: flex; }
+    #login-gate-card {
+      background: white; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      padding: 28px 24px; max-width: 420px; width: 100%; text-align: center;
+    }
+    #login-gate-card h1 { font-size: 18px; margin: 0 0 12px; color: #1f2937; }
+    #login-gate-message { font-size: 14px; color: #374151; line-height: 1.7; margin: 0 0 18px; }
+    #login-gate-button {
+      background: #5865f2; color: white; border: none; border-radius: 8px;
+      padding: 10px 18px; font-size: 14px; font-weight: bold; cursor: pointer;
+    }
+    #login-gate-note { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 14px 0 0; }
     #header { top: 38px; }
     #map { top: 90px; }
     @media (max-width: 600px) { #map { top: 118px; } }
@@ -2001,6 +2018,15 @@
 </head>
 <body>
 
+<div id="login-gate">
+  <div id="login-gate-card">
+    <h1>FIRE研究所 コミュニティマップ</h1>
+    <p id="login-gate-message"></p>
+    <button type="button" id="login-gate-button"></button>
+    <p id="login-gate-note">Discordの許可画面では、DiscordのユーザーIDなどアカウントの基本情報の確認のみ求められます。メッセージの閲覧や送信はできません。</p>
+  </div>
+</div>
+
 <div id="view-tabs">
   <button class="view-tab" id="tab-directory" onclick="goToMemberGrid()">メンバー</button>
   <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
@@ -2099,9 +2125,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ================================================================
 // Discord ログイン(Issue #253)
 // ================================================================
-// 既定ではオフ(本番の挙動は変わらない)。?login=1 を付けて開くとオンになり、
-// ?login=0 でオフに戻る(選択はこのブラウザのlocalStorageに保存)。
-// ログイン必須化(#292)のときに既定オンへ切り替える。
+// 既定ではオフ(本番の挙動は変わらない)。URLの ?login= で切り替える(選択はこのブラウザの
+// localStorageに保存):
+//   ?login=1         ログインは任意(未ログインでも今までどおり使える。互換期間用)
+//   ?login=required  ログイン必須(未ログインはログイン画面のみ。メンバー限定サイトの最終形)
+//   ?login=0         オフに戻す
+// 本番の既定をログイン必須にするのは AUTH_DEFAULT_MODE を変えるとき(#292)。
+const AUTH_DEFAULT_MODE = '';     // '' | '1' | '2'(2=必須)
 const AUTH_FLAG_KEY = 'authLoginEnabled';
 const AUTH_RETURN_HASH_KEY = 'authReturnHash';
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
@@ -2110,13 +2140,16 @@ function readAuthLoginEnabled() {
   try {
     const param = new URLSearchParams(location.search).get('login');
     if (param === '1') localStorage.setItem(AUTH_FLAG_KEY, '1');
+    if (param === 'required') localStorage.setItem(AUTH_FLAG_KEY, '2');
     if (param === '0') localStorage.removeItem(AUTH_FLAG_KEY);
-    return localStorage.getItem(AUTH_FLAG_KEY) === '1';
+    return localStorage.getItem(AUTH_FLAG_KEY) || AUTH_DEFAULT_MODE;
   } catch (e) {
-    return false;
+    return AUTH_DEFAULT_MODE;
   }
 }
-const AUTH_LOGIN_ENABLED = readAuthLoginEnabled();
+const AUTH_MODE = readAuthLoginEnabled();
+const AUTH_LOGIN_ENABLED = AUTH_MODE === '1' || AUTH_MODE === '2';
+const AUTH_REQUIRED = AUTH_MODE === '2';
 
 let sb = null;                    // supabase-js クライアント(ログイン機能オフ時はnull)
 let authSession = null;           // ログイン中のセッション(未ログインはnull)
@@ -2199,7 +2232,7 @@ function installAuthExpiredHandler() {
 }
 
 async function initAuth() {
-  if (!AUTH_LOGIN_ENABLED) return;
+  if (!AUTH_LOGIN_ENABLED) return false;
   try {
     const { createClient } = await import(SUPABASE_JS_URL);
     installAuthExpiredHandler();
@@ -2215,8 +2248,10 @@ async function initAuth() {
     const { data } = await sb.auth.getSession();
     await applyAuthSession(data.session);
     restoreHashAfterLogin();
+    return true;
   } catch (e) {
     console.warn('auth init failed', e);
+    return false;
   }
 }
 
@@ -2243,6 +2278,32 @@ async function signInWithDiscord() {
 async function signOutOfDiscord() {
   if (!sb) return;
   await sb.auth.signOut();
+  // ログイン必須のときは、読み込み済みのデータを画面に残さないよう再読み込みしてログイン画面に戻す。
+  if (AUTH_REQUIRED) location.reload();
+}
+
+// ログイン必須モードの入口画面(未ログイン / メンバー未確認 / 読み込み失敗)。
+function showLoginGate(state) {
+  const gate = document.getElementById('login-gate');
+  const message = document.getElementById('login-gate-message');
+  const button = document.getElementById('login-gate-button');
+  const note = document.getElementById('login-gate-note');
+  gate.classList.add('visible');
+  note.style.display = 'none';
+  if (state === 'nonmember') {
+    message.textContent = 'このDiscordアカウントは、FIRE研究所のメンバーとして確認できませんでした。お手数ですが、Discordで管理者までご連絡ください。';
+    button.textContent = 'ログアウト';
+    button.onclick = signOutOfDiscord;
+  } else if (state === 'error') {
+    message.textContent = 'ログイン機能を読み込めませんでした。時間をおいて再読み込みしてください。';
+    button.textContent = '再読み込み';
+    button.onclick = () => location.reload();
+  } else {
+    message.textContent = 'FIRE研究所のメンバー限定のサイトです。Discordアカウントでログインしてください。';
+    button.textContent = 'Discordでログイン';
+    button.onclick = signInWithDiscord;
+    note.style.display = '';
+  }
 }
 
 function avatarUrl(path) {
@@ -7423,9 +7484,22 @@ async function renderYuruTalkView(groupId) {
   renderTagDetail(commonTags[0]);
 }
 
-initAuth();
+function startApp() {
+  selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
+}
 
-selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
+if (AUTH_REQUIRED) {
+  // ログイン必須: ログイン状態が確定するまでデータを取得せず、メンバーとして確認できたときだけ始める。
+  initAuth().then(ok => {
+    if (!ok) showLoginGate('error');
+    else if (!authSession) showLoginGate('signin');
+    else if (!authMemberNickname) showLoginGate('nonmember');
+    else startApp();
+  });
+} else {
+  initAuth();
+  startApp();
+}
 </script>
 </body>
 </html>
