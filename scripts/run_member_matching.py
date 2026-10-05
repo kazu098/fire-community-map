@@ -13,7 +13,10 @@ For each member whose matching interval has elapsed (member_matching_settings
   1. Collect their registered availability hours (member_availability).
   2. Randomly group eligible members who all share at least one hour,
      skipping any pair that was grouped together within the cooldown
-     window (member_match_groups / member_match_group_members).
+     window (member_match_groups / member_match_group_members) -- unless
+     that past group's schedule expired (nobody confirmed a date, so they
+     never actually talked), in which case the pair is free to be matched
+     again (see process_member_match_schedules.py's expire_schedule).
   3. Record the group in member_match_groups(+member_match_group_members)
      and bump last_matched_at for every member in it.
   4. Post an announcement to the Discord matching channel, if configured.
@@ -687,6 +690,18 @@ def main() -> int:
         get(f"/rest/v1/member_match_group_members?select=group_id,member_nickname&group_id=in.({','.join(recent_group_ids)})")
         if recent_group_ids else []
     )
+    # A group whose schedule expired (nobody confirmed a date -- see
+    # process_member_match_schedules.py's confirm_schedules) never actually met, so it
+    # shouldn't block its members from being re-matched with each other.
+    expired_group_ids = (
+        {
+            s["group_id"] for s in get(
+                f"/rest/v1/member_match_schedules?select=group_id&group_id=in.({','.join(recent_group_ids)})&status=eq.expired"
+            )
+        }
+        if recent_group_ids else set()
+    )
+    recent_group_members = [row for row in recent_group_members if row["group_id"] not in expired_group_ids]
     member_tags = get("/rest/v1/member_tags?select=member_nickname,category,value")
     profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url")
     member_links = get("/rest/v1/member_links?select=member_nickname,label,url")

@@ -361,6 +361,33 @@ def confirm_schedule_date(
         )
 
 
+def expire_schedule(
+    supabase_url: str, service_role_key: str, schedule_id: str, nicknames: list[str], dry_run: bool,
+) -> None:
+    """Mark a schedule expired and free its members up for re-matching.
+
+    No option reached the confirmation threshold, so this group never actually met -- unlike a
+    confirmed schedule (even one whose voice channel creation failed), there's no reason to make
+    its members wait out their interval_days before being matched again. Resetting
+    last_matched_at to null makes them immediately due (see is_due()); the pair-level cooldown
+    exclusion is handled separately in run_member_matching.py by skipping expired groups.
+
+    Callers print their own "Expiring schedule ..." line with the reason before calling this.
+    """
+    if dry_run:
+        return
+    requests_patch(
+        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule_id}",
+        {"status": "expired"},
+    )
+    for nickname in nicknames:
+        requests_patch(
+            supabase_url, service_role_key,
+            f"/rest/v1/member_matching_settings?member_nickname=eq.{quote(nickname)}",
+            {"last_matched_at": None},
+        )
+
+
 def confirm_schedules(
     supabase_url: str,
     service_role_key: str,
@@ -456,11 +483,7 @@ def confirm_schedules(
             print(f"Schedule {schedule['id']} thread confirmation still open: {nicknames} (best so far: {confirm_count})")
             if thread_confirmation_date < now:
                 print(f"Expiring schedule {schedule['id']}: {nicknames} (thread confirmation date has passed)")
-                if not dry_run:
-                    requests_patch(
-                        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
-                        {"status": "expired"},
-                    )
+                expire_schedule(supabase_url, service_role_key, schedule["id"], nicknames, dry_run)
         elif thread_id:
             messages = fetch_channel_messages(thread_id, bot_token)
             thread_votes = thread_date_votes(messages, group_user_ids, proposed_dates, now)
@@ -491,20 +514,12 @@ def confirm_schedules(
             latest_open_date = max([*proposed_dates, *thread_votes.keys()])
             if latest_open_date < now:
                 print(f"Expiring schedule {schedule['id']}: {nicknames} (no option reached {matching.SCHEDULE_CONFIRM_THRESHOLD})")
-                if not dry_run:
-                    requests_patch(
-                        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
-                        {"status": "expired"},
-                    )
+                expire_schedule(supabase_url, service_role_key, schedule["id"], nicknames, dry_run)
             else:
                 print(f"Schedule {schedule['id']} still open: {nicknames} (best so far: {best_count})")
         elif proposed_dates[-1] < now:
             print(f"Expiring schedule {schedule['id']}: {nicknames} (no option reached {matching.SCHEDULE_CONFIRM_THRESHOLD})")
-            if not dry_run:
-                requests_patch(
-                    supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
-                    {"status": "expired"},
-                )
+            expire_schedule(supabase_url, service_role_key, schedule["id"], nicknames, dry_run)
         else:
             print(f"Schedule {schedule['id']} still open: {nicknames} (best so far: {best_count})")
 
