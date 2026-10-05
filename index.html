@@ -242,6 +242,16 @@
       .view-tab { padding: 10px 12px; font-size: 12px; }
       .view-tab-help { margin-left: 8px; padding-left: 12px; }
     }
+    /* ---- Discord ログイン(Issue #253、?login=1 のときだけ表示) ---- */
+    #auth-bar { display: none; align-items: center; gap: 6px; margin-left: 8px; }
+    #auth-bar.visible { display: flex; }
+    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; }
+    #auth-label.warn { color: #fcd34d; }
+    #auth-button {
+      background: #5865f2; color: white; border: none; border-radius: 6px;
+      padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;
+    }
+    #auth-button.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #dbeafe; }
     #header { top: 38px; }
     #map { top: 90px; }
     @media (max-width: 600px) { #map { top: 118px; } }
@@ -1998,6 +2008,10 @@
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
   <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">F研図書館</button>
   <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
+  <div id="auth-bar">
+    <span id="auth-label"></span>
+    <button type="button" id="auth-button"></button>
+  </div>
 </div>
 
 <div id="header">
@@ -3691,6 +3705,7 @@ let myNickname = null;
 try { myNickname = localStorage.getItem('myNickname') || null; } catch (e) {}
 
 function setMyNickname(nickname) {
+  if (authMemberNickname) return; // ログイン中はDiscordに紐づくメンバーで固定
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (!member) {
     alert('その名前のメンバーが見つかりませんでした。一覧から選んでください。');
@@ -3703,6 +3718,7 @@ function setMyNickname(nickname) {
 }
 
 function clearMyNickname() {
+  if (authMemberNickname) return;
   myNickname = null;
   listSortMode = 'default';
   try { localStorage.removeItem('myNickname'); } catch (e) {}
@@ -3712,6 +3728,7 @@ function clearMyNickname() {
 }
 
 function beginMyNicknameChange() {
+  if (authMemberNickname) return;
   myNickname = null;
   listSortMode = 'default';
   try { localStorage.removeItem('myNickname'); } catch (e) {}
@@ -3719,6 +3736,62 @@ function beginMyNicknameChange() {
   renderMemberGrid();
   maybeShowIdentityModal();
 }
+
+// ---- Discord ログインとの連動(Issue #253) ----
+// ログイン中は、Discordに紐づくメンバーを「自分」(myNickname)にする。
+let authWasLoggedIn = false;
+
+function renderAuthBar() {
+  const bar = document.getElementById('auth-bar');
+  if (!AUTH_LOGIN_ENABLED || !sb) {
+    bar.classList.remove('visible');
+    return;
+  }
+  bar.classList.add('visible');
+  const label = document.getElementById('auth-label');
+  const button = document.getElementById('auth-button');
+  label.classList.remove('warn');
+  label.title = '';
+  if (!authSession) {
+    label.textContent = '';
+    button.textContent = 'Discordでログイン';
+    button.className = '';
+    button.onclick = signInWithDiscord;
+    return;
+  }
+  if (authMemberNickname) {
+    label.textContent = `👤 ${authMemberNickname}`;
+  } else {
+    label.textContent = 'メンバー未確認';
+    label.classList.add('warn');
+    label.title = 'このDiscordアカウントはFIRE研究所のメンバーとして確認できませんでした。管理者にご連絡ください。';
+  }
+  button.textContent = 'ログアウト';
+  button.className = 'secondary';
+  button.onclick = signOutOfDiscord;
+}
+
+onAuthStateChanged(({ session, memberNickname }) => {
+  if (memberNickname) {
+    myNickname = memberNickname;
+    try { localStorage.setItem('myNickname', myNickname); } catch (e) {}
+    try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
+    hideIdentityModal();
+    authWasLoggedIn = true;
+  } else if (!session && authWasLoggedIn) {
+    // ログアウト: ログイン由来の「自分」を残さない
+    authWasLoggedIn = false;
+    myNickname = null;
+    listSortMode = 'default';
+    try { localStorage.removeItem('myNickname'); } catch (e) {}
+  }
+  renderAuthBar();
+  try { renderMemberGrid(); } catch (e) { console.warn(e); }
+  if (document.getElementById('member-detail-view').style.display === 'block') {
+    const match = location.hash.match(/^#member\/(.+)$/);
+    if (match) openMemberDetail(decodeURIComponent(match[1]), { updateHash: false });
+  }
+});
 
 // 自分(myNickname)を設定しているときだけ選べる並び替え。「default」は読み込み順のまま。
 let listSortMode = 'default';
@@ -3758,7 +3831,7 @@ function hideIdentityModal() {
 // 本人がたどり着けなかったため)。「あとで」はその場では閉じるだけで、未設定のままなら
 // 次回表示時や表示モード切り替え時に再度案内する。
 function maybeShowIdentityModal() {
-  if (myNickname) return;
+  if (myNickname || authMemberNickname) return;
 
   const overlay = document.getElementById('my-identity-modal-overlay');
   const modal = document.getElementById('my-identity-modal');
@@ -3826,18 +3899,20 @@ function renderMyIdentityBar(dismissible, showSort) {
     myProfileBtn.textContent = '自分のプロフィール';
     myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
     bar.appendChild(myProfileBtn);
-    const changeBtn = document.createElement('button');
-    changeBtn.type = 'button';
-    changeBtn.className = 'secondary';
-    changeBtn.textContent = '変更';
-    changeBtn.addEventListener('click', beginMyNicknameChange);
-    bar.appendChild(changeBtn);
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'secondary';
-    clearBtn.textContent = '解除';
-    clearBtn.addEventListener('click', clearMyNickname);
-    bar.appendChild(clearBtn);
+    if (!authMemberNickname) {
+      const changeBtn = document.createElement('button');
+      changeBtn.type = 'button';
+      changeBtn.className = 'secondary';
+      changeBtn.textContent = '変更';
+      changeBtn.addEventListener('click', beginMyNicknameChange);
+      bar.appendChild(changeBtn);
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'secondary';
+      clearBtn.textContent = '解除';
+      clearBtn.addEventListener('click', clearMyNickname);
+      bar.appendChild(clearBtn);
+    }
 
     if (showSort) {
       const sortLabel = document.createElement('label');
