@@ -2082,6 +2082,123 @@
 const SUPABASE_URL = 'https://hchlqnsretsbhumeojdk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjaGxxbnNyZXRzYmh1bWVvamRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDAxNjcsImV4cCI6MjA5ODAxNjE2N30.iy0Fg7izs1DKonTGcMuORCiWilCujVfd3b_dwUlYyLM';
 
+// ================================================================
+// Discord ログイン(Issue #253)
+// ================================================================
+// 既定ではオフ(本番の挙動は変わらない)。?login=1 を付けて開くとオンになり、
+// ?login=0 でオフに戻る(選択はこのブラウザのlocalStorageに保存)。
+// ログイン必須化(#292)のときに既定オンへ切り替える。
+const AUTH_FLAG_KEY = 'authLoginEnabled';
+const AUTH_RETURN_HASH_KEY = 'authReturnHash';
+const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
+
+function readAuthLoginEnabled() {
+  try {
+    const param = new URLSearchParams(location.search).get('login');
+    if (param === '1') localStorage.setItem(AUTH_FLAG_KEY, '1');
+    if (param === '0') localStorage.removeItem(AUTH_FLAG_KEY);
+    return localStorage.getItem(AUTH_FLAG_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+}
+const AUTH_LOGIN_ENABLED = readAuthLoginEnabled();
+
+let sb = null;                    // supabase-js クライアント(ログイン機能オフ時はnull)
+let authSession = null;           // ログイン中のセッション(未ログインはnull)
+let authMemberNickname = null;    // ログイン中のDiscordに紐づくメンバー(未紐付け/未ログインはnull)
+const authStateListeners = [];
+
+// 書き込み・読み取りどちらでも使う認証ヘッダー。ログイン済みならユーザーのJWT、
+// 未ログインなら従来どおりanon keyで送る。
+function authHeaders(extra) {
+  const token = authSession && authSession.access_token;
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+    ...(extra || {}),
+  };
+}
+
+function onAuthStateChanged(listener) {
+  authStateListeners.push(listener);
+}
+
+async function fetchAuthMemberNickname(session) {
+  if (!session) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/current_member_nickname`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    if (!res.ok) return null;
+    const nickname = await res.json();
+    return typeof nickname === 'string' && nickname ? nickname : null;
+  } catch (e) {
+    console.warn('current_member_nickname failed', e);
+    return null;
+  }
+}
+
+async function applyAuthSession(session) {
+  authSession = session || null;
+  authMemberNickname = await fetchAuthMemberNickname(authSession);
+  authStateListeners.forEach(listener => {
+    try { listener({ session: authSession, memberNickname: authMemberNickname }); } catch (e) { console.warn(e); }
+  });
+}
+
+async function initAuth() {
+  if (!AUTH_LOGIN_ENABLED) return;
+  try {
+    const { createClient } = await import(SUPABASE_JS_URL);
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+    });
+    // onAuthStateChange のコールバック内でsupabase-jsを await するとデッドロックするため、
+    // 次のtickに逃がしてから処理する。
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+      setTimeout(() => applyAuthSession(session), 0);
+    });
+    const { data } = await sb.auth.getSession();
+    await applyAuthSession(data.session);
+    restoreHashAfterLogin();
+  } catch (e) {
+    console.warn('auth init failed', e);
+  }
+}
+
+// OAuthの往復でURLのハッシュ(#member/... など)が落ちるため、ログイン前に退避して戻す。
+function restoreHashAfterLogin() {
+  try {
+    const saved = localStorage.getItem(AUTH_RETURN_HASH_KEY);
+    if (!saved) return;
+    localStorage.removeItem(AUTH_RETURN_HASH_KEY);
+    if (authSession && saved !== location.hash) location.hash = saved;
+  } catch (e) {}
+}
+
+async function signInWithDiscord() {
+  if (!sb) return;
+  try { localStorage.setItem(AUTH_RETURN_HASH_KEY, location.hash || ''); } catch (e) {}
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'discord',
+    options: { scopes: 'identify', redirectTo: location.origin + location.pathname },
+  });
+  if (error) console.warn('discord sign-in failed', error);
+}
+
+async function signOutOfDiscord() {
+  if (!sb) return;
+  await sb.auth.signOut();
+}
+
 function avatarUrl(path) {
   if (!path) return null;
   return `${SUPABASE_URL}/storage/v1/object/public/${path}`;
@@ -7202,6 +7319,8 @@ async function renderYuruTalkView(groupId) {
 
   renderTagDetail(commonTags[0]);
 }
+
+initAuth();
 
 selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 </script>
