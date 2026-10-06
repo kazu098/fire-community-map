@@ -1340,50 +1340,6 @@
       cursor: pointer;
     }
     #my-identity-bar .sort-label { display: flex; align-items: center; gap: 4px; }
-    #my-identity-modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.55);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    #my-identity-modal {
-      background: white;
-      border-radius: 16px;
-      max-width: 420px;
-      width: 100%;
-      padding: 28px 24px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-    }
-    #my-identity-modal h3 { margin: 0 0 10px; font-size: 17px; color: #111827; }
-    #my-identity-modal p { margin: 0 0 18px; font-size: 13px; color: #4b5563; line-height: 1.6; }
-    #my-identity-modal input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 10px 14px;
-      border: 2px solid #bfdbfe;
-      border-radius: 10px;
-      font-size: 14px;
-      outline: none;
-      margin-bottom: 14px;
-    }
-    #my-identity-modal input:focus { border-color: #3b82f6; }
-    #my-identity-modal .my-identity-modal-actions { display: flex; gap: 10px; }
-    #my-identity-modal button {
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: 2px solid #3b82f6;
-      background: #3b82f6;
-      color: white;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-      flex: 1;
-    }
-    #my-identity-modal button.secondary { background: white; color: #6b7280; border-color: #d1d5db; }
     #active-filter-chips {
       display: none;
       flex-wrap: wrap;
@@ -2089,9 +2045,6 @@
     </div>
     <div id="my-identity-bar"></div>
     <div id="active-filter-chips"></div>
-    <div id="my-identity-modal-overlay" onclick="if (event.target === this) dismissIdentityPrompt()">
-      <div id="my-identity-modal"></div>
-    </div>
     <div id="member-grid"></div>
     <div id="member-list-layout">
       <div id="member-filter-sidebar"></div>
@@ -2146,31 +2099,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ================================================================
 // Discord ログイン(Issue #253)
 // ================================================================
-// 既定ではオフ(本番の挙動は変わらない)。URLの ?login= で切り替える(選択はこのブラウザの
-// localStorageに保存):
-//   ?login=1         ログインは任意(未ログインでも今までどおり使える。互換期間用)
-//   ?login=required  ログイン必須(未ログインはログイン画面のみ。メンバー限定サイトの最終形)
-//   ?login=0         オフに戻す
-// 本番の既定をログイン必須にするのは AUTH_DEFAULT_MODE を変えるとき(#292)。
-const AUTH_DEFAULT_MODE = '';     // '' | '1' | '2'(2=必須)
-const AUTH_FLAG_KEY = 'authLoginEnabled';
+// サイトはメンバー限定: Discordでログインしてメンバーとして確認できた人だけが中身を見られる。
+// 以前の段階導入用の ?login= フラグ(localStorage)は不要になったので、残っていれば消す。
 const AUTH_RETURN_HASH_KEY = 'authReturnHash';
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
-
-function readAuthLoginEnabled() {
-  try {
-    const param = new URLSearchParams(location.search).get('login');
-    if (param === '1') localStorage.setItem(AUTH_FLAG_KEY, '1');
-    if (param === 'required') localStorage.setItem(AUTH_FLAG_KEY, '2');
-    if (param === '0') localStorage.removeItem(AUTH_FLAG_KEY);
-    return localStorage.getItem(AUTH_FLAG_KEY) || AUTH_DEFAULT_MODE;
-  } catch (e) {
-    return AUTH_DEFAULT_MODE;
-  }
-}
-const AUTH_MODE = readAuthLoginEnabled();
-const AUTH_LOGIN_ENABLED = AUTH_MODE === '1' || AUTH_MODE === '2';
-const AUTH_REQUIRED = AUTH_MODE === '2';
+const AUTH_LOGIN_ENABLED = true;
+const AUTH_REQUIRED = true;
+try {
+  localStorage.removeItem('authLoginEnabled');
+  localStorage.removeItem('authOAuthProvider');
+} catch (e) {}
 
 let sb = null;                    // supabase-js クライアント(ログイン機能オフ時はnull)
 let authSession = null;           // ログイン中のセッション(未ログインはnull)
@@ -3274,8 +3212,8 @@ function usageVideoBlock() {
 const YURU_MATCHING_VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/usage-guide-media/yuru-matching-guide.mp4`;
 const YURU_MATCHING_VIDEO_CHAPTERS = [
   { t: 0, label: '全体像' },
-  { t: 19, label: 'ニックネームを選ぶ' },
-  { t: 30, label: '誰として表示中か確認' },
+  { t: 19, label: '(旧)ニックネームを選ぶ' },
+  { t: 30, label: '(旧)誰として表示中か確認' },
   { t: 43, label: '参加設定・空き時間登録' },
   { t: 60, label: 'マッチ成立の通知' },
   { t: 73, label: 'ゆるトーク画面を開く' },
@@ -3396,8 +3334,8 @@ function renderUsageView() {
             <summary>ゆるマッチング設定</summary>
             <div class="usage-nav-sub-list">
               <a class="usage-nav-sub" href="#usage-yuru-matching">概要</a>
-              <a class="usage-nav-sub" href="#usage-yuru-matching-modal">ニックネームを選ぶ</a>
-              <a class="usage-nav-sub" href="#usage-yuru-matching-identity">表示中の名前を確認する</a>
+              <a class="usage-nav-sub" href="#usage-yuru-matching-modal">Discordでログインする</a>
+              <a class="usage-nav-sub" href="#usage-yuru-matching-identity">自分のプロフィールを開く</a>
               <a class="usage-nav-sub" href="#usage-yuru-matching-settings">参加設定を保存する</a>
               <a class="usage-nav-sub" href="#usage-yuru-matching-after">マッチ後の流れ</a>
             </div>
@@ -3529,17 +3467,15 @@ function renderUsageView() {
 
           <section class="usage-doc-section" id="usage-yuru-matching">
             <h2>ゆるマッチングを設定する</h2>
-            <p>ゆるマッチングは、空いている曜日・時間帯が合うメンバー同士をDiscordの専用チャンネルで紹介する機能です。参加したい場合は、まず自分のニックネームを選び、自分のプロフィール詳細画面から参加ON/OFF、頻度、空いている時間帯を設定します。</p>
+            <p>ゆるマッチングは、空いている曜日・時間帯が合うメンバー同士をDiscordの専用チャンネルで紹介する機能です。参加したい場合は、Discordでログインして、自分のプロフィール詳細画面から参加ON/OFF、頻度、空いている時間帯を設定します。</p>
             ${usageYuruMatchingVideoBlock()}
             <div class="usage-step-block" id="usage-yuru-matching-modal">
-              <h3>1. メンバータブで自分のニックネームを選ぶ</h3>
-              <p>メンバータブを開くと、「あなたのニックネームは？」というポップアップが表示されます。入力欄から自分のニックネームを選び、「設定する」を押してください。あとで閉じた場合でも、未設定のままなら次にメンバータブを開いた時や「ざっと見る」に戻った時に再表示されます。</p>
-              ${usageFigure('docs/usage-screenshots/guide-15-yuru-matching-modal.png', '本人確認ポップアップ', 'メンバータブで自分のニックネームを選ぶと、自分のプロフィール設定に進めるようになります。')}
+              <h3>1. Discordでログインする</h3>
+              <p>サイトを開くと「Discordでログイン」の画面が表示されます。ボタンを押し、Discordの画面で「認証」を押すと、自分のニックネームでログインした状態でサイトが開きます。2回目以降はログインしたままになるので、この操作は不要です。</p>
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-identity">
-              <h3>2. 誰として表示中か確認する</h3>
-              <p>メンバー詳細画面の上部に「誰として表示中か」が出ます。自分のニックネームとして表示されているときだけ、そのプロフィールのゆるマッチング設定を編集できます。違う人として表示されている場合は「変更」、一度解除したい場合は「解除」を押してください。</p>
-              ${usageFigure('docs/usage-screenshots/guide-15-yuru-matching-identity.png', '本人設定の確認表示', '自分のニックネームとして表示中なら、このプロフィールのゆるマッチング設定を編集できます。')}
+              <h3>2. 自分のプロフィールを開く</h3>
+              <p>メンバー一覧の上の「自分のプロフィール」ボタンから、自分のプロフィール詳細画面を開きます。ゆるマッチング設定などは、自分のプロフィールでだけ編集できます。</p>
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-settings">
               <h3>3. 参加ON/OFF・頻度・空き時間を設定する</h3>
@@ -3826,7 +3762,6 @@ async function loadDirectory() {
   directoryLoaded = true;
 
   renderMemberGrid();
-  maybeShowIdentityModal();
 }
 
 async function refreshDirectory() {
@@ -3851,51 +3786,18 @@ function setDirectoryViewMode(mode) {
   directoryViewMode = mode;
   try { localStorage.setItem('directoryViewMode', mode); } catch (e) {}
   renderMemberGrid();
-  if (mode === 'card') maybeShowIdentityModal();
 }
 
-// 「あなたは誰か」をブラウザにだけ覚えておく仕組み(ログイン機能ではない)。
-// ログインなしで「共通タグ」を出すため、本人がニックネームを選ぶだけの軽量な自己申告。
-// なりすまし防止のガードはなく、既存のタグ編集(誰でも誰のタグでも編集可能)と同じ信頼モデル。
+// 「自分」はDiscordでログインしたメンバー(authMemberNickname)。サイトはログイン必須なので、
+// アプリが始まる時点で必ず決まっている。以前の自己申告(ニックネームを選ぶだけ)は廃止した。
 let myNickname = null;
-try { myNickname = localStorage.getItem('myNickname') || null; } catch (e) {}
-
-function setMyNickname(nickname) {
-  if (authMemberNickname) return; // ログイン中はDiscordに紐づくメンバーで固定
-  const member = directoryMembers.find(m => m.nickname === nickname);
-  if (!member) {
-    alert('その名前のメンバーが見つかりませんでした。一覧から選んでください。');
-    return;
-  }
-  myNickname = member.nickname;
-  try { localStorage.setItem('myNickname', myNickname); } catch (e) {}
-  try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
-  renderMemberGrid();
-}
-
-function clearMyNickname() {
-  if (authMemberNickname) return;
-  myNickname = null;
-  listSortMode = 'default';
-  try { localStorage.removeItem('myNickname'); } catch (e) {}
-  try { localStorage.removeItem('myIdentityPromptDismissed'); } catch (e) {}
-  renderMemberGrid();
-  maybeShowIdentityModal();
-}
-
-function beginMyNicknameChange() {
-  if (authMemberNickname) return;
-  myNickname = null;
-  listSortMode = 'default';
-  try { localStorage.removeItem('myNickname'); } catch (e) {}
-  try { localStorage.removeItem('myIdentityPromptDismissed'); } catch (e) {}
-  renderMemberGrid();
-  maybeShowIdentityModal();
-}
+try {
+  localStorage.removeItem('myNickname');
+  localStorage.removeItem('myIdentityPromptDismissed');
+} catch (e) {}
 
 // ---- Discord ログインとの連動(Issue #253) ----
-// ログイン中は、Discordに紐づくメンバーを「自分」(myNickname)にする。
-let authWasLoggedIn = false;
+// Discordに紐づくメンバーを「自分」(myNickname)にする。
 
 function renderAuthBar() {
   const bar = document.getElementById('auth-bar');
@@ -3927,20 +3829,9 @@ function renderAuthBar() {
   button.onclick = signOutOfDiscord;
 }
 
-onAuthStateChanged(({ session, memberNickname }) => {
-  if (memberNickname) {
-    myNickname = memberNickname;
-    try { localStorage.setItem('myNickname', myNickname); } catch (e) {}
-    try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
-    hideIdentityModal();
-    authWasLoggedIn = true;
-  } else if (!session && authWasLoggedIn) {
-    // ログアウト: ログイン由来の「自分」を残さない
-    authWasLoggedIn = false;
-    myNickname = null;
-    listSortMode = 'default';
-    try { localStorage.removeItem('myNickname'); } catch (e) {}
-  }
+onAuthStateChanged(({ memberNickname }) => {
+  myNickname = memberNickname || null;
+  if (!myNickname) listSortMode = 'default';
   renderAuthBar();
   try { renderMemberGrid(); } catch (e) { console.warn(e); }
   if (document.getElementById('member-detail-view').style.display === 'block') {
@@ -3949,9 +3840,9 @@ onAuthStateChanged(({ session, memberNickname }) => {
   }
 });
 
-// ログイン中は本人のプロフィールだけ編集できる(DB側のRLSと同じ条件)。未ログインは従来どおり。
+// 本人のプロフィールだけ編集できる(DB側のRLSと同じ条件)。
 function canEditMember(nickname) {
-  return !authMemberNickname || authMemberNickname === nickname;
+  return Boolean(authMemberNickname) && authMemberNickname === nickname;
 }
 
 // 自分(myNickname)を設定しているときだけ選べる並び替え。「default」は読み込み順のまま。
@@ -3973,165 +3864,39 @@ function sharedTags(member) {
   return result;
 }
 
-function isIdentityPromptDismissed() {
-  try { return localStorage.getItem('myIdentityPromptDismissed') === '1'; } catch (e) { return false; }
-}
-
-function dismissIdentityPrompt() {
-  try { localStorage.setItem('myIdentityPromptDismissed', '1'); } catch (e) {}
-  hideIdentityModal();
-  renderMemberGrid();
-}
-
-function hideIdentityModal() {
-  document.getElementById('my-identity-modal-overlay').style.display = 'none';
-}
-
-// まだ自分を選んでいなければ画面中央に大きめのポップアップで促す
-// (「相手を探す」表示に切り替えないと選択欄が見つからず、ゆるマッチングの参加設定などに
-// 本人がたどり着けなかったため)。「あとで」はその場では閉じるだけで、未設定のままなら
-// 次回表示時や表示モード切り替え時に再度案内する。
-function maybeShowIdentityModal() {
-  if (myNickname || authMemberNickname) return;
-
-  const overlay = document.getElementById('my-identity-modal-overlay');
-  const modal = document.getElementById('my-identity-modal');
-  modal.innerHTML = '';
-
-  const heading = document.createElement('h3');
-  heading.textContent = '👤 あなたのニックネームは？';
-  modal.appendChild(heading);
-
-  const desc = document.createElement('p');
-  desc.textContent = '選んでおくと、相手との共通タグが分かったり、ゆるマッチングの参加設定など自分のプロフィールをここから編集できるようになります。';
-  modal.appendChild(desc);
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = 'ニックネームを入力…';
-  input.setAttribute('list', 'my-identity-modal-options');
-  input.setAttribute('autocomplete', 'off');
-  const datalist = document.createElement('datalist');
-  datalist.id = 'my-identity-modal-options';
-  directoryMembers.forEach(m => {
-    const option = document.createElement('option');
-    option.value = m.nickname;
-    datalist.appendChild(option);
-  });
-  const submit = () => {
-    if (!input.value.trim()) return;
-    setMyNickname(input.value.trim());
-    hideIdentityModal();
-  };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  modal.appendChild(input);
-  modal.appendChild(datalist);
-
-  const actions = document.createElement('div');
-  actions.className = 'my-identity-modal-actions';
-  const laterBtn = document.createElement('button');
-  laterBtn.type = 'button';
-  laterBtn.className = 'secondary';
-  laterBtn.textContent = 'あとで';
-  laterBtn.addEventListener('click', dismissIdentityPrompt);
-  actions.appendChild(laterBtn);
-  const setBtn = document.createElement('button');
-  setBtn.type = 'button';
-  setBtn.textContent = '設定する';
-  setBtn.addEventListener('click', submit);
-  actions.appendChild(setBtn);
-  modal.appendChild(actions);
-
-  overlay.style.display = 'flex';
-  input.focus();
-}
-
-function renderMyIdentityBar(dismissible, showSort) {
+function renderMyIdentityBar(showSort) {
   const bar = document.getElementById('my-identity-bar');
   bar.innerHTML = '';
-
-  if (myNickname) {
-    const label = document.createElement('span');
-    label.textContent = `👤 ${myNickname} として表示中(相手との共通タグが分かります)`;
-    bar.appendChild(label);
-    const myProfileBtn = document.createElement('button');
-    myProfileBtn.type = 'button';
-    myProfileBtn.className = 'secondary';
-    myProfileBtn.textContent = '自分のプロフィール';
-    myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
-    bar.appendChild(myProfileBtn);
-    if (!authMemberNickname) {
-      const changeBtn = document.createElement('button');
-      changeBtn.type = 'button';
-      changeBtn.className = 'secondary';
-      changeBtn.textContent = '変更';
-      changeBtn.addEventListener('click', beginMyNicknameChange);
-      bar.appendChild(changeBtn);
-      const clearBtn = document.createElement('button');
-      clearBtn.type = 'button';
-      clearBtn.className = 'secondary';
-      clearBtn.textContent = '解除';
-      clearBtn.addEventListener('click', clearMyNickname);
-      bar.appendChild(clearBtn);
-    }
-
-    if (showSort) {
-      const sortLabel = document.createElement('label');
-      sortLabel.className = 'sort-label';
-      sortLabel.textContent = '並び替え:';
-      const sortSelect = document.createElement('select');
-      [
-        ['default', '登録順'],
-        ['sharedTags', 'おすすめ(共通タグが多い順)'],
-      ].forEach(([value, text]) => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = text;
-        if (listSortMode === value) option.selected = true;
-        sortSelect.appendChild(option);
-      });
-      sortSelect.addEventListener('change', () => { listSortMode = sortSelect.value; renderMemberGrid(); });
-      sortLabel.appendChild(sortSelect);
-      bar.appendChild(sortLabel);
-    }
-    return;
-  }
+  if (!myNickname) return;
 
   const label = document.createElement('span');
-  label.textContent = '👤 自分のニックネームを選ぶと、相手との共通タグが分かります:';
+  label.textContent = `👤 ${myNickname} としてログイン中(相手との共通タグが分かります)`;
   bar.appendChild(label);
+  const myProfileBtn = document.createElement('button');
+  myProfileBtn.type = 'button';
+  myProfileBtn.className = 'secondary';
+  myProfileBtn.textContent = '自分のプロフィール';
+  myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
+  bar.appendChild(myProfileBtn);
 
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = 'ニックネームを入力…';
-  input.setAttribute('list', 'my-identity-options');
-  input.setAttribute('autocomplete', 'off');
-  const datalist = document.createElement('datalist');
-  datalist.id = 'my-identity-options';
-  directoryMembers.forEach(m => {
-    const option = document.createElement('option');
-    option.value = m.nickname;
-    datalist.appendChild(option);
-  });
-  const submit = () => setMyNickname(input.value.trim());
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  bar.appendChild(input);
-  bar.appendChild(datalist);
-
-  const setBtn = document.createElement('button');
-  setBtn.type = 'button';
-  setBtn.textContent = '設定';
-  setBtn.addEventListener('click', submit);
-  bar.appendChild(setBtn);
-
-  if (dismissible) {
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'secondary';
-    closeBtn.textContent = '✕';
-    closeBtn.title = '閉じる（あとで「相手を探す」タブからも選べます）';
-    closeBtn.addEventListener('click', dismissIdentityPrompt);
-    bar.appendChild(closeBtn);
+  if (showSort) {
+    const sortLabel = document.createElement('label');
+    sortLabel.className = 'sort-label';
+    sortLabel.textContent = '並び替え:';
+    const sortSelect = document.createElement('select');
+    [
+      ['default', '登録順'],
+      ['sharedTags', 'おすすめ(共通タグが多い順)'],
+    ].forEach(([value, text]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = text;
+      if (listSortMode === value) option.selected = true;
+      sortSelect.appendChild(option);
+    });
+    sortSelect.addEventListener('change', () => { listSortMode = sortSelect.value; renderMemberGrid(); });
+    sortLabel.appendChild(sortSelect);
+    bar.appendChild(sortLabel);
   }
 }
 
@@ -4286,11 +4051,10 @@ function renderMemberGrid() {
   document.getElementById('mode-list').classList.toggle('active', directoryViewMode === 'list');
   document.getElementById('member-grid').style.display = directoryViewMode === 'card' ? 'grid' : 'none';
   document.getElementById('member-list-layout').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
-  // 識別済みなら「ざっと見る」でも「〇〇として表示中」を常に見せる(以前は「相手を探す」でしか
-  // 見えず分かりにくかった)。未識別なら、閉じる(スキップ)まではここにも選択欄を出しておく。
-  const identityBarVisible = directoryViewMode === 'list' || myNickname || !isIdentityPromptDismissed();
+  // 「ざっと見る」「相手を探す」のどちらでも「〇〇としてログイン中」を見せる。
+  const identityBarVisible = Boolean(myNickname);
   document.getElementById('my-identity-bar').style.display = identityBarVisible ? 'flex' : 'none';
-  if (identityBarVisible) renderMyIdentityBar(directoryViewMode !== 'list', directoryViewMode === 'list');
+  if (identityBarVisible) renderMyIdentityBar(directoryViewMode === 'list');
 
   if (directoryViewMode === 'list') {
     renderMemberFilterSidebar();
@@ -5747,9 +5511,7 @@ function buildMatchingSection(member) {
     const readonlyNote = document.createElement('div');
     readonlyNote.className = 'detail-field-hint';
     readonlyNote.style.marginBottom = '10px';
-    readonlyNote.textContent = myNickname
-      ? 'ゆるマッチング設定は本人だけが編集できます。ここでは参加状況の確認のみです。'
-      : '「自分のニックネームを選ぶ」で自分自身を設定すると、ここから編集できます。ここでは参加状況の確認のみです。';
+    readonlyNote.textContent = 'ゆるマッチング設定は本人だけが編集できます。ここでは参加状況の確認のみです。';
     section.appendChild(readonlyNote);
 
     const statusBadge = document.createElement('div');
@@ -5953,72 +5715,19 @@ function buildDetailIdentityCard(member) {
   text.className = 'detail-identity-text';
   card.appendChild(text);
 
-  if (myNickname) {
-    const isMe = myNickname === member.nickname;
-    text.textContent = isMe
-      ? `${myNickname} として表示中です。このプロフィールのゆるマッチング設定を編集できます。`
-      : `${myNickname} として表示中です。このページは ${member.nickname} さんのプロフィールです。`;
+  const isMe = myNickname === member.nickname;
+  text.textContent = isMe
+    ? `${myNickname} としてログイン中です。このプロフィールを編集できます。`
+    : `${myNickname} としてログイン中です。このページは ${member.nickname} さんのプロフィールです。`;
 
-    if (!isMe) {
-      const myProfileBtn = document.createElement('button');
-      myProfileBtn.type = 'button';
-      myProfileBtn.className = 'secondary';
-      myProfileBtn.textContent = '自分のプロフィール';
-      myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
-      card.appendChild(myProfileBtn);
-    }
-
-    const changeBtn = document.createElement('button');
-    changeBtn.type = 'button';
-    changeBtn.className = 'secondary';
-    changeBtn.textContent = '変更';
-    changeBtn.addEventListener('click', () => {
-      beginMyNicknameChange();
-      openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
-    });
-    card.appendChild(changeBtn);
-
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'secondary';
-    clearBtn.textContent = '解除';
-    clearBtn.addEventListener('click', () => {
-      clearMyNickname();
-      openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
-    });
-    card.appendChild(clearBtn);
-    return card;
+  if (!isMe) {
+    const myProfileBtn = document.createElement('button');
+    myProfileBtn.type = 'button';
+    myProfileBtn.className = 'secondary';
+    myProfileBtn.textContent = '自分のプロフィール';
+    myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
+    card.appendChild(myProfileBtn);
   }
-
-  text.textContent = '誰として表示するか未設定です。自分のニックネームを選ぶと、この画面から自分のゆるマッチング設定を編集できます。';
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = 'ニックネームを入力...';
-  input.setAttribute('list', 'detail-my-identity-options');
-  input.setAttribute('autocomplete', 'off');
-  const datalist = document.createElement('datalist');
-  datalist.id = 'detail-my-identity-options';
-  directoryMembers.forEach(m => {
-    const option = document.createElement('option');
-    option.value = m.nickname;
-    datalist.appendChild(option);
-  });
-  const submit = () => {
-    if (!input.value.trim()) return;
-    setMyNickname(input.value.trim());
-    openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false });
-  };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  card.appendChild(input);
-  card.appendChild(datalist);
-
-  const setBtn = document.createElement('button');
-  setBtn.type = 'button';
-  setBtn.textContent = '設定';
-  setBtn.addEventListener('click', submit);
-  card.appendChild(setBtn);
-
   return card;
 }
 
@@ -7087,14 +6796,12 @@ function communityPostMonthSearchTerms(value) {
   ];
 }
 
-// Discordログイン中は、投稿者本人が自分の本・旅行の投稿だけ削除できる(相談系は複数人のスレッド
-// で投稿者名を出さないため削除不可。DB側のRLSも同じ条件、supabase/member_auth_policies_posts.sql)。
-// 未ログイン(互換期間)は従来どおり。
+// 投稿者本人が自分の本・旅行の投稿だけ削除できる(相談系は複数人のスレッドで投稿者名を出さない
+// ため削除不可。DB側のRLSも同じ条件、supabase/member_auth_policies_posts.sql)。
 function canRemoveCommunityPost(post) {
-  if (authMemberNickname) {
-    return ['book', 'travel'].includes(post.content_type) && post.member_nickname === authMemberNickname;
-  }
-  return post.content_type === 'book' || Boolean(post.member_nickname);
+  return Boolean(authMemberNickname)
+    && ['book', 'travel'].includes(post.content_type)
+    && post.member_nickname === authMemberNickname;
 }
 
 function buildCommunityPostCard(post, { onRemove }) {
@@ -7312,8 +7019,7 @@ function buildCommunityPostsSection(member) {
       const item = document.createElement('div');
       item.className = 'detail-community-item';
 
-      // ログイン中は本人の本・旅行のみ。未ログイン(互換期間)は従来どおり常に表示。
-      if (!authMemberNickname || canRemoveCommunityPost(post)) {
+      if (canRemoveCommunityPost(post)) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'detail-community-remove';
         removeBtn.textContent = '✕';
@@ -7566,18 +7272,13 @@ function startApp() {
   selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 }
 
-if (AUTH_REQUIRED) {
-  // ログイン必須: ログイン状態が確定するまでデータを取得せず、メンバーとして確認できたときだけ始める。
-  initAuth().then(ok => {
-    if (!ok) showLoginGate('error');
-    else if (!authSession) showLoginGate('signin');
-    else if (!authMemberNickname) showLoginGate('nonmember');
-    else startApp();
-  });
-} else {
-  initAuth();
-  startApp();
-}
+// ログイン状態が確定するまでデータを取得せず、メンバーとして確認できたときだけ始める。
+initAuth().then(ok => {
+  if (!ok) showLoginGate('error');
+  else if (!authSession) showLoginGate('signin');
+  else if (!authMemberNickname) showLoginGate('nonmember');
+  else startApp();
+});
 </script>
 </body>
 </html>

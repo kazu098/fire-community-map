@@ -15,7 +15,7 @@ FIRE研究所コミュニティの運営を支える静的サイト＋自動化�
 - **ゆるマッチング**: 空き時間が合うメンバー同士をランダムにペアリングし、Discordで紹介 → [docs/yuru-matching.md](./docs/yuru-matching.md)
 - **相談してみる**: 気になった相手への連絡下書きを生成し、DiscordのDMを開くリンクを提示(自動送信なし) → [docs/consultation-dm.md](./docs/consultation-dm.md)
 
-いずれも限定URLを知っている人だけが閲覧する前提で、ログイン機能やWordPress会員制プラグインは使わない。
+会員マップ(`index.html`)はメンバー限定で、Discordでログインしてメンバーとして確認できた人だけが中身を見られる(Supabase Authのカスタムプロバイダ `custom:discord-id`、メールアドレスは取得しない)。仕組みと設定は [docs/discord-oauth-login-plan.md](./docs/discord-oauth-login-plan.md) を参照。公開用一覧(`public.html`)と公開地図(`map/public.html`)は、公開ビュー経由でログインなしに表示する。
 
 ## ローカルでの確認方法
 
@@ -31,11 +31,11 @@ python3 -m http.server 8000
 
 Supabaseの接続情報(URL・anon key)は`index.html`/`public.html`に直書きされている(anon keyは公開前提でRLSにより保護されているため問題ない)。ローカル確認時に`.env`は不要。
 
-本番のBasic認証(`middleware.js`)はVercelのEdge Middlewareとしてのみ動作するため、ローカルの簡易サーバーでは認証なしで確認できる。
+会員マップはローカルでもDiscordログインが必要。Supabaseの Authentication > URL Configuration > Redirect URLs に `http://localhost:8000/**` が登録されていること(登録済み)。
 
 ## 本番ビルド・デプロイ
 
-ビルドステップは存在しない(静的HTML + Vercel Edge Middlewareのみ)。デプロイはVercelとのGit連携により、`main`ブランチへのpush/マージで自動的に本番反映される。手動でのビルドコマンドやデプロイコマンドの実行は不要。
+ビルドステップは存在しない(静的HTML + Vercel Edge Function `api/discord-userinfo.js` のみ)。デプロイはVercelとのGit連携により、`main`ブランチへのpush/マージで自動的に本番反映される。手動でのビルドコマンドやデプロイコマンドの実行は不要。
 
 - 変更を試したい場合は、featureブランチでPRを作成するとVercelがプレビューデプロイを自動作成する
 - 本番URLへの反映は、そのPRを`main`にマージしたタイミング
@@ -50,9 +50,7 @@ cp .env.example .env
 
 `.env`はgitignore対象で、実際の値はコミットしない。値はプロジェクトオーナー(kazu098)から共有してもらう(Discord Bot Token、Supabase Service Role Keyなど機密情報を含むため、Slack/1Password等の安全な経路で受け取ること)。
 
-Vercel本番環境には、`.env`とは別に以下の環境変数をVercelプロジェクト設定(Environment Variables)側で設定する。
-
-- `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` — サイト全体のBasic認証(`middleware.js`が参照)
+Vercel本番環境で必要な環境変数はない(以前のBasic認証用 `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` は、Discordログインへの移行で不要になった)。
 
 GitHub Actionsで動く定期バッチ(コミュニティ投稿同期・イベント同期・YouTubeコメント通知など)は、リポジトリのRepository secretsに個別の環境変数を設定する。必要な変数は各ドキュメント、または各workflowファイル(`.github/workflows/`)を参照。
 
