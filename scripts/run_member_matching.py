@@ -545,6 +545,7 @@ def run_matching(
     group_size: int = GROUP_SIZE,
     joined_months: dict[str, int] | None = None,
     mentor_group_first: bool = False,
+    wishes: dict[str, set[str]] | None = None,
 ) -> list[dict[str, Any]]:
     """Randomly group eligible members into exactly group_size-sized groups who all share an
     availability hour.
@@ -557,9 +558,26 @@ def run_matching(
     posting an undersized group -- a member left over this round is still eligible as a
     candidate for someone else's group later in the same pass, and remains a candidate for
     the next scheduled run either way.
+
+    `wishes` (wisher -> set of members they want to talk to, from member_talk_wishes) biases the
+    otherwise random grouping: members with wishes inside the pool pick their group first, and
+    each candidate is chosen by how many wish links (either direction, mutual counts double) it
+    has with the members already in the group. Availability overlap and the cooldown still win --
+    a wish never forces an impossible group.
     """
     pool = [n for n in eligible_nicknames if slot_index.get(n)]
     rng.shuffle(pool)
+    wishes = wishes or {}
+    pool_set = set(pool)
+
+    def affinity(a: str, b: str) -> int:
+        return (b in wishes.get(a, ())) + (a in wishes.get(b, ()))
+
+    def wish_links_in_pool(n: str) -> int:
+        return sum(affinity(n, other) for other in pool_set if other != n)
+
+    if wishes:
+        pool.sort(key=lambda n: -wish_links_in_pool(n))  # stable: ties keep the random order
     matched: set[str] = set()
     results: list[dict[str, Any]] = []
 
@@ -592,16 +610,19 @@ def run_matching(
 
         group = [nickname]
         common_slots = set(slot_index[nickname])
-        for candidate in candidates:
-            if len(group) >= group_size:
+        while len(group) < group_size:
+            eligible = [
+                c for c in candidates
+                if c not in group
+                and common_slots & slot_index[c]
+                and not any(frozenset((c, member)) in excluded_pairs for member in group)
+            ]
+            if not eligible:
                 break
-            overlap = common_slots & slot_index[candidate]
-            if not overlap:
-                continue
-            if any(frozenset((candidate, member)) in excluded_pairs for member in group):
-                continue
+            # max() keeps the first of equal scores, i.e. the shuffled order when nobody wished.
+            candidate = max(eligible, key=lambda c: sum(affinity(c, member) for member in group))
             group.append(candidate)
-            common_slots = overlap
+            common_slots &= slot_index[candidate]
 
         if len(group) < group_size:
             continue
@@ -775,6 +796,7 @@ def main() -> int:
     profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url,joined_month")
     member_links = get("/rest/v1/member_links?select=member_nickname,label,url")
     member_locations = get("/rest/v1/member_locations?select=nickname,prefecture")
+    talk_wishes = get("/rest/v1/member_talk_wishes?select=member_nickname,target_nickname")
 
     due_nicknames = [s["member_nickname"] for s in settings if is_due(s, now)]
     slot_index = build_slot_index(availability)
@@ -803,10 +825,13 @@ def main() -> int:
     joined_months = {
         p["nickname"]: idx for p in profiles if (idx := month_index(p.get("joined_month"))) is not None
     }
+    wishes: dict[str, set[str]] = {}
+    for row in talk_wishes:
+        wishes.setdefault(row["member_nickname"], set()).add(row["target_nickname"])
     mentor_group_first = args.force_mentor or rng.random() < MENTOR_MODE_PROBABILITY
     matches = run_matching(
         due_nicknames, slot_index, excluded_pairs, rng,
-        joined_months=joined_months, mentor_group_first=mentor_group_first,
+        joined_months=joined_months, mentor_group_first=mentor_group_first, wishes=wishes,
     )
     for match in matches:
         member_inputs = [member_topic_input(n) for n in match["members"]]

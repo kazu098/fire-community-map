@@ -1918,6 +1918,28 @@
     .matching-status {
       font-size: 11px; color: #2563eb; min-height: 16px; margin-top: 8px;
     }
+    .talk-wish-section { margin-top: 18px; }
+    .talk-wish-title { font-size: 12px; font-weight: bold; color: #374151; margin-bottom: 4px; }
+    .talk-wish-box {
+      position: relative; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 8px; background: #fff; margin-top: 6px;
+    }
+    .talk-wish-box:focus-within { border-color: #2563eb; }
+    .talk-wish-chip {
+      display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; color: #1d4ed8;
+      border-radius: 999px; padding: 3px 4px 3px 10px; font-size: 12px;
+    }
+    .talk-wish-chip button {
+      border: none; background: transparent; color: #1d4ed8; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px;
+    }
+    .talk-wish-input { flex: 1; min-width: 140px; border: none; outline: none; font-size: 13px; padding: 4px 2px; background: transparent; }
+    .talk-wish-suggest {
+      position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 20; list-style: none; padding: 4px 0;
+      background: #fff; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.12);
+      max-height: 220px; overflow-y: auto;
+    }
+    .talk-wish-suggest li { padding: 7px 12px; font-size: 13px; cursor: pointer; }
+    .talk-wish-suggest li.is-active, .talk-wish-suggest li:hover { background: #eff6ff; }
     .availability-override-section {
       margin-top: 14px;
     }
@@ -5634,6 +5656,159 @@ function buildAvailabilityOverrideSection(member, { editable }) {
   return wrap;
 }
 
+// ---- 話してみたい人リスト(本人だけが見える・ゆるマッチングの組み合わせに反映される) ----
+
+let talkWishes = null; // 自分の登録(target_nicknameの配列)。未取得はnull
+onAuthStateChanged(() => { talkWishes = null; }); // ログイン/ログアウトで別人の一覧を引きずらない
+
+async function loadTalkWishes() {
+  if (talkWishes) return talkWishes;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_talk_wishes?select=target_nickname&order=created_at`,
+      { headers: authHeaders() });
+    talkWishes = res.ok ? (await res.json()).map(r => r.target_nickname) : [];
+  } catch (e) {
+    console.warn('talk wishes load failed', e);
+    talkWishes = [];
+  }
+  return talkWishes;
+}
+
+async function addTalkWish(me, target) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/member_talk_wishes?on_conflict=member_nickname,target_nickname`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }),
+    body: JSON.stringify([{ member_nickname: me, target_nickname: target }]),
+  });
+  if (!res.ok) { console.warn('talk wish add failed', res.status, await res.text()); return false; }
+  if (!talkWishes.includes(target)) talkWishes.push(target);
+  return true;
+}
+
+async function removeTalkWish(me, target) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/member_talk_wishes?member_nickname=eq.${encodeURIComponent(me)}&target_nickname=eq.${encodeURIComponent(target)}`,
+    { method: 'DELETE', headers: authHeaders({ Prefer: 'return=minimal' }) });
+  if (!res.ok) { console.warn('talk wish remove failed', res.status, await res.text()); return false; }
+  talkWishes = talkWishes.filter(n => n !== target);
+  return true;
+}
+
+function buildTalkWishSection(member) {
+  const section = document.createElement('div');
+  section.className = 'talk-wish-section';
+  const title = document.createElement('div');
+  title.className = 'talk-wish-title';
+  title.textContent = '話してみたい人';
+  section.appendChild(title);
+  const hint = document.createElement('div');
+  hint.className = 'detail-field-hint';
+  hint.textContent = '名前を入力して選ぶと追加できます。この一覧は自分だけに表示され、相手には伝わりません。ゆるマッチングでは、登録した人となるべく同じグループになるように組み合わせます(参加ONで空き時間が合う人に限ります)。';
+  section.appendChild(hint);
+
+  const box = document.createElement('div');
+  box.className = 'talk-wish-box';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'talk-wish-input';
+  input.placeholder = 'ニックネームで検索して追加';
+  input.autocomplete = 'off';
+  const suggest = document.createElement('ul');
+  suggest.className = 'talk-wish-suggest';
+  suggest.style.display = 'none';
+  const status = document.createElement('div');
+  status.className = 'matching-status';
+
+  let activeIndex = 0;
+  let options = [];
+
+  function renderChips() {
+    box.querySelectorAll('.talk-wish-chip').forEach(el => el.remove());
+    (talkWishes || []).forEach(target => {
+      const chip = document.createElement('span');
+      chip.className = 'talk-wish-chip';
+      chip.appendChild(document.createTextNode(target));
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.setAttribute('aria-label', `${target}を外す`);
+      x.textContent = '×';
+      x.addEventListener('click', async () => {
+        status.textContent = '保存中...';
+        const ok = await removeTalkWish(member.nickname, target);
+        status.textContent = ok ? '外しました' : '保存できませんでした';
+        renderChips();
+      });
+      chip.appendChild(x);
+      box.insertBefore(chip, input);
+    });
+  }
+
+  function renderSuggest() {
+    const q = input.value.trim().toLowerCase();
+    suggest.innerHTML = '';
+    if (!q) { suggest.style.display = 'none'; options = []; return; }
+    const taken = new Set(talkWishes || []);
+    options = directoryMembers
+      .filter(m => m.nickname !== member.nickname && !taken.has(m.nickname) && m.nickname.toLowerCase().includes(q))
+      .sort((a, b) => Number(b.nickname.toLowerCase().startsWith(q)) - Number(a.nickname.toLowerCase().startsWith(q)))
+      .slice(0, 8);
+    activeIndex = 0;
+    if (options.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = '該当するメンバーがいません';
+      li.style.color = '#9ca3af';
+      li.style.cursor = 'default';
+      suggest.appendChild(li);
+    }
+    options.forEach((m, i) => {
+      const li = document.createElement('li');
+      li.textContent = m.nickname;
+      if (i === activeIndex) li.classList.add('is-active');
+      // blurより先に選択できるよう mousedown で処理する
+      li.addEventListener('mousedown', e => { e.preventDefault(); pick(m.nickname); });
+      suggest.appendChild(li);
+    });
+    suggest.style.display = 'block';
+  }
+
+  async function pick(nickname) {
+    input.value = '';
+    suggest.style.display = 'none';
+    status.textContent = '保存中...';
+    const ok = await addTalkWish(member.nickname, nickname);
+    status.textContent = ok ? `${nickname} さんを追加しました` : '保存できませんでした';
+    renderChips();
+    input.focus();
+  }
+
+  input.addEventListener('input', renderSuggest);
+  input.addEventListener('focus', renderSuggest);
+  input.addEventListener('blur', () => { suggest.style.display = 'none'; });
+  input.addEventListener('keydown', e => {
+    if (e.isComposing) return; // 日本語入力の変換確定のEnterでは追加しない
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!options.length) return;
+      e.preventDefault();
+      activeIndex = (activeIndex + (e.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
+      [...suggest.children].forEach((li, i) => li.classList.toggle('is-active', i === activeIndex));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (options[activeIndex]) pick(options[activeIndex].nickname);
+    } else if (e.key === 'Escape') {
+      suggest.style.display = 'none';
+    } else if (e.key === 'Backspace' && !input.value && talkWishes && talkWishes.length) {
+      removeTalkWish(member.nickname, talkWishes[talkWishes.length - 1]).then(renderChips);
+    }
+  });
+
+  box.appendChild(input);
+  box.appendChild(suggest);
+  section.appendChild(box);
+  section.appendChild(status);
+  loadTalkWishes().then(renderChips);
+  return section;
+}
+
 function buildMatchingSection(member) {
   const section = document.createElement('div');
   section.className = 'detail-section';
@@ -5856,6 +6031,7 @@ function buildMatchingSection(member) {
   section.appendChild(status);
 
   section.appendChild(buildAvailabilityOverrideSection(member, { editable: true }));
+  section.appendChild(buildTalkWishSection(member));
 
   return section;
 }
