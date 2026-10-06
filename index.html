@@ -313,7 +313,18 @@
     .onboarding-error { font-size: 12px; color: #b91c1c; margin: 6px 0 0; }
     .onboarding-secondary { display: block; margin: 10px auto 0; background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; text-decoration: underline; }
     #login-gate-note { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 14px 0 0; }
-    .login-gate-guide-link { display: block; margin: 12px auto 0; background: none; border: none; color: #5865f2; font-size: 13px; cursor: pointer; text-decoration: underline; }
+    /* ログイン画面の「はじめてガイド」入口。テキストリンクだと気づかれにくいので、1枚目のサムネイル付きカードにする */
+    .login-gate-guide-card {
+      display: flex; align-items: center; gap: 12px; width: 100%; margin: 16px 0 0; padding: 8px 12px 8px 8px;
+      background: #fbf8ef; border: 1px solid #f3dfa6; border-radius: 10px; cursor: pointer; text-align: left;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .login-gate-guide-card:hover { background: #fdf3d6; border-color: #f59e0b; }
+    .login-gate-guide-card img { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; flex: none; }
+    .login-gate-guide-text { flex: 1; min-width: 0; }
+    .login-gate-guide-title { display: block; font-size: 14px; font-weight: bold; color: #1f2937; }
+    .login-gate-guide-sub { display: block; font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .login-gate-guide-arrow { color: #d97706; font-size: 20px; flex: none; }
     /* ---- はじめてガイド(5枚のスライド)。初回はログイン画面の上にモーダルで、使い方ページには埋め込みで出す ---- */
     #guide-modal {
       display: none; position: fixed; inset: 0; z-index: 6000; background: rgba(17,24,39,0.72);
@@ -2481,8 +2492,15 @@ function showLoginGate(state) {
     note.style.display = '';
     const guideLink = document.createElement('button');
     guideLink.type = 'button';
-    guideLink.className = 'login-gate-guide-link';
-    guideLink.textContent = 'はじめてガイドを見る';
+    guideLink.className = 'login-gate-guide-card';
+    guideLink.innerHTML = `
+      <img src="assets/onboarding/pc-01.webp" alt="">
+      <span class="login-gate-guide-text">
+        <span class="login-gate-guide-title">はじめてガイドを見る</span>
+        <span class="login-gate-guide-sub">できることを5枚の画像で紹介(約1分)</span>
+      </span>
+      <span class="login-gate-guide-arrow" aria-hidden="true">›</span>
+    `;
     guideLink.onclick = openGuideModal;
     document.getElementById('login-gate-secondary').appendChild(guideLink);
   }
