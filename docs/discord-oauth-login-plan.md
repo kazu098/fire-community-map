@@ -1,6 +1,30 @@
 # Discord OAuthログイン実装計画 (Issue #253)
 
-方式: 案A(Supabase Auth標準のDiscordプロバイダ + `supabase-js`)。
+方式: 案A(Supabase Auth + `supabase-js`)。ただしメールアドレスを収集しないため、標準のDiscordプロバイダではなく**カスタムOAuth2プロバイダ `custom:discord-id` + userinfo中継API**を使う(下記「メールを取得しない構成」)。
+
+## 現在の状況(2026-10-06)
+
+| 段階 | 状態 |
+|---|---|
+| フロント(ログインUI、`authHeaders()`、ログイン画面、他人の編集UI非表示) | マージ済み。**既定オフ**(`?login=1` 任意 / `?login=required` 必須) |
+| 本人確認の基盤(`member_auth.sql`、`member_auth_custom_provider.sql`、`member_auth_drop_builtin_discord.sql`) | 本番DB適用済み。本人確認は `custom:discord-id` のみ |
+| P3: ログイン者は本人の行のみ書き込み可(`member_auth_policies_*.sql`、`member_auth_rpc_checks.sql`) | 本番DB適用済み。未ログイン(anon)は従来どおり |
+| P4: 未ログインの閲覧・書き込みを閉鎖(`member_auth_read_policies.sql`、`member_auth_close_anon_writes.sql`) | **未適用**(#290 / #291) |
+| 既定のログイン必須化・Basic認証(`middleware.js`)削除 | **未実施**(#292) |
+| 自己申告UIの削除 | **未実施**(#293) |
+| Supabase設定 | 標準Discord・Emailプロバイダは無効。Site URL / Redirect URLs は本番と `http://localhost:8000/**` |
+| `discord_user_id` 紐付け | 91/91(100%) |
+
+今後の順番: テスター確認 → 全員への案内(ログイン任意の期間) → P4適用+ログイン必須化+Basic認証削除(同時) → 自己申告UI削除。
+
+## メールを取得しない構成
+
+- Supabase標準のDiscordプロバイダは、スコープに `email` を必ず含める(supabase/auth `internal/api/provider/discord.go`)。設定で外せず、`auth.users` にメールが保存される。
+- そこで、Supabaseの**カスタムOAuth2プロバイダ** `custom:discord-id` を使う(scopes=`identify`、email_optional=true)。
+- カスタムOAuth2プロバイダはユーザー情報の `sub` を本人のidとして使うが、Discordの `/users/@me` は `id` を返し `sub` を返さない。Discordに直接つなぐと全員のidが空になり、別人のアカウントとして扱われる危険がある(attribute mappingは既に読み取った項目間でしか付け替えられない)。
+- そのため UserInfo URL には **`api/discord-userinfo.js`(Vercel Edge Function)** を指定する。Supabaseが付けてくるDiscordのアクセストークンで `/users/@me` を呼び、`id` を `sub` に付け替えて返す。保存・ログ出力なし、秘密鍵不要。失敗時はエラーを返してログインを中止させる。
+- Supabaseのプロバイダ設定: Authorization URL `https://discord.com/oauth2/authorize`、Token URL `https://discord.com/api/oauth2/token`、Userinfo URL `https://fire-community-map.vercel.app/api/discord-userinfo`、Issuer URL `https://discord.com`(管理画面で必須だが、OAuth2タイプでは使われない)、Client ID/Secret は既存のDiscordアプリ、PKCE有効。
+- 確認済み: 許可画面にメールの項目が出ない。`auth.users.email` がNULLで、ユーザー情報・identityにもメールがない。`provider_id` はDiscordのユーザーid。
 
 ## 現状の要点(コード確認済み)
 
@@ -98,7 +122,7 @@ SSO完成後に、本人だけが見られる情報を追加する。具体的�
 2. `python3 -m http.server 8000` で起動し、http://localhost:8000/index.html?login=1 を開く(Basic認証は本番のみ)。
 3. 右上の「Discordでログイン」→ Discordの許可画面で許可 → 元の画面に戻る。右上に「👤 自分のニックネーム」と「ログアウト」が出れば成功。
 4. 確認すること: 許可画面の文言(取得する情報)、リロード後もログイン状態が続く、ログアウトで未ログインに戻る、`#member/…` のURLを開いてログインしても同じ画面に戻る。
-5. `identify` スコープだけでログインできない(メールが取れないエラーになる)場合は、`signInWithDiscord()` の `scopes` に `email` を足す。メールは `auth.users` にだけ保存され、サイトには出さない。
+5. 許可画面に「メールアドレスにアクセス」が出ないこと(カスタムプロバイダ `custom:discord-id` を使っているため)。出た場合は、ログインのプロバイダ設定を確認する。
 6. **Basic認証との共存(Vercelプレビュー/本番)**: Basic認証を通ったあと、OAuthから戻ったときに再度Basic認証が出ないこと。ブラウザは同じオリジンにBasic認証の資格情報を保持するため通常は出ない。
 
 ## リスク・注意点
@@ -108,10 +132,10 @@ SSO完成後に、本人だけが見られる情報を追加する。具体的�
 - Discord側でユーザーIDが変わることはない(表示名変更の影響を受けない)ので、本人性の根拠は表示名ではなくID一致のみとする。
 
 ## 未決事項(着手前に必要な判断)
-1. 方式は案Aで確定してよいか。
+1. ~~方式~~ → **決定済み: 案A。ただし標準Discordプロバイダはメールを要求するため、カスタムプロバイダ+中継APIを使う。**
 2. ~~ログイン必須の範囲~~ → **決定済み: サイト全体をメンバー限定(ログイン必須)、Basic認証はフェーズ4完了と同時に廃止。**
 3. ~~運営操作の扱い~~ → **決定済み: 投稿の削除は投稿者本人のみ(本・旅行)。相談系は削除不可。管理者ロールなし。**
-4. Discord Developer Portal の登録担当。
+4. ~~Discord Developer Portal の登録担当~~ → **決定済み: リポジトリのオーナーが登録済み(既存のBotアプリを利用)。**
 5. ~~紐付け未解決メンバーの救済手順~~ → **決定済み: 未紐付け11件をフェーズ1で補完。それ以降は運用で案内。**
 
 ## PR分割案
