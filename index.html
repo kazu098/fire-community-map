@@ -313,6 +313,44 @@
     .onboarding-error { font-size: 12px; color: #b91c1c; margin: 6px 0 0; }
     .onboarding-secondary { display: block; margin: 10px auto 0; background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; text-decoration: underline; }
     #login-gate-note { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 14px 0 0; }
+    .login-gate-guide-link { display: block; margin: 12px auto 0; background: none; border: none; color: #5865f2; font-size: 13px; cursor: pointer; text-decoration: underline; }
+    /* ---- はじめてガイド(5枚のスライド)。初回はログイン画面の上にモーダルで、使い方ページには埋め込みで出す ---- */
+    #guide-modal {
+      display: none; position: fixed; inset: 0; z-index: 6000; background: rgba(17,24,39,0.72);
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    #guide-modal.visible { display: flex; }
+    #guide-modal-box { width: min(960px, 100%); max-height: 100%; display: flex; flex-direction: column; }
+    .guide-slides { position: relative; background: #fbf8ef; border-radius: 12px; overflow: hidden; touch-action: pan-y; }
+    .guide-track { display: flex; transition: transform 0.3s ease; }
+    .guide-slide { flex: 0 0 100%; }
+    .guide-slide img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: contain; }
+    .guide-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%;
+      border: none; background: rgba(255,255,255,0.92); box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      color: #1f2937; font-size: 20px; line-height: 40px; cursor: pointer; padding: 0;
+    }
+    .guide-arrow:disabled { opacity: 0; pointer-events: none; }
+    .guide-prev { left: 10px; }
+    .guide-next { right: 10px; }
+    .guide-controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 0 0; flex-wrap: wrap; }
+    .guide-dots { display: flex; gap: 8px; }
+    .guide-dot { width: 9px; height: 9px; border-radius: 50%; border: none; background: #d1d5db; padding: 0; cursor: pointer; }
+    .guide-dot.active { background: #f59e0b; }
+    #guide-modal .guide-dot { background: rgba(255,255,255,0.45); }
+    #guide-modal .guide-dot.active { background: #fbbf24; }
+    .guide-modal-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+    .guide-skip { background: none; border: none; color: #e5e7eb; font-size: 13px; cursor: pointer; text-decoration: underline; padding: 6px 0; }
+    .guide-primary { background: #5865f2; color: white; border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    @media (max-width: 600px), (orientation: portrait) and (max-width: 900px) {
+      .guide-slide img { aspect-ratio: 2 / 3; }
+      #guide-modal { padding: 10px; }
+      #guide-modal-box { width: min(480px, 100%); }
+      #guide-modal .guide-slide img { max-height: calc(100vh - 120px); max-height: calc(100dvh - 120px); }
+      .guide-arrow { width: 34px; height: 34px; line-height: 34px; font-size: 17px; }
+    }
+    .usage-guide-slides { max-width: 860px; margin: 8px 0 4px; }
+    .usage-guide-slides .guide-slides { border: 1px solid #e5e7eb; }
     #header { top: 38px; }
     #map { top: 90px; }
     @media (max-width: 600px) { #map { top: 118px; } }
@@ -2111,6 +2149,16 @@
   </div>
 </div>
 
+<div id="guide-modal" role="dialog" aria-modal="true" aria-label="はじめてガイド">
+  <div id="guide-modal-box">
+    <div id="guide-modal-slides"></div>
+    <div class="guide-modal-actions">
+      <button type="button" class="guide-skip" id="guide-modal-skip">スキップ</button>
+      <button type="button" class="guide-primary" id="guide-modal-next">次へ</button>
+    </div>
+  </div>
+</div>
+
 <div id="view-tabs">
   <button class="view-tab" id="tab-directory" onclick="goToMemberGrid()">メンバー</button>
   <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
@@ -2431,7 +2479,114 @@ function showLoginGate(state) {
     button.textContent = 'Discordでログイン';
     button.onclick = signInWithDiscord;
     note.style.display = '';
+    const guideLink = document.createElement('button');
+    guideLink.type = 'button';
+    guideLink.className = 'login-gate-guide-link';
+    guideLink.textContent = 'はじめてガイドを見る';
+    guideLink.onclick = openGuideModal;
+    document.getElementById('login-gate-secondary').appendChild(guideLink);
   }
+}
+
+// ---- はじめてガイド(5枚のスライド) ----
+// PC用(横長)とスマホ用(縦長)の画像を<picture>で出し分ける。使い方ページの埋め込みとログイン前のモーダルで共用。
+const GUIDE_SLIDES = [
+  'Discordでログインしよう',
+  'メンバーを探して、自分を紹介',
+  '地図で、近くの仲間や旅の情報を探そう',
+  '空いている時間で、ゆるくつながろう',
+  'みんなの知恵や本に出会おう',
+];
+const GUIDE_PORTRAIT_MEDIA = '(max-width: 600px), (orientation: portrait) and (max-width: 900px)';
+
+function createGuideSlides(container, { onChange } = {}) {
+  container.innerHTML = `
+    <div class="guide-slides">
+      <div class="guide-track">
+        ${GUIDE_SLIDES.map((title, i) => {
+          const n = String(i + 1).padStart(2, '0');
+          return `<div class="guide-slide" aria-hidden="${i ? 'true' : 'false'}">
+            <picture>
+              <source media="${GUIDE_PORTRAIT_MEDIA}" srcset="assets/onboarding/sp-${n}.webp">
+              <img src="assets/onboarding/pc-${n}.webp" alt="${i + 1}/${GUIDE_SLIDES.length} ${title}" ${i ? 'loading="lazy"' : ''}>
+            </picture>
+          </div>`;
+        }).join('')}
+      </div>
+      <button type="button" class="guide-arrow guide-prev" aria-label="前へ">‹</button>
+      <button type="button" class="guide-arrow guide-next" aria-label="次へ">›</button>
+    </div>
+    <div class="guide-controls">
+      <div class="guide-dots">
+        ${GUIDE_SLIDES.map((title, i) => `<button type="button" class="guide-dot" aria-label="${i + 1}枚目: ${title}"></button>`).join('')}
+      </div>
+    </div>
+  `;
+  const track = container.querySelector('.guide-track');
+  const slides = [...container.querySelectorAll('.guide-slide')];
+  const dots = [...container.querySelectorAll('.guide-dot')];
+  const prev = container.querySelector('.guide-prev');
+  const next = container.querySelector('.guide-next');
+  let index = 0;
+  function go(i) {
+    index = Math.max(0, Math.min(GUIDE_SLIDES.length - 1, i));
+    track.style.transform = `translateX(-${index * 100}%)`;
+    slides.forEach((el, j) => el.setAttribute('aria-hidden', j === index ? 'false' : 'true'));
+    dots.forEach((el, j) => el.classList.toggle('active', j === index));
+    prev.disabled = index === 0;
+    next.disabled = index === GUIDE_SLIDES.length - 1;
+    if (onChange) onChange(index);
+  }
+  prev.addEventListener('click', () => go(index - 1));
+  next.addEventListener('click', () => go(index + 1));
+  dots.forEach((el, j) => el.addEventListener('click', () => go(j)));
+  let touchX = null;
+  const area = container.querySelector('.guide-slides');
+  area.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  area.addEventListener('touchend', e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
+  });
+  go(0);
+  return { go, get index() { return index; }, last: GUIDE_SLIDES.length - 1 };
+}
+
+// 初回だけログイン画面の上に自動で出す。「見た」はブラウザごとにlocalStorageへ記録し、
+// ログインできた時点でも記録する(ログアウト後にまた出さないため)。
+const GUIDE_SEEN_KEY = 'onboardingGuideSeen';
+function hasSeenGuide() {
+  try { return localStorage.getItem(GUIDE_SEEN_KEY) === '1'; } catch (e) { return true; }
+}
+function markGuideSeen() {
+  try { localStorage.setItem(GUIDE_SEEN_KEY, '1'); } catch (e) {}
+}
+
+let guideModalSlides = null;
+function closeGuideModal() {
+  markGuideSeen();
+  document.getElementById('guide-modal').classList.remove('visible');
+  document.removeEventListener('keydown', onGuideModalKey);
+}
+function onGuideModalKey(e) {
+  if (e.key === 'Escape') closeGuideModal();
+  else if (e.key === 'ArrowRight') guideModalSlides.go(guideModalSlides.index + 1);
+  else if (e.key === 'ArrowLeft') guideModalSlides.go(guideModalSlides.index - 1);
+}
+function openGuideModal() {
+  const nextButton = document.getElementById('guide-modal-next');
+  guideModalSlides = createGuideSlides(document.getElementById('guide-modal-slides'), {
+    onChange: i => { nextButton.textContent = i === GUIDE_SLIDES.length - 1 ? 'Discordでログイン' : '次へ'; },
+  });
+  nextButton.onclick = () => {
+    if (guideModalSlides.index < guideModalSlides.last) { guideModalSlides.go(guideModalSlides.index + 1); return; }
+    closeGuideModal();
+    signInWithDiscord();
+  };
+  document.getElementById('guide-modal-skip').onclick = closeGuideModal;
+  document.getElementById('guide-modal').classList.add('visible');
+  document.addEventListener('keydown', onGuideModalKey);
 }
 
 function avatarUrl(path) {
@@ -3428,6 +3583,7 @@ function renderUsageView() {
         <a class="usage-brand" href="#usage-top">FIREコミュニティマップ使い方</a>
         <input class="usage-search" type="search" placeholder="このガイド内を検索..." disabled>
         <nav class="usage-nav" aria-label="使い方の目次">
+          <a class="usage-nav-main" href="#usage-quick-guide">はじめてガイド(5枚)</a>
           <a class="usage-nav-main" href="#usage-overview">全体像</a>
           <details>
             <summary>はじめてのログイン(メンバー登録)</summary>
@@ -3522,6 +3678,11 @@ function renderUsageView() {
             FIREコミュニティマップは、FIRE研究所コミュニティのメンバー、地域、イベント、Discordで共有された知見を探しやすくするためのページです。
             このガイドでは、はじめてのログイン(メンバー登録)からメンバー表示、情報修正、ゆるマッチング設定、外部公開、地図、イベント、暮らしの知恵までを順番に説明します。
           </p>
+          <section class="usage-doc-section" id="usage-quick-guide">
+            <h2>はじめてガイド</h2>
+            <p>主な使い方を5枚のスライドにまとめました。矢印・下の丸・スワイプで切り替えられます。</p>
+            <div class="usage-guide-slides" id="usage-guide-slides"></div>
+          </section>
           ${usageVideoBlock()}
           <section class="usage-doc-section" id="usage-overview">
             <h2>全体像</h2>
@@ -3711,6 +3872,7 @@ function renderUsageView() {
       </main>
     </div>
   `;
+  createGuideSlides(document.getElementById('usage-guide-slides'));
   document.getElementById('usage-view').scrollTop = 0;
 }
 
@@ -8217,6 +8379,7 @@ async function finishOnboarding({ location = '' } = {}) {
 
 function startApp() {
   appStarted = true;
+  markGuideSeen();
   hideLoginGate();
   selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 }
@@ -8226,7 +8389,10 @@ showLoginGate('loading');
 window.addEventListener('resize', positionLoginGate);
 initAuth().then(ok => {
   if (!ok) showLoginGate('error');
-  else if (!authSession) showLoginGate('signin');
+  else if (!authSession) {
+    showLoginGate('signin');
+    if (!hasSeenGuide()) openGuideModal();
+  }
   else if (!authMemberNickname) startOnboarding();
   else if (new URLSearchParams(location.search).get('onboarding_preview') === '1') startOnboarding({ previewOnly: true });
   else startApp();
