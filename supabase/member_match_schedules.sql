@@ -37,7 +37,9 @@ alter table public.member_match_schedules
   add column if not exists thread_suggested_date timestamptz,
   add column if not exists thread_confirmation_message_id text,
   add column if not exists thread_confirmation_date timestamptz,
-  add column if not exists thread_confirmation_reaction_count integer;
+  add column if not exists thread_confirmation_reaction_count integer,
+  add column if not exists reminder_sent_at timestamptz,
+  add column if not exists survey_sent_at timestamptz;
 
 comment on table public.member_match_schedules is
   'Date-scheduling follow-up for one member_match_groups row: 3 proposed dates posted as a reaction poll, confirmed once 3+ group members react to the same option, with an optional temporary voice channel for the confirmed date. Written by the matching batch scripts with the service role key only.';
@@ -57,6 +59,10 @@ comment on column public.member_match_schedules.thread_confirmation_date is
   'The non-poll datetime being confirmed by thread_confirmation_message_id.';
 comment on column public.member_match_schedules.thread_confirmation_reaction_count is
   'The group-member ✅ count observed on the thread confirmation prompt. The final count is also copied to confirmed_reaction_count once confirmed.';
+comment on column public.member_match_schedules.reminder_sent_at is
+  'When the day-before reminder DM (19:00 JST the day before, or right after confirmation if later) was sent to the group (issue #321). Null = not sent yet.';
+comment on column public.member_match_schedules.survey_sent_at is
+  'When the post-event feedback form DM was sent to the group (issue #323). Null = not sent yet.';
 comment on column public.member_match_schedules.voice_channel_id is
   'Temporary Discord voice channel created for the confirmed date, scoped to just this group via permission overwrites. Deleted (and voice_channel_deleted_at set) after the event has passed.';
 
