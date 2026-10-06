@@ -2,20 +2,20 @@
 
 方式: 案A(Supabase Auth + `supabase-js`)。ただしメールアドレスを収集しないため、標準のDiscordプロバイダではなく**カスタムOAuth2プロバイダ `custom:discord-id` + userinfo中継API**を使う(下記「メールを取得しない構成」)。
 
-## 現在の状況(2026-10-06)
+## 現在の状況(2026-10-06、切り替え完了)
 
 | 段階 | 状態 |
 |---|---|
-| フロント(ログインUI、`authHeaders()`、ログイン画面、他人の編集UI非表示) | マージ済み。**既定オフ**(`?login=1` 任意 / `?login=required` 必須) |
+| ログイン必須化(#292)・Basic認証(`middleware.js`)削除 | 完了(PR #314)。サイトを開くとDiscordログイン画面。未ログインではデータを取得しない |
+| 自己申告UIの削除(#293) | 完了(PR #314)。「自分」はDiscordでログインしたメンバーのみ |
 | 本人確認の基盤(`member_auth.sql`、`member_auth_custom_provider.sql`、`member_auth_drop_builtin_discord.sql`) | 本番DB適用済み。本人確認は `custom:discord-id` のみ |
-| P3: ログイン者は本人の行のみ書き込み可(`member_auth_policies_*.sql`、`member_auth_rpc_checks.sql`) | 本番DB適用済み。未ログイン(anon)は従来どおり |
-| P4: 未ログインの閲覧・書き込みを閉鎖(`member_auth_read_policies.sql`、`member_auth_close_anon_writes.sql`) | **未適用**(#290 / #291) |
-| 既定のログイン必須化・Basic認証(`middleware.js`)削除 | **未実施**(#292) |
-| 自己申告UIの削除 | **未実施**(#293) |
-| Supabase設定 | 標準Discord・Emailプロバイダは無効。Site URL / Redirect URLs は本番と `http://localhost:8000/**` |
-| `discord_user_id` 紐付け | 91/91(100%) |
+| P3: ログイン者は本人の行のみ書き込み可 | 本番DB適用済み |
+| P4: 未ログインの閲覧・書き込み・RPCを閉鎖(`member_auth_read_policies.sql`、`member_auth_close_anon_writes.sql`) | 本番DB適用済み(#290 / #291)。anon keyのみでは全テーブル0件・書き込み拒否を確認 |
+| 公開ページ | `public.html` / `public-embed.html` は `public_member_profiles`、`map/public.html` は `public_member_map_points`(位置のみ、ニックネームなし)を匿名で読む |
+| Supabase設定 | 標準Discord・Emailプロバイダは無効。Site URL は本番、Redirect URLs は本番と `http://localhost:8000/**` |
+| `discord_user_id` 紐付け | 91/91(100%)。新メンバーは `sync_member_discord_ids.py`(GitHub Actions)で紐付ける。未紐付けだとログインしても「メンバー未確認」になる |
 
-今後の順番: テスター確認 → 全員への案内(ログイン任意の期間) → P4適用+ログイン必須化+Basic認証削除(同時) → 自己申告UI削除。
+ロールバックが必要な場合: `member_auth_close_anon_writes_rollback.sql` → `member_auth_read_policies_rollback.sql` の順に適用し、`middleware.js` を戻す。
 
 ## メールを取得しない構成
 
