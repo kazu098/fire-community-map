@@ -1518,6 +1518,8 @@
     }
     #detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
     #detail-nickname { font-size: 19px; font-weight: bold; color: #1f2937; }
+    #detail-name-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    #detail-joined { font-size: 12px; color: #4b5563; }
     .detail-identity-card {
       display: flex;
       align-items: center;
@@ -3627,7 +3629,7 @@ function ensureDirectoryLoaded() {
 
 async function fetchDirectoryProfiles() {
   const headers = authHeaders();
-  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public';
+  const fullSelect = 'nickname,avatar_url,self_intro_text,external_self_intro_text,self_intro_url,self_intro_posted_at,location_text,nickname_public,avatar_public,self_intro_public,location_public,links_public,joined_month,joined_month_source';
   const baseSelect = 'nickname,avatar_url,self_intro_text,self_intro_url,self_intro_posted_at,location_text';
   const fullRes = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?select=${fullSelect}&order=nickname`, { headers });
   if (fullRes.ok) return fullRes.json();
@@ -4510,6 +4512,68 @@ async function saveIntro(nickname, text) {
 function autoGrowTextarea(textarea, minHeight) {
   textarea.style.height = 'auto';
   textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
+}
+
+// 入会時期(issue #324)。joined_month は月初日の date('2025-04-01')。
+// 自己紹介チャンネルの最初の投稿月を scripts/sync_member_joined_month.py が週1で入れ、
+// 本人が選び直すと joined_month_source = 'member' になって以後は上書きされない。
+function joinedMonthLabel(joinedMonth) {
+  const match = /^(\d{4})-(\d{2})/.exec(joinedMonth || '');
+  return match ? `${match[1]}年${Number(match[2])}月` : '';
+}
+
+async function saveJoinedMonth(nickname, monthValue) {
+  const joinedMonth = /^\d{4}-\d{2}$/.test(monthValue) ? `${monthValue}-01` : null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/member_profiles?nickname=eq.${encodeURIComponent(nickname)}`, {
+      method: 'PATCH',
+      headers: {
+        ...authHeaders(),
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ joined_month: joinedMonth, joined_month_source: 'member' }),
+    });
+    if (!res.ok) throw new Error(`joined month save failed: HTTP ${res.status}`);
+    await refreshDirectory();
+    openMemberDetail(nickname, { updateHash: false, scrollToTop: false });
+  } catch (error) {
+    console.error(error);
+    window.alert('入会時期を保存できませんでした。');
+  }
+}
+
+function buildJoinedMonthSection(member) {
+  const section = document.createElement('div');
+  section.className = 'detail-section';
+  const title = document.createElement('div');
+  title.className = 'detail-section-title';
+  title.textContent = 'F研の入会時期';
+  section.appendChild(title);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;';
+  section.appendChild(body);
+
+  const input = document.createElement('input');
+  input.type = 'month';
+  input.value = (member.joined_month || '').slice(0, 7);
+  input.max = new Date().toISOString().slice(0, 7);
+  input.setAttribute('aria-label', 'F研の入会時期');
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'intro-save-btn';
+  saveBtn.textContent = '保存';
+  saveBtn.addEventListener('click', () => saveJoinedMonth(member.nickname, input.value));
+  body.appendChild(input);
+  body.appendChild(saveBtn);
+
+  const hint = document.createElement('div');
+  hint.className = 'detail-field-hint';
+  hint.textContent = member.joined_month_source === 'member'
+    ? 'あなたが設定した入会時期です。名前の下に「◯年◯月入会」と表示されます。'
+    : 'Discordの自己紹介チャンネルに初めて投稿した月を自動で入れています。違っていたら選び直してください。';
+  section.appendChild(hint);
+  return section;
 }
 
 async function saveLocation(nickname, text) {
@@ -5860,8 +5924,18 @@ function openMemberDetail(nickname, {
       window.prompt('コピーできませんでした。下のURLを手動でコピーしてください', url);
     });
   });
+  const nameBlock = document.createElement('div');
+  nameBlock.id = 'detail-name-block';
+  nameBlock.appendChild(nameEl);
+  const joinedLabel = joinedMonthLabel(member.joined_month);
+  if (joinedLabel) {
+    const joinedEl = document.createElement('div');
+    joinedEl.id = 'detail-joined';
+    joinedEl.textContent = `${joinedLabel}入会`;
+    nameBlock.appendChild(joinedEl);
+  }
   head.appendChild(avatar);
-  head.appendChild(nameEl);
+  head.appendChild(nameBlock);
   head.appendChild(copyLinkBtn);
   content.appendChild(head);
   content.appendChild(buildPublicSettingsSection(member, {
@@ -5948,6 +6022,7 @@ function openMemberDetail(nickname, {
   });
 
   content.appendChild(buildLocationSection(member));
+  if (!readonly) content.appendChild(buildJoinedMonthSection(member));
   if (member.nickname !== myNickname) {
     const consultationSection = buildConsultationSection(member, { autoOpen: openConsultation });
     content.appendChild(consultationSection);
