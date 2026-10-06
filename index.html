@@ -289,6 +289,18 @@
       background: #5865f2; color: white; border: none; border-radius: 8px;
       padding: 10px 18px; font-size: 14px; font-weight: bold; cursor: pointer;
     }
+    #login-gate-extra:empty { display: none; }
+    #login-gate-extra { text-align: left; margin: 0 0 16px; }
+    .onboarding-profile { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .onboarding-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: #e5e7eb; flex: none; }
+    .onboarding-label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .onboarding-nickname { width: 100%; box-sizing: border-box; font-size: 15px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; }
+    .onboarding-nickname:focus { outline: none; border-color: #5865f2; }
+    .onboarding-intro { max-height: 180px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; line-height: 1.6;
+      color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin: 4px 0 10px; }
+    .onboarding-hint { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 0 0 6px; }
+    .onboarding-error { font-size: 12px; color: #b91c1c; margin: 6px 0 0; }
+    .onboarding-secondary { display: block; margin: 10px auto 0; background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; text-decoration: underline; }
     #login-gate-note { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 14px 0 0; }
     #header { top: 38px; }
     #map { top: 90px; }
@@ -1220,14 +1232,6 @@
       color: #9ca3af; font-size: 15px; display: none; line-height: 1;
     }
     #directory-search-clear:hover { color: #4b5563; }
-    #directory-register-link {
-      margin-left: auto;
-      font-size: 13px;
-      color: #2563eb;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    #directory-register-link:hover { text-decoration: underline; }
 
     #directory-view-mode { display: flex; gap: 4px; flex-shrink: 0; }
     .view-mode-btn {
@@ -2000,7 +2004,9 @@
   <div id="login-gate-card">
     <h1>FIRE研究所 コミュニティマップ</h1>
     <p id="login-gate-message">読み込み中…</p>
+    <div id="login-gate-extra"></div>
     <button type="button" id="login-gate-button" style="display:none"></button>
+    <div id="login-gate-secondary"></div>
     <p id="login-gate-note" style="display:none">Discordの許可画面では、ユーザー名・アイコンなどの確認のみ求められます。メールアドレスは取得しません。メッセージの閲覧や送信もできません。</p>
   </div>
 </div>
@@ -2042,7 +2048,6 @@
         <button type="button" class="view-mode-btn" id="mode-card" onclick="setDirectoryViewMode('card')">📇 ざっと見る</button>
         <button type="button" class="view-mode-btn" id="mode-list" onclick="setDirectoryViewMode('list')">🔍 相手を探す</button>
       </div>
-      <a id="directory-register-link" href="https://docs.google.com/forms/d/e/1FAIpQLSflsiIc1Gj4hcapIqiAgnMeEdTvyw20-kKkFSvrrqdGANmleQ/viewform" target="_blank" rel="noopener noreferrer">登録はこちらから</a>
     </div>
     <div id="my-identity-bar"></div>
     <div id="active-filter-chips"></div>
@@ -2308,11 +2313,13 @@ function showLoginGate(state) {
   gate.classList.add('visible');
   note.style.display = 'none';
   button.style.display = '';
+  document.getElementById('login-gate-extra').innerHTML = '';
+  document.getElementById('login-gate-secondary').innerHTML = '';
   if (state === 'loading') {
     message.textContent = '読み込み中…';
     button.style.display = 'none';
   } else if (state === 'nonmember') {
-    message.textContent = 'このDiscordアカウントは、FIRE研究所のメンバーとして確認できませんでした。お手数ですが、Discordで管理者までご連絡ください。';
+    message.textContent = 'このサイトは、FIRE研究所のDiscordサーバーに参加しているメンバーだけが利用できます。サーバーに参加済みの場合は、お手数ですがDiscordで管理者までご連絡ください。';
     button.textContent = 'ログアウト';
     button.onclick = signOutOfDiscord;
   } else if (state === 'error') {
@@ -3183,7 +3190,7 @@ function usageFigure(src, title, caption) {
 const USAGE_GUIDE_VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/usage-guide-media/register-guide.mp4`;
 const USAGE_GUIDE_CHAPTERS = [
   { t: 0, label: '全体像' },
-  { t: 27, label: 'メンバー登録申請' },
+  { t: 27, label: '(旧)メンバー登録申請' },
   { t: 60, label: 'メンバーを探す' },
   { t: 82, label: '情報を修正する' },
   { t: 137, label: '外部公開設定' },
@@ -3323,11 +3330,11 @@ function renderUsageView() {
         <nav class="usage-nav" aria-label="使い方の目次">
           <a class="usage-nav-main" href="#usage-overview">全体像</a>
           <details>
-            <summary>メンバー登録申請</summary>
+            <summary>はじめてのログイン(メンバー登録)</summary>
             <div class="usage-nav-sub-list">
               <a class="usage-nav-sub" href="#usage-register">概要</a>
-              <a class="usage-nav-sub" href="#usage-register-tab">メンバータブを開く</a>
-              <a class="usage-nav-sub" href="#usage-register-form">ニックネームを入力する</a>
+              <a class="usage-nav-sub" href="#usage-register-tab">Discordでログインする</a>
+              <a class="usage-nav-sub" href="#usage-register-form">プロフィールを確認して登録する</a>
             </div>
           </details>
           <details>
@@ -3413,7 +3420,7 @@ function renderUsageView() {
           <h1 class="usage-title">FIREコミュニティマップの使い方</h1>
           <p class="usage-lead">
             FIREコミュニティマップは、FIRE研究所コミュニティのメンバー、地域、イベント、Discordで共有された知見を探しやすくするためのページです。
-            このガイドでは、メンバー登録申請からメンバー表示、情報修正、ゆるマッチング設定、外部公開、地図、イベント、暮らしの知恵までを順番に説明します。
+            このガイドでは、はじめてのログイン(メンバー登録)からメンバー表示、情報修正、ゆるマッチング設定、外部公開、地図、イベント、暮らしの知恵までを順番に説明します。
           </p>
           ${usageVideoBlock()}
           <section class="usage-doc-section" id="usage-overview">
@@ -3429,18 +3436,16 @@ function renderUsageView() {
           </section>
 
           <section class="usage-doc-section" id="usage-register">
-            <h2>メンバー登録申請</h2>
-            <p>メンバータグ表示の登録申請は、メンバータブ右上の「登録はこちらから」、または<a href="https://docs.google.com/forms/d/e/1FAIpQLSflsiIc1Gj4hcapIqiAgnMeEdTvyw20-kKkFSvrrqdGANmleQ/viewform" target="_blank" rel="noopener noreferrer">Googleフォーム</a>から行います。</p>
+            <h2>はじめてのログイン(メンバー登録)</h2>
+            <p>コミュニティマップは、FIRE研究所のDiscordサーバーのメンバーだけが使えます。登録の申請は不要で、はじめてDiscordでログインしたときに、Discordのプロフィールと自己紹介をもとに、あなたのプロフィールが作成されます。</p>
             <div class="usage-step-block" id="usage-register-tab">
-              <h3>1. メンバータブを開く</h3>
-              ${usageFigure('docs/usage-screenshots/guide-02-register-link.png', 'メンバータブの登録リンク', '画面右上の赤枠部分に「登録はこちらから」があります。ここからGoogleフォームへ進みます。')}
+              <h3>1. Discordでログインする</h3>
+              <p>サイトを開き、「Discordでログイン」を押します。Discordの画面で「認証」を押すと、サイトに戻ります。Discordの許可画面で求められるのはユーザー名・アイコンなどの確認のみで、メールアドレスは取得しません。</p>
             </div>
             <div class="usage-step-block" id="usage-register-form">
-              <h3>2. 申請ニックネームを入力して送信する</h3>
-              <p>フォームでは、赤枠の入力欄に申請ニックネームを記入してください。</p>
-              ${usageFigure('docs/usage-screenshots/guide-02b-register-form.png', 'メンバータグ表示フォームのニックネーム入力欄', 'フォーム内の赤枠部分にニックネームを入力して送信します。')}
-              <p>送信後、担当者が確認して反映します。</p>
-              <div class="usage-note usage-warning">反映には少し時間がかかります。送信直後に表示されなくても、同じフォームを何度も送る必要はありません。</div>
+              <h3>2. プロフィールを確認して登録する</h3>
+              <p>はじめてのときは、確認画面にアイコン、ニックネーム、Discordの自己紹介チャンネルの投稿が表示されます。ニックネームは変更できます。内容を確認して「この内容で登録する」を押すと、すぐにメンバー一覧に表示されます。</p>
+              <div class="usage-note">プロフィールはメンバーだけに表示されます(外部公開はオフ)。タグや自己紹介は、登録後に自分のプロフィールから追加・編集できます。</div>
             </div>
           </section>
 
@@ -7246,6 +7251,120 @@ async function renderYuruTalkView(groupId) {
   renderTagDetail(commonTags[0]);
 }
 
+// ---- 初回ログイン時のメンバー登録(Issue #253) ----
+// Discordでログインしたがプロフィールがまだない人に、Discordの自己紹介などから作るプロフィールを
+// 確認してもらい、同意したら作成する。作成はサーバー側(supabase/functions/member-onboarding)で、
+// FIRE研究所のDiscordサーバーのメンバーか確かめたうえで行う。
+const ONBOARDING_URL = `${SUPABASE_URL}/functions/v1/member-onboarding`;
+
+async function callOnboarding(body) {
+  const res = await fetch(ONBOARDING_URL, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body),
+  });
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  return data || { status: 'error', error: `http_${res.status}` };
+}
+
+// previewOnly: 登録済みの人が ?onboarding_preview=1 で確認画面の見た目だけ確かめる(作成はしない)。
+async function startOnboarding({ previewOnly = false } = {}) {
+  showLoginGate('loading');
+  document.getElementById('login-gate-message').textContent = 'Discordのプロフィールを確認しています…';
+  const data = await callOnboarding({ action: 'preview' });
+  if (data.status === 'not_in_guild') { showLoginGate('nonmember'); return; }
+  if (data.status === 'linked' && !previewOnly) { await finishOnboarding(); return; }
+  if (data.status !== 'preview' && !(data.status === 'linked' && previewOnly)) {
+    showLoginGate('error');
+    document.getElementById('login-gate-message').textContent = 'プロフィールの確認に失敗しました。時間をおいて再読み込みしてください。';
+    return;
+  }
+  renderOnboardingPreview(data, { previewOnly });
+}
+
+function renderOnboardingPreview(data, { previewOnly }) {
+  showLoginGate('loading');
+  const message = document.getElementById('login-gate-message');
+  const button = document.getElementById('login-gate-button');
+  const extra = document.getElementById('login-gate-extra');
+  message.textContent = 'はじめまして!Discordのプロフィールと自己紹介をもとに、コミュニティマップにあなたのプロフィールを作成します。内容を確認してください。';
+
+  const profile = document.createElement('div');
+  profile.className = 'onboarding-profile';
+  const avatar = document.createElement('img');
+  avatar.className = 'onboarding-avatar';
+  avatar.alt = '';
+  if (data.avatar_url) avatar.src = data.avatar_url;
+  const nameWrap = document.createElement('div');
+  nameWrap.style.flex = '1';
+  const nameLabel = document.createElement('label');
+  nameLabel.className = 'onboarding-label';
+  nameLabel.textContent = 'ニックネーム(変更できます)';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'onboarding-nickname';
+  nameInput.maxLength = 40;
+  nameInput.value = data.nickname || '';
+  nameLabel.appendChild(nameInput);
+  nameWrap.appendChild(nameLabel);
+  profile.append(avatar, nameWrap);
+  extra.appendChild(profile);
+
+  const introLabel = document.createElement('span');
+  introLabel.className = 'onboarding-label';
+  introLabel.textContent = '自己紹介(Discordの自己紹介チャンネルから)';
+  extra.appendChild(introLabel);
+  const intro = document.createElement('div');
+  intro.className = 'onboarding-intro';
+  intro.textContent = data.self_intro_text || '自己紹介の投稿が見つかりませんでした。登録後、プロフィールから追加できます。';
+  extra.appendChild(intro);
+
+  const hint = document.createElement('p');
+  hint.className = 'onboarding-hint';
+  hint.textContent = 'プロフィールはメンバーだけに表示されます(外部公開はオフ)。登録後、自分のプロフィールからタグや自己紹介を追加・編集できます。';
+  extra.appendChild(hint);
+
+  const error = document.createElement('p');
+  error.className = 'onboarding-error';
+  error.hidden = true;
+  extra.appendChild(error);
+  const showError = text => { error.textContent = text; error.hidden = false; };
+  if (data.nickname_taken) showError('このニックネームはすでに使われています。別のニックネームにしてください。');
+
+  button.style.display = '';
+  button.disabled = false;
+  button.textContent = previewOnly ? '(確認用の表示です)' : 'この内容で登録する';
+  if (previewOnly) button.disabled = true;
+  button.onclick = async () => {
+    const nickname = nameInput.value.trim();
+    if (!nickname) { showError('ニックネームを入力してください。'); return; }
+    button.disabled = true;
+    button.textContent = '登録しています…';
+    const result = await callOnboarding({ action: 'create', nickname });
+    if (result.status === 'created' || result.status === 'linked') { await finishOnboarding(); return; }
+    button.disabled = false;
+    button.textContent = 'この内容で登録する';
+    if (result.status === 'nickname_taken') showError('このニックネームはすでに使われています。別のニックネームにしてください。');
+    else if (result.status === 'invalid_nickname') showError('ニックネームは40文字以内で入力してください。');
+    else if (result.status === 'not_in_guild') showLoginGate('nonmember');
+    else showError('登録に失敗しました。時間をおいてもう一度お試しください。');
+  };
+
+  const logout = document.createElement('button');
+  logout.type = 'button';
+  logout.className = 'onboarding-secondary';
+  logout.textContent = previewOnly ? '閉じる' : '登録せずにログアウト';
+  logout.onclick = previewOnly ? () => { location.href = location.pathname; } : signOutOfDiscord;
+  document.getElementById('login-gate-secondary').appendChild(logout);
+}
+
+async function finishOnboarding() {
+  await applyAuthSession(authSession);
+  if (authMemberNickname) startApp();
+  else showLoginGate('error');
+}
+
 function startApp() {
   appStarted = true;
   hideLoginGate();
@@ -7258,7 +7377,8 @@ window.addEventListener('resize', positionLoginGate);
 initAuth().then(ok => {
   if (!ok) showLoginGate('error');
   else if (!authSession) showLoginGate('signin');
-  else if (!authMemberNickname) showLoginGate('nonmember');
+  else if (!authMemberNickname) startOnboarding();
+  else if (new URLSearchParams(location.search).get('onboarding_preview') === '1') startOnboarding({ previewOnly: true });
   else startApp();
 });
 </script>

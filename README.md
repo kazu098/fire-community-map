@@ -6,7 +6,7 @@ FIRE研究所コミュニティの運営を支える静的サイト＋自動化�
 
 ## 掲載されているもの
 
-- **会員マップ** (`index.html`): Googleフォームで収集した会員の居住地とアバターを日本地図上にピン表示
+- **会員マップ** (`index.html`): 会員の居住地とアバターを日本地図上にピン表示。新しいメンバーは、はじめてDiscordでログインしたときに本人の確認を経てプロフィールが作成される(`supabase/functions/member-onboarding`)
 - **旅行・グルメマップ**: Discordの旅行/グルメチャンネルへの投稿を日本地図上に表示。ピンをクリックすると投稿内容を確認可能
 - **公開メンバー一覧** (`public.html`): WordPress埋め込み想定の限定共有ページ → [docs/wordpress-embed.md](./docs/wordpress-embed.md)
 - **コミュニティ投稿一覧**: 読んだ本・旅行・お金の相談・介護医療・子育て・不動産などのDiscord投稿を収集・整理 → [docs/community-content.md](./docs/community-content.md)
@@ -61,7 +61,7 @@ GitHub Actionsで動く定期バッチ(コミュニティ投稿同期・イベ�
 | [TODO.md](./TODO.md) | セットアップ手順 |
 | [docs/tech-stack-and-policy.md](./docs/tech-stack-and-policy.md) | 技術スタック・実装方針・ディレクトリ構成 |
 | [docs/member-data-pipeline.md](./docs/member-data-pipeline.md) | Discordアバター突合・住所正規化・アバターStorage保存・Googleフォーム差分同期 |
-| [docs/member-form-submit-automation.md](./docs/member-form-submit-automation.md) | Googleフォーム送信時のメンバー自動追加 |
+| [docs/member-form-submit-automation.md](./docs/member-form-submit-automation.md) | (廃止)Googleフォームによるメンバー登録。現在は初回ログイン時に登録 |
 | [docs/travel-gourmet-map.md](./docs/travel-gourmet-map.md) | Discord旅行グルメ投稿の差分同期 |
 | [docs/community-content.md](./docs/community-content.md) | コミュニティ投稿の収集・定期確認 |
 | [docs/community-events.md](./docs/community-events.md) | Discordイベント開催記録・定期同期 |

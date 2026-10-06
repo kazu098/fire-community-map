@@ -1,5 +1,7 @@
 # Googleフォーム送信時の自動化(廃止)
 
+> **2026-10-06: Googleフォームによるメンバー登録そのものを廃止した。** 新しいメンバーは、はじめてDiscordでログインしたときに、Discordのプロフィールと自己紹介チャンネルの投稿をもとに、本人の確認を経てプロフィールが作成される(Supabase Edge Function `supabase/functions/member-onboarding`、issue #253)。Discordのユーザーidで本人と紐付くため、表示名による突合は不要。`sync-member-form-submit.yml` は削除した。以下は廃止前の経緯として残す。
+
 以前はフォーム回答シートに新規入力が来たタイミングで Apps Script が GitHub Actions (`sync-member-form-submit.yml`) を自動起動し、Supabase の `member_profiles` / `member_tags` / `member_links` に自動反映していた。
 
 外部公開フラグが意図せずON/OFFされる不具合が繰り返し発生し、個人情報漏えいリスクが高いため、この自動化は**廃止**した。新規メンバーの登録リクエストはGoogleフォームの標準通知で運用者に届くので、それを見て手動で対応する運用に戻す。GitHub Issueの自動作成も行わない。
