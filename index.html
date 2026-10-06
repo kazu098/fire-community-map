@@ -245,7 +245,8 @@
     /* ---- Discord ログイン(Issue #253、?login=1 のときだけ表示) ---- */
     #auth-bar { display: none; align-items: center; gap: 6px; margin-left: 8px; }
     #auth-bar.visible { display: flex; }
-    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; }
+    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+    #auth-label:hover { background: rgba(255,255,255,0.1); }
     #auth-label.warn { color: #fcd34d; }
     #auth-button {
       background: #5865f2; color: white; border: none; border-radius: 6px;
@@ -2012,7 +2013,7 @@
   <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">F研図書館</button>
   <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
   <div id="auth-bar">
-    <span id="auth-label"></span>
+    <button type="button" id="auth-label" title="自分のプロフィールを開く"></button>
     <button type="button" id="auth-button"></button>
   </div>
 </div>
@@ -3831,6 +3832,11 @@ function renderAuthBar() {
   label.classList.remove('warn');
   label.title = '';
   label.textContent = `👤 ${authMemberNickname}`;
+  label.onclick = () => {
+    if (!appStarted) return;
+    selectView('directory');
+    openMemberDetail(authMemberNickname);
+  };
   button.textContent = 'ログアウト';
   button.className = 'secondary';
   button.onclick = signOutOfDiscord;
@@ -3871,40 +3877,30 @@ function sharedTags(member) {
   return result;
 }
 
-function renderMyIdentityBar(showSort) {
+// 「相手を探す」表示の並び替え(共通タグが多い順)。自分のニックネームは右上に出しているので、
+// ここには並び替えだけを置く。
+function renderMyIdentityBar() {
   const bar = document.getElementById('my-identity-bar');
   bar.innerHTML = '';
   if (!myNickname) return;
 
-  const label = document.createElement('span');
-  label.textContent = `👤 ${myNickname} としてログイン中(相手との共通タグが分かります)`;
-  bar.appendChild(label);
-  const myProfileBtn = document.createElement('button');
-  myProfileBtn.type = 'button';
-  myProfileBtn.className = 'secondary';
-  myProfileBtn.textContent = '自分のプロフィール';
-  myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
-  bar.appendChild(myProfileBtn);
-
-  if (showSort) {
-    const sortLabel = document.createElement('label');
-    sortLabel.className = 'sort-label';
-    sortLabel.textContent = '並び替え:';
-    const sortSelect = document.createElement('select');
-    [
-      ['default', '登録順'],
-      ['sharedTags', 'おすすめ(共通タグが多い順)'],
-    ].forEach(([value, text]) => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = text;
-      if (listSortMode === value) option.selected = true;
-      sortSelect.appendChild(option);
-    });
-    sortSelect.addEventListener('change', () => { listSortMode = sortSelect.value; renderMemberGrid(); });
-    sortLabel.appendChild(sortSelect);
-    bar.appendChild(sortLabel);
-  }
+  const sortLabel = document.createElement('label');
+  sortLabel.className = 'sort-label';
+  sortLabel.textContent = '並び替え:';
+  const sortSelect = document.createElement('select');
+  [
+    ['default', '登録順'],
+    ['sharedTags', 'おすすめ(共通タグが多い順)'],
+  ].forEach(([value, text]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    if (listSortMode === value) option.selected = true;
+    sortSelect.appendChild(option);
+  });
+  sortSelect.addEventListener('change', () => { listSortMode = sortSelect.value; renderMemberGrid(); });
+  sortLabel.appendChild(sortSelect);
+  bar.appendChild(sortLabel);
 }
 
 // 「相手を探す」表示専用の絞り込みサイドバー。
@@ -4058,10 +4054,10 @@ function renderMemberGrid() {
   document.getElementById('mode-list').classList.toggle('active', directoryViewMode === 'list');
   document.getElementById('member-grid').style.display = directoryViewMode === 'card' ? 'grid' : 'none';
   document.getElementById('member-list-layout').style.display = directoryViewMode === 'list' ? 'flex' : 'none';
-  // 「ざっと見る」「相手を探す」のどちらでも「〇〇としてログイン中」を見せる。
-  const identityBarVisible = Boolean(myNickname);
+  // 並び替えは「相手を探す」表示のときだけ。
+  const identityBarVisible = Boolean(myNickname) && directoryViewMode === 'list';
   document.getElementById('my-identity-bar').style.display = identityBarVisible ? 'flex' : 'none';
-  if (identityBarVisible) renderMyIdentityBar(directoryViewMode === 'list');
+  if (identityBarVisible) renderMyIdentityBar();
 
   if (directoryViewMode === 'list') {
     renderMemberFilterSidebar();
@@ -5714,30 +5710,6 @@ function buildMatchingSection(member) {
   return section;
 }
 
-function buildDetailIdentityCard(member) {
-  const card = document.createElement('div');
-  card.className = 'detail-identity-card';
-
-  const text = document.createElement('div');
-  text.className = 'detail-identity-text';
-  card.appendChild(text);
-
-  const isMe = myNickname === member.nickname;
-  text.textContent = isMe
-    ? `${myNickname} としてログイン中です。このプロフィールを編集できます。`
-    : `${myNickname} としてログイン中です。このページは ${member.nickname} さんのプロフィールです。`;
-
-  if (!isMe) {
-    const myProfileBtn = document.createElement('button');
-    myProfileBtn.type = 'button';
-    myProfileBtn.className = 'secondary';
-    myProfileBtn.textContent = '自分のプロフィール';
-    myProfileBtn.addEventListener('click', () => openMemberDetail(myNickname));
-    card.appendChild(myProfileBtn);
-  }
-  return card;
-}
-
 function buildIntroSection(member) {
   const section = document.createElement('div');
   section.className = 'detail-section';
@@ -5841,7 +5813,7 @@ function openMemberDetail(nickname, {
   if (readonly) {
     const note = document.createElement('p');
     note.className = 'detail-readonly-note';
-    note.textContent = 'Discordでログイン中は、自分のプロフィールだけ編集できます。';
+    note.textContent = '自分のプロフィールだけ編集できます。';
     content.appendChild(note);
   }
 
@@ -5876,7 +5848,6 @@ function openMemberDetail(nickname, {
   head.appendChild(nameEl);
   head.appendChild(copyLinkBtn);
   content.appendChild(head);
-  content.appendChild(buildDetailIdentityCard(member));
   content.appendChild(buildPublicSettingsSection(member, {
     open: publicSettingsOpen,
     externalIntroPreviewOpen,
