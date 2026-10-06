@@ -1,5 +1,78 @@
 [
   {
+    "discord_message_id": "1556854166079545354",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1556854166079545354",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/434b33816f9f.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "神奈川県",
+    "municipality_optional": null,
+    "lat": 35.44778,
+    "lng": 139.6425,
+    "date": "2026/10/06",
+    "posted_at": "2026-10-06T02:22:38.145000+00:00",
+    "comment": "今日の平日ランチは神奈川県伊勢原のとんかつ店 麻釉でロースかつ定食。\n\n安くてうまくてボリューム満点。人口の少ない伊勢原でこの評価数は凄い！",
+    "photos": [
+      "data/travel-photos/1556854166079545354-1.jpg",
+      "data/travel-photos/1556854166079545354-2.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1556613689443094550",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1556613689443094550",
+    "discord_channel_name": "旅行",
+    "nickname": "たびお",
+    "avatar_path": "data/travel-avatars/67e93db3ab50.png",
+    "avatarColor": "#f97316",
+    "init": "た",
+    "prefecture": "山梨県",
+    "municipality_optional": "鳴沢村",
+    "lat": 35.4811,
+    "lng": 138.6317,
+    "date": "2026/10/05",
+    "posted_at": "2026-10-05T10:27:04.047000+00:00",
+    "comment": "本日の富士山一周ツーリング、雨降るし、富士山チョットしか見れませんでした。\n\n小仏関所（高尾山、関東の境目）\n猿橋(日本三奇矯)\n吉田のうどん、山もとうどん(アゴトレーニング)\nリニア見学センター（超電導）\n鳴沢氷穴(3℃の穴)\n精進湖展望台(絶景の富士山)\n白糸の滝（日本の滝百選、世界遺産）\n奇石博物館（コンニャク石）\n手打ちそば金太郎(御殿場蕎麦の名店)\n宿(宴だー！)",
+    "photos": [
+      "data/travel-photos/1556613689443094550-1.jpg",
+      "data/travel-photos/1556613689443094550-2.jpg",
+      "data/travel-photos/1556613689443094550-3.jpg",
+      "data/travel-photos/1556613689443094550-4.jpg",
+      "data/travel-photos/1556613689443094550-5.jpg",
+      "data/travel-photos/1556613689443094550-6.jpg",
+      "data/travel-photos/1556613689443094550-7.jpg",
+      "data/travel-photos/1556613689443094550-8.jpg",
+      "data/travel-photos/1556613689443094550-9.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1556592637446856747",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1556592637446856747",
+    "discord_channel_name": "旅行",
+    "nickname": "ちゃん",
+    "avatar_path": "data/travel-avatars/df7d136f17e0.png",
+    "avatarColor": "#f97316",
+    "init": "ち",
+    "prefecture": "秋田県",
+    "municipality_optional": "大仙市",
+    "lat": 39.4533,
+    "lng": 140.4778,
+    "date": "2026/10/05",
+    "posted_at": "2026-10-05T09:03:24.860000+00:00",
+    "comment": "週末に母と大曲の花火を観てきました🎆真上から降り注ぐ距離で迫力がすごかったです✨\nそのあと行った銀山温泉も街並みが素敵でした😌",
+    "photos": [
+      "data/travel-photos/1556592637446856747-1.jpg",
+      "data/travel-photos/1556592637446856747-2.jpg",
+      "data/travel-photos/1556592637446856747-3.jpg",
+      "data/travel-photos/1556592637446856747-4.jpg",
+      "data/travel-photos/1556592637446856747-5.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1556499512371978241",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1556499512371978241",
     "discord_channel_name": "グルメ・料理",
