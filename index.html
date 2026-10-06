@@ -1535,6 +1535,55 @@
       font-size: 10px; background: #f97316; color: #fff; padding: 2px 6px; border-radius: 999px;
     }
     .detail-fold { margin-bottom: 12px; }
+    .consult-card {
+      border: 1px solid #fed7aa; background: #fff7ed; border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .consult-card.locked { border-color: #e5e7eb; background: #f8fafc; }
+    .consult-entry { flex-direction: row; align-items: center; }
+    .consult-entry-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .consult-entry-title { font-size: 13px; font-weight: bold; color: #1f2937; }
+    .consult-entry-sub { font-size: 11px; color: #4b5563; line-height: 1.5; }
+    .consult-primary-btn, .consult-secondary-btn {
+      min-height: 40px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
+    }
+    .consult-primary-btn { border: none; background: #c2410c; color: #fff; }
+    .consult-primary-btn.blue { background: #2563eb; }
+    .consult-primary-btn:disabled { opacity: 0.6; cursor: default; }
+    .consult-secondary-btn { border: 1px solid #cbd5e1; background: #fff; color: #1f2937; }
+    .consult-card label { font-size: 14px; font-weight: bold; color: #1f2937; }
+    .consult-card textarea {
+      font-family: inherit; font-size: 13px; line-height: 1.6; padding: 10px;
+      border: 1px solid #cbd5e1; border-radius: 8px; resize: vertical; min-height: 96px; background: #fff;
+    }
+    .consult-warning { font-size: 11px; color: #713f12; line-height: 1.6; }
+    .consult-note { font-size: 11px; color: #4b5563; line-height: 1.6; }
+    .consult-count { font-size: 11px; color: #4b5563; text-align: right; }
+    .consult-count.over { color: #b91c1c; }
+    .consult-error { font-size: 12px; color: #b91c1c; }
+    .consult-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .consult-actions > * { flex: 1; }
+    .consult-preview {
+      display: flex; gap: 10px; padding: 12px; background: #313338; border-radius: 10px; color: #dbdee1;
+      font-size: 13px; line-height: 1.6;
+    }
+    .consult-preview-avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: #f97316; color: #fff; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-weight: bold;
+    }
+    .consult-preview-name { font-weight: bold; color: #fff; }
+    .consult-preview-bot { font-size: 10px; background: #5865f2; color: #fff; padding: 1px 4px; border-radius: 3px; margin-left: 4px; }
+    .consult-preview-quote { border-left: 4px solid #4e5058; padding-left: 10px; white-space: pre-wrap; word-break: break-word; }
+    .consult-status-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .consult-badge { font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: #f97316; color: #fff; }
+    .consult-badge.matched { background: #dcfce7; color: #166534; }
+    .consult-badge.closed { background: #f1f5f9; color: #374151; }
+    .consult-body { font-size: 13px; line-height: 1.6; color: #1f2937; white-space: pre-wrap; word-break: break-word; }
+    .consult-progress { height: 6px; background: #fde4c8; border-radius: 999px; overflow: hidden; }
+    .consult-progress > div { height: 6px; background: #f97316; }
+    .consult-history-item { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .consult-history-item:last-child { border-bottom: none; }
+    .consult-history-body { color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .detail-fold .detail-section { margin-bottom: 0; }
     .detail-identity-card {
       display: flex;
@@ -3534,6 +3583,11 @@ function renderUsageView() {
               <h3>3. 参加ON/OFF・頻度・空き時間を設定する</h3>
               <p>プロフィール詳細の「ゆるマッチング」タブを開き、「マッチングに参加する」をONにし、マッチング頻度を選びます。その下の曜日×時間帯のマスをクリックすると、○（空きあり）/ ×（空きなし）が切り替わります。毎週の予定と違う日がある場合は、「特定日の例外」から日付を選び、1時間単位で空き/予定ありを登録できます。</p>
               ${usageFigure('docs/usage-screenshots/guide-16-yuru-matching-settings.png', 'ゆるマッチング設定', '参加ON/OFF、マッチング頻度、曜日×時間帯、特定日の例外をプロフィール詳細の「ゆるマッチング」タブから設定します。')}
+            </div>
+            <div class="usage-step-block" id="usage-yuru-consultation">
+              <h3>相談したいテーマを匿名で募集する</h3>
+              <p>「ゆるマッチング」タブの一番上の「書いてみる」から、話したい相談テーマを書くと、ふぁいにゃがあなたの代わりに「#ゆるマッチング」へ匿名で投稿して、話せる人を募集します。ゆるマッチングをONにして、空いている時間帯を登録している人が使えます。</p>
+              <p>書いた文章はそのまま投稿されます。名前やあなただと分かる情報は書かないでください。「投稿される内容を確認」で見た目を確かめてから、「ふぁいにゃに代行投稿してもらう」を押すと投稿されます。話せる人は ✋ でリアクションし、時間帯が合う人があなたを含めて4人（3日たって3人なら3人）集まるとマッチングが成立して、いつものゆるマッチングと同じように日程調整に進みます。1週間で集まらなければ募集を終了して、DMでお知らせします。</p>
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-after">
               <h3>4. マッチしたらDiscordの「ゆるマッチング」チャンネルに通知が来る</h3>
@@ -6058,6 +6112,7 @@ function openMemberDetail(nickname, {
   profilePane.appendChild(buildLocationSection(member));
   if (!readonly) profilePane.appendChild(buildJoinedMonthSection(member));
   profilePane.appendChild(buildIntroSection(member));
+  if (!readonly) panes.matching.appendChild(buildConsultationThemeSection(member, panes.tabButtons.matching));
   panes.matching.appendChild(buildMatchingSection(member));
 
   function buildLinkItem(label, url) {
@@ -6246,6 +6301,302 @@ function buildDetailTabs(content) {
   select(DETAIL_TABS.some(t => t.key === detailTab) ? detailTab : 'profile');
   panes.tabButtons = buttons;
   return panes;
+}
+
+// ================================================================
+// 相談テーママッチング(issue #322)
+// 本人が書いた相談テーマを、ふぁいにゃが匿名で #ゆるマッチング に代行投稿する。投稿と取り下げは
+// Edge Function(supabase/functions/consultation-request)、手上げの集計とグループ作成は
+// scripts/process_consultation_requests.py。consultation_requests は本人の行しか読めない。
+// ================================================================
+const CONSULTATION_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/consultation-request`;
+const CONSULTATION_BODY_MIN = 5;
+const CONSULTATION_BODY_MAX = 500;
+const CONSULTATION_TARGET_HANDS = 3;
+// 入力中の文章と画面の段階は、保存後の再描画でも消えないようにメンバー単位で持つ。
+const consultationDrafts = new Map();
+
+function consultationDraft(nickname) {
+  if (!consultationDrafts.has(nickname)) consultationDrafts.set(nickname, { step: 'closed', text: '' });
+  return consultationDrafts.get(nickname);
+}
+
+async function fetchMyConsultationRequests(nickname) {
+  const select = 'id,body,status,posted_at,deadline_at,responder_count,closed_at';
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/consultation_requests?select=${select}&member_nickname=eq.${encodeURIComponent(nickname)}&order=posted_at.desc`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(`consultation_requests fetch failed: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function callConsultationFunction(payload) {
+  const res = await fetch(CONSULTATION_FUNCTION_URL, {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  return data && data.status ? data : { status: 'error' };
+}
+
+function consultationErrorMessage(status) {
+  return {
+    invalid_body: `${CONSULTATION_BODY_MIN}〜${CONSULTATION_BODY_MAX}文字で書いてください。`,
+    not_opted_in: 'ゆるマッチングをONにすると募集できます。',
+    no_availability: '空いている時間帯を1つ以上登録すると募集できます。',
+    already_closed: 'この募集はすでに終了しています。',
+    not_found: '募集が見つかりませんでした。',
+  }[status] || '送れませんでした。時間をおいてもう一度試してください。';
+}
+
+function formatConsultationDate(iso) {
+  const d = new Date(iso);
+  const weekday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+  return `${d.getMonth() + 1}/${d.getDate()}(${weekday})`;
+}
+
+function consultationEl(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text != null) el.textContent = text;
+  return el;
+}
+
+function buildConsultationPreview(text) {
+  const preview = consultationEl('div', 'consult-preview');
+  preview.appendChild(consultationEl('div', 'consult-preview-avatar', 'ふ'));
+  const bubble = consultationEl('div');
+  bubble.style.cssText = 'display: flex; flex-direction: column; gap: 4px; min-width: 0;';
+  const name = consultationEl('div');
+  name.append(consultationEl('span', 'consult-preview-name', 'ふぁいにゃ'), consultationEl('span', 'consult-preview-bot', 'BOT'));
+  const deadline = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+  bubble.append(
+    name,
+    consultationEl('div', null, '🐾 ふぁいにゃです。こんな相談テーマで話したい人がいます（投稿した人は匿名です）。'),
+    consultationEl('div', 'consult-preview-quote', text),
+    consultationEl('div', null, `話せる方は ✋ でリアクションしてください。時間帯が合う方が集まったら、ゆるマッチングとしてご案内します（締め切り: ${formatConsultationDate(deadline.toISOString())}）。`),
+  );
+  preview.appendChild(bubble);
+  return preview;
+}
+
+// ゆるマッチングタブの先頭に置く相談テーマ欄(本人のプロフィールのみ)。
+function buildConsultationThemeSection(member, matchingTabButton) {
+  const wrap = document.createElement('div');
+  wrap.className = 'consult-section';
+  const draft = consultationDraft(member.nickname);
+  const rerender = () => openMemberDetail(member.nickname, { updateHash: false, scrollToTop: false, tab: 'matching' });
+  let requests = [];
+  let loadFailed = false;
+
+  function render() {
+    wrap.innerHTML = '';
+    const recruiting = requests.filter(r => r.status === 'recruiting');
+    const closed = requests.filter(r => r.status !== 'recruiting');
+
+    if (matchingTabButton && !matchingTabButton.querySelector('.detail-tab-badge') && recruiting.length) {
+      matchingTabButton.appendChild(consultationEl('span', 'detail-tab-badge', '募集中'));
+    }
+
+    recruiting.forEach(request => wrap.appendChild(buildRecruitingCard(request)));
+
+    const optedIn = Boolean(member.matching && member.matching.opted_in);
+    const hasSlots = Boolean(member.availability && member.availability.length);
+    if (!optedIn || !hasSlots) {
+      const card = consultationEl('div', 'consult-card consult-entry locked');
+      const text = consultationEl('div', 'consult-entry-text');
+      text.append(
+        consultationEl('div', 'consult-entry-title', '相談テーマで話し相手を募集'),
+        consultationEl('div', 'consult-entry-sub', optedIn
+          ? '時間帯を合わせるため、下の「空いている時間帯」を1つ以上登録すると使えます。'
+          : '時間帯を合わせるため、ゆるマッチングをONにすると使えます。'),
+      );
+      card.appendChild(text);
+      if (!optedIn) {
+        const on = consultationEl('button', 'consult-primary-btn blue', 'ONにする');
+        on.type = 'button';
+        on.addEventListener('click', async () => {
+          on.disabled = true;
+          await upsertMatchingSettings(member.nickname, { opted_in: true });
+          await refreshDirectory();
+          rerender();
+        });
+        card.appendChild(on);
+      }
+      wrap.appendChild(card);
+    } else if (draft.step === 'edit') {
+      wrap.appendChild(buildEditCard());
+    } else if (draft.step === 'confirm') {
+      wrap.appendChild(buildConfirmCard());
+    } else {
+      const card = consultationEl('div', 'consult-card consult-entry');
+      const text = consultationEl('div', 'consult-entry-text');
+      text.append(
+        consultationEl('div', 'consult-entry-title', recruiting.length ? '別の相談テーマも募集する' : '相談テーマで話し相手を募集'),
+        consultationEl('div', 'consult-entry-sub', 'ふぁいにゃが匿名で代わりに #ゆるマッチング で募集します'),
+      );
+      const start = consultationEl('button', 'consult-primary-btn', '書いてみる');
+      start.type = 'button';
+      start.addEventListener('click', () => { draft.step = 'edit'; render(); });
+      card.append(text, start);
+      wrap.appendChild(card);
+    }
+
+    if (loadFailed) wrap.appendChild(consultationEl('div', 'consult-error', 'これまでの相談テーマを読み込めませんでした。'));
+
+    if (closed.length) {
+      const list = consultationEl('div');
+      closed.forEach(request => {
+        const item = consultationEl('div', 'consult-history-item');
+        const label = {
+          matched: ['成立', 'matched'],
+          expired: ['締め切りで終了', 'closed'],
+          withdrawn: ['取り下げ', 'closed'],
+        }[request.status] || [request.status, 'closed'];
+        item.append(
+          consultationEl('span', 'consult-history-body', request.body.split('\n')[0]),
+          consultationEl('span', `consult-badge ${label[1]}`, `${label[0]} ${formatConsultationDate(request.closed_at || request.posted_at)}`),
+        );
+        list.appendChild(item);
+      });
+      wrap.appendChild(buildDetailFold('これまでの相談テーマ', `${closed.length}件`, list));
+    }
+  }
+
+  function buildEditCard() {
+    const card = consultationEl('div', 'consult-card');
+    const label = consultationEl('label', null, '話したい相談テーマ');
+    label.htmlFor = 'consult-textarea';
+    const textarea = document.createElement('textarea');
+    textarea.id = 'consult-textarea';
+    textarea.rows = 4;
+    textarea.maxLength = CONSULTATION_BODY_MAX;
+    textarea.placeholder = '例: 親の介護と仕事の両立について、経験のある方と話してみたいです';
+    textarea.value = draft.text;
+    const count = consultationEl('div', 'consult-count');
+    const updateCount = () => {
+      const length = [...textarea.value.trim()].length;
+      count.textContent = `${length} / ${CONSULTATION_BODY_MAX}`;
+      count.classList.toggle('over', length > CONSULTATION_BODY_MAX);
+      next.disabled = length < CONSULTATION_BODY_MIN || length > CONSULTATION_BODY_MAX;
+    };
+    textarea.addEventListener('input', () => { draft.text = textarea.value; updateCount(); });
+    const cancel = consultationEl('button', 'consult-secondary-btn', 'やめる');
+    cancel.type = 'button';
+    cancel.addEventListener('click', () => { draft.step = 'closed'; draft.text = ''; render(); });
+    const next = consultationEl('button', 'consult-primary-btn blue', '投稿される内容を確認');
+    next.type = 'button';
+    next.addEventListener('click', () => { draft.step = 'confirm'; render(); });
+    const actions = consultationEl('div', 'consult-actions');
+    actions.append(cancel, next);
+    card.append(
+      label,
+      textarea,
+      count,
+      consultationEl('div', 'consult-warning', 'この文章は、ふぁいにゃがそのまま #ゆるマッチング に投稿します。名前や、あなただと分かる情報は書かないでください。'),
+      consultationEl('div', 'consult-note', '下の「空いている時間帯」と合う人が先着で手を挙げ、あなたを含めて4人になったら成立します（3日たって3人なら3人で成立）。1週間で締め切ります。成立したら、いつものゆるマッチングと同じようにメンバーが紹介されます。'),
+      actions,
+    );
+    updateCount();
+    requestAnimationFrame(() => textarea.focus());
+    return card;
+  }
+
+  function buildConfirmCard() {
+    const card = consultationEl('div', 'consult-card');
+    const error = consultationEl('div', 'consult-error');
+    const post = consultationEl('button', 'consult-primary-btn', 'ふぁいにゃに代行投稿してもらう');
+    post.type = 'button';
+    post.style.minHeight = '48px';
+    post.addEventListener('click', async () => {
+      post.disabled = true;
+      back.disabled = true;
+      post.textContent = '投稿しています…';
+      const result = await callConsultationFunction({ action: 'create', body: draft.text });
+      if (result.status === 'created') {
+        draft.step = 'closed';
+        draft.text = '';
+        rerender();
+        return;
+      }
+      error.textContent = consultationErrorMessage(result.status);
+      post.disabled = false;
+      back.disabled = false;
+      post.textContent = 'ふぁいにゃに代行投稿してもらう';
+    });
+    const back = consultationEl('button', 'consult-secondary-btn', '戻って直す');
+    back.type = 'button';
+    back.addEventListener('click', () => { draft.step = 'edit'; render(); });
+    card.append(
+      consultationEl('div', 'consult-entry-title', 'この内容で #ゆるマッチング に投稿されます'),
+      buildConsultationPreview(draft.text.trim()),
+      post,
+      consultationEl('div', 'consult-note', '押すとすぐに投稿されます。あなたの名前は、話し相手が集まってマッチングが成立するまで出ません。'),
+      back,
+      error,
+    );
+    return card;
+  }
+
+  function buildRecruitingCard(request) {
+    const card = consultationEl('div', 'consult-card');
+    const row = consultationEl('div', 'consult-status-row');
+    row.append(
+      consultationEl('span', 'consult-badge', '相談テーマ募集中'),
+      consultationEl('span', 'consult-note', `締め切り ${formatConsultationDate(request.deadline_at)}`),
+    );
+    const count = Math.min(request.responder_count || 0, CONSULTATION_TARGET_HANDS);
+    const progress = consultationEl('div', 'consult-progress');
+    const bar = consultationEl('div');
+    bar.style.width = `${Math.round((count / CONSULTATION_TARGET_HANDS) * 100)}%`;
+    progress.appendChild(bar);
+    const footer = consultationEl('div', 'consult-status-row');
+    const link = consultationEl('a', null, '#ゆるマッチング で見る');
+    link.href = MATCHING_DISCORD_CHANNEL_URL;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.style.fontSize = '12px';
+    const withdraw = consultationEl('button', 'consult-secondary-btn', '取り下げる');
+    withdraw.type = 'button';
+    withdraw.style.minHeight = '36px';
+    const error = consultationEl('div', 'consult-error');
+    let armed = false;
+    withdraw.addEventListener('click', async () => {
+      if (!armed) {
+        armed = true;
+        withdraw.textContent = '本当に取り下げる';
+        return;
+      }
+      withdraw.disabled = true;
+      const result = await callConsultationFunction({ action: 'withdraw', id: request.id });
+      if (result.status === 'withdrawn' || result.status === 'already_closed') {
+        rerender();
+        return;
+      }
+      error.textContent = consultationErrorMessage(result.status);
+      withdraw.disabled = false;
+    });
+    footer.append(link, withdraw);
+    card.append(
+      row,
+      consultationEl('div', 'consult-body', request.body),
+      consultationEl('div', 'consult-note', `手を挙げた人（時間帯が合う人のみ） ${count} / ${CONSULTATION_TARGET_HANDS}人`),
+      progress,
+      footer,
+      error,
+    );
+    return card;
+  }
+
+  render();
+  fetchMyConsultationRequests(member.nickname)
+    .then(rows => { requests = rows; })
+    .catch(err => { console.warn(err); loadFailed = true; })
+    .then(() => { if (wrap.isConnected || !wrap.parentNode) render(); });
+  return wrap;
 }
 
 // 自分のプロフィールで、たまにしか触らない欄(リンク・個人メモ)を折りたたむ。
