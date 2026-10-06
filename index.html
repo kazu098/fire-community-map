@@ -3817,9 +3817,11 @@ try {
 // ---- Discord ログインとの連動(Issue #253) ----
 // Discordに紐づくメンバーを「自分」(myNickname)にする。
 
+// 右上はログイン済みメンバーの「👤 ニックネーム」と「ログアウト」だけ。未ログイン・メンバー未確認の
+// ときはログイン画面に操作をまとめ、導線を1つにする。
 function renderAuthBar() {
   const bar = document.getElementById('auth-bar');
-  if (!AUTH_LOGIN_ENABLED || !sb) {
+  if (!sb || !authSession || !authMemberNickname) {
     bar.classList.remove('visible');
     return;
   }
@@ -3828,20 +3830,7 @@ function renderAuthBar() {
   const button = document.getElementById('auth-button');
   label.classList.remove('warn');
   label.title = '';
-  if (!authSession) {
-    label.textContent = '';
-    button.textContent = 'Discordでログイン';
-    button.className = '';
-    button.onclick = signInWithDiscord;
-    return;
-  }
-  if (authMemberNickname) {
-    label.textContent = `👤 ${authMemberNickname}`;
-  } else {
-    label.textContent = 'メンバー未確認';
-    label.classList.add('warn');
-    label.title = 'このDiscordアカウントはFIRE研究所のメンバーとして確認できませんでした。管理者にご連絡ください。';
-  }
+  label.textContent = `👤 ${authMemberNickname}`;
   button.textContent = 'ログアウト';
   button.className = 'secondary';
   button.onclick = signOutOfDiscord;
