@@ -1520,6 +1520,22 @@
     #detail-nickname { font-size: 19px; font-weight: bold; color: #1f2937; }
     #detail-name-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     #detail-joined { font-size: 12px; color: #4b5563; }
+    .detail-tabs {
+      display: flex; border-bottom: 1px solid #e5e7eb; margin: -4px 0 18px;
+    }
+    .detail-tab {
+      flex: 1; min-height: 44px; padding: 0 8px; border: none; background: none;
+      border-bottom: 3px solid transparent; margin-bottom: -1px;
+      font-size: 14px; font-weight: bold; color: #4b5563; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .detail-tab:hover { color: #1f2937; }
+    .detail-tab.active { color: #1d4ed8; border-bottom-color: #2563eb; }
+    .detail-tab-badge {
+      font-size: 10px; background: #f97316; color: #fff; padding: 2px 6px; border-radius: 999px;
+    }
+    .detail-fold { margin-bottom: 12px; }
+    .detail-fold .detail-section { margin-bottom: 0; }
     .detail-identity-card {
       display: flex;
       align-items: center;
@@ -3477,7 +3493,7 @@ function renderUsageView() {
 
           <section class="usage-doc-section" id="usage-edit">
             <h2>情報を修正する</h2>
-            <p>メンバーカードを開くと詳細画面に移動します。ここでタグ、居住地、リンク、自己紹介などを修正できます。</p>
+            <p>メンバーカードを開くと詳細画面に移動します。詳細画面は「プロフィール」「ゆるマッチング」「投稿」の3つのタブに分かれています。「プロフィール」タブでタグ、居住地、入会時期、自己紹介、リンクなどを修正できます。</p>
             <div class="usage-step-block" id="usage-edit-detail">
               <h3>1. メンバー詳細を開く</h3>
               ${usageFigure('docs/usage-screenshots/guide-04-member-detail-tags.png', 'メンバー詳細とタグ編集', 'タグはカテゴリごとに表示されます。入力欄に追加したいタグを入れて「＋追加」を押します。')}
@@ -3497,14 +3513,14 @@ function renderUsageView() {
             </div>
             <div class="usage-step-block" id="usage-edit-posts">
               <h3>5. 紐づいた投稿を一覧から外す</h3>
-              <p>読んだ本や旅行投稿など、そのメンバーに紐づく投稿が詳細画面に表示されます。暮らしの知恵の一覧に出したくない投稿がある場合は、メンバー詳細内の投稿カード右上にある「✕」から一覧に出さないようにできます。</p>
+              <p>読んだ本や旅行投稿など、そのメンバーに紐づく投稿が詳細画面の「投稿」タブに表示されます。暮らしの知恵の一覧に出したくない投稿がある場合は、メンバー詳細内の投稿カード右上にある「✕」から一覧に出さないようにできます。</p>
               ${usageFigure('docs/usage-screenshots/guide-07b-member-posts-remove.png', 'メンバー詳細に紐づく投稿の非表示操作', 'メンバー詳細に紐づく読んだ本・旅行投稿は、カード右上の「✕」から一覧に出さないようにできます。')}
             </div>
           </section>
 
           <section class="usage-doc-section" id="usage-yuru-matching">
             <h2>ゆるマッチングを設定する</h2>
-            <p>ゆるマッチングは、空いている曜日・時間帯が合うメンバー同士をDiscordの専用チャンネルで紹介する機能です。参加したい場合は、Discordでログインして、自分のプロフィール詳細画面から参加ON/OFF、頻度、空いている時間帯を設定します。</p>
+            <p>ゆるマッチングは、空いている曜日・時間帯が合うメンバー同士をDiscordの専用チャンネルで紹介する機能です。参加したい場合は、Discordでログインして、自分のプロフィール詳細画面の「ゆるマッチング」タブから参加ON/OFF、頻度、空いている時間帯を設定します。</p>
             ${usageYuruMatchingVideoBlock()}
             <div class="usage-step-block" id="usage-yuru-matching-modal">
               <h3>1. Discordでログインする</h3>
@@ -3516,8 +3532,8 @@ function renderUsageView() {
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-settings">
               <h3>3. 参加ON/OFF・頻度・空き時間を設定する</h3>
-              <p>「マッチングに参加する」をONにし、マッチング頻度を選びます。その下の曜日×時間帯のマスをクリックすると、○（空きあり）/ ×（空きなし）が切り替わります。毎週の予定と違う日がある場合は、「特定日の例外」から日付を選び、1時間単位で空き/予定ありを登録できます。</p>
-              ${usageFigure('docs/usage-screenshots/guide-16-yuru-matching-settings.png', 'ゆるマッチング設定', '参加ON/OFF、マッチング頻度、曜日×時間帯、特定日の例外をプロフィール詳細から設定します。')}
+              <p>プロフィール詳細の「ゆるマッチング」タブを開き、「マッチングに参加する」をONにし、マッチング頻度を選びます。その下の曜日×時間帯のマスをクリックすると、○（空きあり）/ ×（空きなし）が切り替わります。毎週の予定と違う日がある場合は、「特定日の例外」から日付を選び、1時間単位で空き/予定ありを登録できます。</p>
+              ${usageFigure('docs/usage-screenshots/guide-16-yuru-matching-settings.png', 'ゆるマッチング設定', '参加ON/OFF、マッチング頻度、曜日×時間帯、特定日の例外をプロフィール詳細の「ゆるマッチング」タブから設定します。')}
             </div>
             <div class="usage-step-block" id="usage-yuru-matching-after">
               <h3>4. マッチしたらDiscordの「ゆるマッチング」チャンネルに通知が来る</h3>
@@ -5877,6 +5893,7 @@ function openMemberDetail(nickname, {
   externalIntroPreviewOpen = false,
   scrollToTop = true,
   openConsultation = false,
+  tab = null,
 } = {}) {
   const member = directoryMembers.find(m => m.nickname === nickname);
   if (!member) return;
@@ -5938,10 +5955,27 @@ function openMemberDetail(nickname, {
   head.appendChild(nameBlock);
   head.appendChild(copyLinkBtn);
   content.appendChild(head);
-  content.appendChild(buildPublicSettingsSection(member, {
-    open: publicSettingsOpen,
-    externalIntroPreviewOpen,
-  }));
+
+  // プロフィール / ゆるマッチング / 投稿 の3タブ(issue #328)。保存後の再描画でも同じ
+  // メンバーなら開いていたタブのまま、別のメンバーを開いたらプロフィールから。
+  if (detailTabNickname !== member.nickname) {
+    detailTab = 'profile';
+    detailTabNickname = member.nickname;
+    detailOpenFolds.clear();
+  }
+  if (tab) detailTab = tab;
+  if (openConsultation || publicSettingsOpen) detailTab = 'profile';
+  const panes = buildDetailTabs(content);
+  const profilePane = panes.profile;
+
+  // 他人のページでは「相談してみる」をプロフィールタブの先頭に置く。
+  if (member.nickname !== myNickname) {
+    const consultationSection = buildConsultationSection(member, { autoOpen: openConsultation });
+    profilePane.appendChild(consultationSection);
+    if (openConsultation) {
+      requestAnimationFrame(() => consultationSection.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  }
 
   CATEGORY_ORDER.forEach(cat => {
     const meta = CATEGORY_META[cat];
@@ -6018,19 +6052,13 @@ function openMemberDetail(nickname, {
     form.appendChild(addBtn);
     section.appendChild(form);
 
-    content.appendChild(section);
+    profilePane.appendChild(section);
   });
 
-  content.appendChild(buildLocationSection(member));
-  if (!readonly) content.appendChild(buildJoinedMonthSection(member));
-  if (member.nickname !== myNickname) {
-    const consultationSection = buildConsultationSection(member, { autoOpen: openConsultation });
-    content.appendChild(consultationSection);
-    if (openConsultation) {
-      requestAnimationFrame(() => consultationSection.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-  }
-  content.appendChild(buildMatchingSection(member));
+  profilePane.appendChild(buildLocationSection(member));
+  if (!readonly) profilePane.appendChild(buildJoinedMonthSection(member));
+  profilePane.appendChild(buildIntroSection(member));
+  panes.matching.appendChild(buildMatchingSection(member));
 
   function buildLinkItem(label, url) {
     const wrap = document.createElement('span');
@@ -6061,7 +6089,7 @@ function openMemberDetail(nickname, {
     const title = document.createElement('div');
     title.className = 'detail-section-title';
     title.textContent = 'リンク（note・YouTube・ブログなど）';
-    section.appendChild(title);
+    if (readonly) section.appendChild(title);
 
     const list = document.createElement('div');
     list.className = 'detail-link-list';
@@ -6090,7 +6118,9 @@ function openMemberDetail(nickname, {
     form.appendChild(addBtn);
     section.appendChild(form);
 
-    content.appendChild(section);
+    profilePane.appendChild(readonly
+      ? section
+      : buildDetailFold('リンク（note・YouTube・ブログなど）', snsLinks.length ? `${snsLinks.length}件` : '未登録', section));
   }
 
   {
@@ -6099,7 +6129,7 @@ function openMemberDetail(nickname, {
     const title = document.createElement('div');
     title.className = 'detail-section-title';
     title.textContent = '個人メモ（非公開リンク）';
-    section.appendChild(title);
+    if (readonly) section.appendChild(title);
 
     const list = document.createElement('div');
     list.className = 'detail-link-list';
@@ -6130,12 +6160,121 @@ function openMemberDetail(nickname, {
     hint.textContent = '自分だけが閲覧できるメモページへのリンクを貼れます（例: Notion、Google Docs、Google Keep、Evernoteなど、閲覧権限を限定共有できるツール）。アクセス権はリンク先のツール側の共有設定に依存するため、限定共有設定を必ずご確認ください。';
     section.appendChild(hint);
 
-    content.appendChild(section);
+    profilePane.appendChild(readonly
+      ? section
+      : buildDetailFold('個人メモ（非公開リンク）', memoLinks.length ? `${memoLinks.length}件` : '未登録', section));
   }
 
-  content.appendChild(buildIntroSection(member));
-  content.appendChild(buildCommunityPostsSection(member));
+  if (!readonly) {
+    profilePane.appendChild(buildPublicSettingsSection(member, {
+      open: publicSettingsOpen,
+      externalIntroPreviewOpen,
+    }));
+  }
+
+  const postsSection = buildCommunityPostsSection(member);
+  if (postsSection.childElementCount) {
+    panes.posts.appendChild(postsSection);
+  } else {
+    const empty = document.createElement('div');
+    empty.className = 'intro-placeholder';
+    empty.textContent = 'まだ投稿はありません。';
+    panes.posts.appendChild(empty);
+  }
 }
+
+let detailTab = 'profile';
+let detailTabNickname = null;
+// 折りたたみの開閉は、保存後の再描画でも保つ(リンクを追加したら閉じてしまわないように)。
+const detailOpenFolds = new Set();
+
+const DETAIL_TABS = [
+  { key: 'profile', label: 'プロフィール' },
+  { key: 'matching', label: 'ゆるマッチング' },
+  { key: 'posts', label: '投稿' },
+];
+
+// メンバー詳細のタブ見出しと、タブごとの中身の入れ物を作る。戻り値は { profile, matching, posts }。
+function buildDetailTabs(content) {
+  const tablist = document.createElement('div');
+  tablist.className = 'detail-tabs';
+  tablist.setAttribute('role', 'tablist');
+  tablist.setAttribute('aria-label', 'メンバー詳細');
+  content.appendChild(tablist);
+
+  const panes = {};
+  const buttons = {};
+  const select = key => {
+    detailTab = key;
+    DETAIL_TABS.forEach(({ key: k }) => {
+      const active = k === key;
+      buttons[k].classList.toggle('active', active);
+      buttons[k].setAttribute('aria-selected', String(active));
+      buttons[k].tabIndex = active ? 0 : -1;
+      panes[k].hidden = !active;
+    });
+  };
+  DETAIL_TABS.forEach(({ key, label }) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'detail-tab';
+    button.id = `detail-tab-${key}`;
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-controls', `detail-pane-${key}`);
+    const labelEl = document.createElement('span');
+    labelEl.textContent = label;
+    button.appendChild(labelEl);
+    button.addEventListener('click', () => select(key));
+    button.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const index = DETAIL_TABS.findIndex(t => t.key === key);
+      const next = DETAIL_TABS[(index + (e.key === 'ArrowRight' ? 1 : DETAIL_TABS.length - 1)) % DETAIL_TABS.length];
+      select(next.key);
+      buttons[next.key].focus();
+    });
+    tablist.appendChild(button);
+    buttons[key] = button;
+
+    const pane = document.createElement('div');
+    pane.className = 'detail-pane';
+    pane.id = `detail-pane-${key}`;
+    pane.setAttribute('role', 'tabpanel');
+    pane.setAttribute('aria-labelledby', button.id);
+    content.appendChild(pane);
+    panes[key] = pane;
+  });
+  select(DETAIL_TABS.some(t => t.key === detailTab) ? detailTab : 'profile');
+  panes.tabButtons = buttons;
+  return panes;
+}
+
+// 自分のプロフィールで、たまにしか触らない欄(リンク・個人メモ)を折りたたむ。
+function buildDetailFold(titleText, summaryText, body) {
+  const fold = document.createElement('details');
+  fold.className = 'public-settings detail-fold';
+  fold.open = detailOpenFolds.has(titleText);
+  fold.addEventListener('toggle', () => {
+    if (fold.open) detailOpenFolds.add(titleText);
+    else detailOpenFolds.delete(titleText);
+  });
+  const summary = document.createElement('summary');
+  const title = document.createElement('div');
+  title.className = 'public-settings-title';
+  title.textContent = titleText;
+  const summaryEl = document.createElement('div');
+  summaryEl.className = 'public-settings-summary';
+  summaryEl.textContent = summaryText;
+  const chevron = document.createElement('span');
+  chevron.className = 'public-settings-chevron';
+  chevron.textContent = '⌄';
+  summary.append(title, summaryEl, chevron);
+  const inner = document.createElement('div');
+  inner.className = 'public-settings-body';
+  inner.appendChild(body);
+  fold.append(summary, inner);
+  return fold;
+}
+
 
 // ================================================================
 // イベント開催記録
