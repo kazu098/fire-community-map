@@ -262,19 +262,19 @@
     .detail-readonly-note { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
     #login-gate {
       display: none; position: fixed; inset: 0; z-index: 5000; overflow: hidden;
-      background: #f3f4f6; align-items: center; justify-content: center; padding: 16px;
+      background: #d1d5db; align-items: center; justify-content: center; padding: 16px;
     }
     #login-gate.visible { display: flex; }
     /* 背景はメンバー一覧を思わせるダミーのカード。本物のデータは読み込まない(未ログインでは取得しない)。 */
     #login-gate-backdrop {
-      position: absolute; inset: -24px; overflow: hidden; filter: blur(7px); opacity: 0.75;
+      position: absolute; inset: -24px; overflow: hidden; filter: blur(6px); opacity: 0.55;
       display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;
       padding: 40px; align-content: start; pointer-events: none;
     }
-    .gate-dummy-card { background: white; border-radius: 12px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .gate-dummy-card { background: #e5e7eb; border-radius: 12px; padding: 14px; }
     .gate-dummy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .gate-dummy-avatar { width: 36px; height: 36px; border-radius: 50%; flex: none; }
-    .gate-dummy-line { height: 10px; border-radius: 5px; background: #d1d5db; margin-bottom: 6px; }
+    .gate-dummy-line { height: 10px; border-radius: 5px; background: #c4c8cf; margin-bottom: 6px; }
     .gate-dummy-tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .gate-dummy-tag { height: 18px; border-radius: 9px; }
     #login-gate-card {
@@ -1994,20 +1994,20 @@
 </head>
 <body>
 
-<div id="login-gate">
+<div id="login-gate" class="visible">
   <div id="login-gate-backdrop" aria-hidden="true"></div>
   <div id="login-gate-card">
     <h1>FIRE研究所 コミュニティマップ</h1>
-    <p id="login-gate-message"></p>
-    <button type="button" id="login-gate-button"></button>
-    <p id="login-gate-note">Discordの許可画面では、ユーザー名・アイコンなどの確認のみ求められます。メールアドレスは取得しません。メッセージの閲覧や送信もできません。</p>
+    <p id="login-gate-message">読み込み中…</p>
+    <button type="button" id="login-gate-button" style="display:none"></button>
+    <p id="login-gate-note" style="display:none">Discordの許可画面では、ユーザー名・アイコンなどの確認のみ求められます。メールアドレスは取得しません。メッセージの閲覧や送信もできません。</p>
   </div>
 </div>
 
 <div id="view-tabs">
   <button class="view-tab" id="tab-directory" onclick="goToMemberGrid()">メンバー</button>
   <button class="view-tab" id="tab-events" onclick="selectView('events')">イベント</button>
-  <button class="view-tab active" id="tab-map" onclick="selectView('map')">地図</button>
+  <button class="view-tab" id="tab-map" onclick="selectView('map')">地図</button>
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
   <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">F研図書館</button>
   <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
@@ -2105,6 +2105,7 @@ const AUTH_RETURN_HASH_KEY = 'authReturnHash';
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 const AUTH_LOGIN_ENABLED = true;
 const AUTH_REQUIRED = true;
+let appStarted = false;  // メンバーとして確認できてアプリを開始したら true
 try {
   localStorage.removeItem('authLoginEnabled');
   localStorage.removeItem('authOAuthProvider');
@@ -2251,8 +2252,8 @@ async function signOutOfDiscord() {
 function renderLoginGateBackdrop() {
   const backdrop = document.getElementById('login-gate-backdrop');
   if (backdrop.childElementCount) return;
-  const avatarColors = ['#fca5a5', '#93c5fd', '#86efac', '#fcd34d', '#c4b5fd', '#f9a8d4'];
-  const tagColors = ['#dbeafe', '#dcfce7', '#fef3c7', '#ede9fe', '#fce7f3'];
+  const avatarColors = ['#c4c8cf', '#bfc3ca', '#c9ccd2'];
+  const tagColors = ['#d4d7dc', '#cfd2d8'];
   for (let i = 0; i < 48; i++) {
     const card = document.createElement('div');
     card.className = 'gate-dummy-card';
@@ -2285,15 +2286,31 @@ function renderLoginGateBackdrop() {
 }
 
 // ログイン必須モードの入口画面(未ログイン / メンバー未確認 / 読み込み失敗)。
+// ログイン画面はタブ(#view-tabs)の下に出し、タブは見えたままにする(ログイン前はタブを押しても
+// 何も読み込まない。selectView の appStarted ガード参照)。
+function positionLoginGate() {
+  const tabs = document.getElementById('view-tabs');
+  document.getElementById('login-gate').style.top = `${tabs ? tabs.offsetHeight : 0}px`;
+}
+
+function hideLoginGate() {
+  document.getElementById('login-gate').classList.remove('visible');
+}
+
 function showLoginGate(state) {
   renderLoginGateBackdrop();
+  positionLoginGate();
   const gate = document.getElementById('login-gate');
   const message = document.getElementById('login-gate-message');
   const button = document.getElementById('login-gate-button');
   const note = document.getElementById('login-gate-note');
   gate.classList.add('visible');
   note.style.display = 'none';
-  if (state === 'nonmember') {
+  button.style.display = '';
+  if (state === 'loading') {
+    message.textContent = '読み込み中…';
+    button.style.display = 'none';
+  } else if (state === 'nonmember') {
     message.textContent = 'このDiscordアカウントは、FIRE研究所のメンバーとして確認できませんでした。お手数ですが、Discordで管理者までご連絡ください。';
     button.textContent = 'ログアウト';
     button.onclick = signOutOfDiscord;
@@ -3069,7 +3086,7 @@ function goToMemberDetail(nickname) {
 }
 
 function goToMemberGrid() {
-  if (!MEMBER_DIRECTORY_ENABLED) return;
+  if (!MEMBER_DIRECTORY_ENABLED || !appStarted) return;
   const searchInput = document.getElementById('directory-search');
   if (searchInput.value) {
     searchInput.value = '';
@@ -3082,6 +3099,7 @@ function goToMemberGrid() {
 }
 
 function selectView(view) {
+  if (!appStarted) return; // ログイン前はデータを読み込まない
   if (!MEMBER_DIRECTORY_ENABLED) view = 'map';
   const isYuruTalk = view === 'yuru-talk';
   const isMap = view === 'map';
@@ -7269,10 +7287,14 @@ async function renderYuruTalkView(groupId) {
 }
 
 function startApp() {
+  appStarted = true;
+  hideLoginGate();
   selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 }
 
 // ログイン状態が確定するまでデータを取得せず、メンバーとして確認できたときだけ始める。
+showLoginGate('loading');
+window.addEventListener('resize', positionLoginGate);
 initAuth().then(ok => {
   if (!ok) showLoginGate('error');
   else if (!authSession) showLoginGate('signin');
