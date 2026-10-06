@@ -69,6 +69,11 @@ DISCORD_API_BASE = "https://discord.com/api/v10"
 USER_AGENT = "fire-community-map-member-matching/0.1"
 COOLDOWN_DAYS = 60  # avoid re-grouping the same pair within this window
 GROUP_SIZE = 4  # fixed group size; no fallback to smaller groups, see run_matching
+# メンター方式(issue #325): 実行ごとにこの確率で、入会時期が違う人たちの組を最大1つ先に作ってみる。
+# 組めなければ(条件に合う4人がいなければ)黙って通常のマッチングだけを行う。毎回は使わない。
+MENTOR_MODE_PROBABILITY = 0.3
+# 「3ヶ月おき」のような厳密な条件にはしない。組の全員が、他の誰とも入会月が2か月以上離れていればよい。
+MENTOR_MIN_GAP_MONTHS = 2
 SCHEDULE_CONFIRM_THRESHOLD = 3  # of 4 group members reacting to the same date option
 # Base URL for the ゆるトーク page linked from the Discord announcement (docs/yuru-matching.md
 # "共通タグ・会話きっかけ質問・関連ニュース"). Overridable via env for local/preview deploys.
@@ -488,12 +493,58 @@ def enrich_common_tags_with_questions_and_news(
     return enriched
 
 
+def month_index(joined_month: str | None) -> int | None:
+    """'2025-04-01' -> months since year 0, so the gap between two members is a subtraction."""
+    match = re.match(r"^(\d{4})-(\d{2})", joined_month or "")
+    return int(match.group(1)) * 12 + int(match.group(2)) - 1 if match else None
+
+
+def find_mentor_group(
+    pool: list[str],
+    slot_index: dict[str, set[tuple[str, int]]],
+    excluded_pairs: set[frozenset[str]],
+    joined_months: dict[str, int],
+    rng: random.Random,
+    group_size: int = GROUP_SIZE,
+    min_gap_months: int = MENTOR_MIN_GAP_MONTHS,
+) -> list[str] | None:
+    """One group of members who joined F研 at different times and share an availability hour.
+
+    Every member's 入会月 must be at least min_gap_months away from everyone else's. Returns None
+    when no such group exists (the caller then just runs the normal matching).
+    """
+    candidates_pool = [n for n in pool if n in joined_months and slot_index.get(n)]
+    rng.shuffle(candidates_pool)
+    for start in candidates_pool:
+        group = [start]
+        common_slots = set(slot_index[start])
+        others = [n for n in candidates_pool if n != start]
+        rng.shuffle(others)
+        for candidate in others:
+            if len(group) >= group_size:
+                break
+            overlap = common_slots & slot_index[candidate]
+            if not overlap:
+                continue
+            if any(frozenset((candidate, member)) in excluded_pairs for member in group):
+                continue
+            if any(abs(joined_months[candidate] - joined_months[member]) < min_gap_months for member in group):
+                continue
+            group.append(candidate)
+            common_slots = overlap
+        if len(group) == group_size:
+            return group
+    return None
+
+
 def run_matching(
     eligible_nicknames: list[str],
     slot_index: dict[str, set[tuple[str, int]]],
     excluded_pairs: set[frozenset[str]],
     rng: random.Random,
     group_size: int = GROUP_SIZE,
+    joined_months: dict[str, int] | None = None,
+    mentor_group_first: bool = False,
 ) -> list[dict[str, Any]]:
     """Randomly group eligible members into exactly group_size-sized groups who all share an
     availability hour.
@@ -511,6 +562,19 @@ def run_matching(
     rng.shuffle(pool)
     matched: set[str] = set()
     results: list[dict[str, Any]] = []
+
+    if mentor_group_first and joined_months:
+        mentor_group = find_mentor_group(pool, slot_index, excluded_pairs, joined_months, rng, group_size)
+        if mentor_group:
+            common = set.intersection(*(slot_index[n] for n in mentor_group))
+            day_of_week, hour = rng.choice(sorted(common))
+            results.append({
+                "members": mentor_group,
+                "day_of_week": day_of_week,
+                "hour": hour,
+                "mentor": True,
+            })
+            matched.update(mentor_group)
 
     for nickname in pool:
         if nickname in matched:
@@ -593,6 +657,10 @@ def format_announcement(
         lines.append("💡 盛り上がりそうな話題:")
         lines.extend(f"- {t}" for t in topic_lines)
 
+    if match.get("mentor"):
+        lines.append("")
+        lines.append("🌱 今回は、F研に入った時期がばらばらのメンバーが集まりました。F研の歴史や、今と昔の違いを語り合ってみてください。")
+
     if yuru_talk_url:
         lines.append("")
         lines.append(f"🗨️ 話題のきっかけはこちら: {yuru_talk_url}")
@@ -664,6 +732,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Compute matches without writing to Supabase or posting to Discord.")
     parser.add_argument("--post-to-discord", action="store_true", help="Post match announcements to DISCORD_MATCHING_CHANNEL_ID. No-op with a warning if that env var is unset.")
     parser.add_argument("--seed", type=int, default=None, help="Random seed, for reproducible dry runs.")
+    parser.add_argument("--force-mentor", action="store_true", help="Always try the 入会時期が違う人たち group first (for dry-run checks).")
     args = parser.parse_args()
 
     load_dotenv(Path(args.env_file))
@@ -703,7 +772,7 @@ def main() -> int:
     )
     recent_group_members = [row for row in recent_group_members if row["group_id"] not in expired_group_ids]
     member_tags = get("/rest/v1/member_tags?select=member_nickname,category,value")
-    profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url")
+    profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url,joined_month")
     member_links = get("/rest/v1/member_links?select=member_nickname,label,url")
     member_locations = get("/rest/v1/member_locations?select=nickname,prefecture")
 
@@ -731,7 +800,14 @@ def main() -> int:
             "has_avatar": bool(profile.get("avatar_url")),
         }
 
-    matches = run_matching(due_nicknames, slot_index, excluded_pairs, rng)
+    joined_months = {
+        p["nickname"]: idx for p in profiles if (idx := month_index(p.get("joined_month"))) is not None
+    }
+    mentor_group_first = args.force_mentor or rng.random() < MENTOR_MODE_PROBABILITY
+    matches = run_matching(
+        due_nicknames, slot_index, excluded_pairs, rng,
+        joined_months=joined_months, mentor_group_first=mentor_group_first,
+    )
     for match in matches:
         member_inputs = [member_topic_input(n) for n in match["members"]]
         match["group_topic"] = build_topic_suggestion(member_inputs)
@@ -744,7 +820,8 @@ def main() -> int:
     print(f"Opted-in & due: {len(due_nicknames)} / matched this run: {len(matches)}")
     for match in matches:
         names = " / ".join(match["members"])
-        print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{match['hour']}時)")
+        mentor_note = "  [入会時期ばらけ]" if match.get("mentor") else ""
+        print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{match['hour']}時){mentor_note}")
         if match.get("group_topic"):
             print(f"    group topic: {match['group_topic']}")
         for a, b, topic in match.get("pair_topics", []):
