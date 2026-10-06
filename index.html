@@ -261,11 +261,24 @@
     #detail-content.detail-readonly .public-settings { display: none !important; }
     .detail-readonly-note { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
     #login-gate {
-      display: none; position: fixed; inset: 0; z-index: 5000;
+      display: none; position: fixed; inset: 0; z-index: 5000; overflow: hidden;
       background: #f3f4f6; align-items: center; justify-content: center; padding: 16px;
     }
     #login-gate.visible { display: flex; }
+    /* 背景はメンバー一覧を思わせるダミーのカード。本物のデータは読み込まない(未ログインでは取得しない)。 */
+    #login-gate-backdrop {
+      position: absolute; inset: -24px; overflow: hidden; filter: blur(7px); opacity: 0.75;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;
+      padding: 40px; align-content: start; pointer-events: none;
+    }
+    .gate-dummy-card { background: white; border-radius: 12px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .gate-dummy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .gate-dummy-avatar { width: 36px; height: 36px; border-radius: 50%; flex: none; }
+    .gate-dummy-line { height: 10px; border-radius: 5px; background: #d1d5db; margin-bottom: 6px; }
+    .gate-dummy-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .gate-dummy-tag { height: 18px; border-radius: 9px; }
     #login-gate-card {
+      position: relative;
       background: white; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
       padding: 28px 24px; max-width: 420px; width: 100%; text-align: center;
     }
@@ -2026,6 +2039,7 @@
 <body>
 
 <div id="login-gate">
+  <div id="login-gate-backdrop" aria-hidden="true"></div>
   <div id="login-gate-card">
     <h1>FIRE研究所 コミュニティマップ</h1>
     <p id="login-gate-message"></p>
@@ -2295,8 +2309,46 @@ async function signOutOfDiscord() {
   if (AUTH_REQUIRED) location.reload();
 }
 
+// ログイン画面の背景に置く、ぼかしたダミーのカード(中身は固定の灰色の図形だけ)。
+function renderLoginGateBackdrop() {
+  const backdrop = document.getElementById('login-gate-backdrop');
+  if (backdrop.childElementCount) return;
+  const avatarColors = ['#fca5a5', '#93c5fd', '#86efac', '#fcd34d', '#c4b5fd', '#f9a8d4'];
+  const tagColors = ['#dbeafe', '#dcfce7', '#fef3c7', '#ede9fe', '#fce7f3'];
+  for (let i = 0; i < 48; i++) {
+    const card = document.createElement('div');
+    card.className = 'gate-dummy-card';
+    const head = document.createElement('div');
+    head.className = 'gate-dummy-head';
+    const avatar = document.createElement('div');
+    avatar.className = 'gate-dummy-avatar';
+    avatar.style.background = avatarColors[i % avatarColors.length];
+    const lines = document.createElement('div');
+    lines.style.flex = '1';
+    [60 + (i * 7) % 30, 35 + (i * 11) % 25].forEach(width => {
+      const line = document.createElement('div');
+      line.className = 'gate-dummy-line';
+      line.style.width = `${width}%`;
+      lines.appendChild(line);
+    });
+    head.append(avatar, lines);
+    const tags = document.createElement('div');
+    tags.className = 'gate-dummy-tags';
+    for (let j = 0; j < 3 + (i % 4); j++) {
+      const tag = document.createElement('div');
+      tag.className = 'gate-dummy-tag';
+      tag.style.width = `${40 + ((i + j) * 13) % 45}px`;
+      tag.style.background = tagColors[(i + j) % tagColors.length];
+      tags.appendChild(tag);
+    }
+    card.append(head, tags);
+    backdrop.appendChild(card);
+  }
+}
+
 // ログイン必須モードの入口画面(未ログイン / メンバー未確認 / 読み込み失敗)。
 function showLoginGate(state) {
+  renderLoginGateBackdrop();
   const gate = document.getElementById('login-gate');
   const message = document.getElementById('login-gate-message');
   const button = document.getElementById('login-gate-button');
