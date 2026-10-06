@@ -15,9 +15,20 @@ together on a schedule:
    A schedule whose last proposed date has passed with no option reaching
    the threshold is marked `expired` instead (no channel, no announcement --
    quiet by design, this is a low-stakes opt-in feature).
-2. Cleanup: for each `confirmed` schedule whose event time is more than
+2. Reminder (issue #321): for each `confirmed` schedule, DM every group
+   member once at 19:00 JST the day before the event. A schedule confirmed
+   after that time gets its reminder right away (the reminder pass runs after
+   the confirm pass in the same invocation).
+3. Cleanup: for each `confirmed` schedule whose event time is more than
    VOICE_CHANNEL_CLEANUP_BUFFER_HOURS in the past and whose voice channel
    hasn't been deleted yet, delete the channel.
+4. Survey (issue #323): once a `confirmed` schedule's event is
+   VOICE_CHANNEL_CLEANUP_BUFFER_HOURS in the past, DM every group member the
+   feedback form link once. Whether they actually joined isn't known, so the
+   whole confirmed group gets it.
+
+Members whose DMs are closed (Discord error 50007) are skipped silently for
+both DMs -- no fallback mention elsewhere, by design.
 """
 
 from __future__ import annotations
@@ -43,6 +54,14 @@ VOICE_CHANNEL_CLEANUP_BUFFER_HOURS = 4
 # voice channel, nothing more.
 VOICE_CHANNEL_PERMISSION_BITS = 0x400 | 0x100000
 THREAD_CONFIRM_EMOJI = "✅"
+REMINDER_HOUR_JST = 19
+# Surveys are only sent for events this recent, so the first run after deploying the survey
+# pass doesn't DM a backlog of long-past matchings.
+SURVEY_LOOKBACK_HOURS = 48
+# The feedback form the organizers set up for issue #323 (anonymous; responses are read in the
+# linked Google Sheet). Override with MATCHING_SURVEY_FORM_URL, or set it to "" to stop sending.
+DEFAULT_SURVEY_FORM_URL = "https://forms.gle/QVei5hzyD8oPXDoL6"
+DISCORD_CANNOT_DM_CODE = 50007
 THREAD_LOOKBACK_LIMIT = 200
 
 POSITIVE_DATE_RE = re.compile(r"(?:OK|ok|いけ|行け|大丈夫|空いて|あいて|できます|参加|可能|可|よい|良い)")
@@ -100,6 +119,60 @@ def fetch_reactors(channel_id: str, message_id: str, emoji: str, token: str) -> 
         token,
     )
     return {str(u["id"]) for u in users}
+
+
+def discord_post_json(path: str, token: str, payload: dict[str, Any]) -> Any:
+    req = Request(
+        f"{DISCORD_API_BASE}{path}",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bot {token}",
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    while True:
+        try:
+            with urlopen(req, timeout=30) as res:
+                raw = res.read().decode("utf-8")
+                return json.loads(raw) if raw else None
+        except HTTPError as exc:
+            body_text = exc.read().decode("utf-8", errors="replace")
+            if exc.code == 429:
+                try:
+                    time.sleep(float(json.loads(body_text).get("retry_after", 1.0)))
+                except Exception:
+                    time.sleep(1.0)
+                continue
+            raise DiscordAPIError(exc.code, body_text, f"POST {path}") from exc
+        except URLError as exc:
+            raise RuntimeError(f"Discord API request failed for POST {path}: {exc}") from exc
+
+
+class DiscordAPIError(RuntimeError):
+    def __init__(self, status: int, body_text: str, action: str) -> None:
+        super().__init__(f"Discord API error {status} for {action}: {body_text}")
+        self.status = status
+        try:
+            self.code = int(json.loads(body_text).get("code") or 0)
+        except Exception:
+            self.code = 0
+
+
+def send_dm(user_id: str, content: str, token: str) -> bool:
+    """DM one member. False when they don't accept DMs from server members (skipped by design)."""
+    try:
+        channel = discord_post_json("/users/@me/channels", token, {"recipient_id": user_id})
+        discord_post_json(
+            f"/channels/{channel['id']}/messages", token,
+            {"content": content, "allowed_mentions": {"parse": []}},
+        )
+    except DiscordAPIError as exc:
+        if exc.code == DISCORD_CANNOT_DM_CODE:
+            return False
+        raise
+    return True
 
 
 def fetch_bot_user_id(token: str) -> str:
@@ -554,6 +627,133 @@ def cleanup_voice_channels(supabase_url: str, service_role_key: str, bot_token: 
             )
 
 
+def reminder_due(event_time: datetime, now: datetime) -> bool:
+    """True from 19:00 JST the day before the event until the event starts."""
+    event_jst = event_time.astimezone(matching.JST)
+    remind_at = (event_jst - timedelta(days=1)).replace(hour=REMINDER_HOUR_JST, minute=0, second=0, microsecond=0)
+    return remind_at <= now < event_time
+
+
+def format_event_time(event_time: datetime) -> str:
+    event_jst = event_time.astimezone(matching.JST)
+    return (
+        f"{event_jst.month}/{event_jst.day}({matching.WEEKDAY_KANJI[event_jst.weekday()]}) "
+        f"{event_jst.hour:02d}:{event_jst.minute:02d}〜"
+    )
+
+
+def format_reminder_dm(event_time: datetime, nicknames: list[str], voice_channel_id: str | None) -> str:
+    lines = [
+        "🐾 ふぁいにゃです。ゆるマッチングのリマインドです！",
+        f"📅 {format_event_time(event_time)}",
+        f"👥 {'、'.join(nicknames)}さん",
+    ]
+    if voice_channel_id:
+        lines.append(f"🎙️ 当日はこちらの専用通話部屋からどうぞ: <#{voice_channel_id}>")
+    lines.append("都合が悪くなったときは、ゆるマッチングのスレッドでひとこと伝えてもらえると助かります。")
+    return "\n".join(lines)
+
+
+def format_survey_dm(event_time: datetime, form_url: str) -> str:
+    return "\n".join([
+        f"🐾 ふぁいにゃです。{format_event_time(event_time)}のゆるマッチング、おつかれさまでした！",
+        "これからのゆるマッチングをよくするために、1分ほどのアンケートにご協力ください（匿名です）。",
+        form_url,
+        "参加できなかった方も、1問目だけ答えてもらえるとうれしいです。",
+    ])
+
+
+class GroupDirectory:
+    """Looks up a schedule's group nicknames and their Discord user ids, fetching the guild
+    member list only once per run and only if some pass actually needs it."""
+
+    def __init__(self, get: Any, bot_token: str, guild_id: str) -> None:
+        self._get = get
+        self._bot_token = bot_token
+        self._guild_id = guild_id
+        self._guild_display_name_ids: dict[str, str] | None = None
+        self._name_overrides: dict[str, str] | None = None
+
+    def members(self, group_id: str) -> tuple[list[str], dict[str, str]]:
+        rows = self._get(f"/rest/v1/member_match_group_members?group_id=eq.{group_id}&select=member_nickname")
+        nicknames = [row["member_nickname"] for row in rows]
+        if self._guild_display_name_ids is None:
+            self._guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(self._bot_token, self._guild_id)
+            self._name_overrides = matching.load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
+        user_ids = matching.resolve_discord_user_ids(nicknames, self._guild_display_name_ids, self._name_overrides or {})
+        return nicknames, user_ids
+
+
+def dm_group(
+    label: str, schedule_id: str, nicknames: list[str], user_ids: dict[str, str], content: str, bot_token: str,
+) -> None:
+    for nickname in nicknames:
+        user_id = user_ids.get(nickname)
+        if not user_id:
+            print(f"  {label} for {schedule_id}: no Discord id for {nickname}, skipped")
+            continue
+        try:
+            if not send_dm(user_id, content, bot_token):
+                print(f"  {label} for {schedule_id}: {nickname} does not accept DMs, skipped")
+        except RuntimeError as exc:
+            # One member's failure must not block the rest of the group (or other schedules).
+            print(f"  {label} for {schedule_id}: DM to {nickname} failed: {exc}")
+
+
+def send_reminders(
+    supabase_url: str, service_role_key: str, directory: GroupDirectory, get: Any, bot_token: str, now: datetime,
+    dry_run: bool,
+) -> None:
+    schedules = get(
+        "/rest/v1/member_match_schedules"
+        "?select=id,group_id,confirmed_date,voice_channel_id"
+        f"&status=eq.confirmed&reminder_sent_at=is.null&confirmed_date=gt.{quote(now.isoformat())}"
+    )
+    for schedule in schedules:
+        event_time = datetime.fromisoformat(schedule["confirmed_date"])
+        if not reminder_due(event_time, now):
+            continue
+        nicknames, user_ids = directory.members(schedule["group_id"])
+        print(f"Sending reminder for schedule {schedule['id']}: {nicknames} ({format_event_time(event_time)})")
+        if dry_run:
+            continue
+        content = format_reminder_dm(event_time, nicknames, schedule.get("voice_channel_id"))
+        dm_group("reminder", schedule["id"], nicknames, user_ids, content, bot_token)
+        requests_patch(
+            supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+            {"reminder_sent_at": now.isoformat()},
+        )
+
+
+def send_surveys(
+    supabase_url: str, service_role_key: str, directory: GroupDirectory, get: Any, bot_token: str, now: datetime,
+    form_url: str, dry_run: bool,
+) -> None:
+    if not form_url:
+        print("MATCHING_SURVEY_FORM_URL is empty; not sending surveys.")
+        return
+    ready_before = now - timedelta(hours=VOICE_CHANNEL_CLEANUP_BUFFER_HOURS)
+    not_older_than = now - timedelta(hours=SURVEY_LOOKBACK_HOURS)
+    schedules = get(
+        "/rest/v1/member_match_schedules"
+        "?select=id,group_id,confirmed_date"
+        "&status=eq.confirmed&survey_sent_at=is.null"
+        f"&confirmed_date=lte.{quote(ready_before.isoformat())}"
+        f"&confirmed_date=gte.{quote(not_older_than.isoformat())}"
+    )
+    for schedule in schedules:
+        event_time = datetime.fromisoformat(schedule["confirmed_date"])
+        nicknames, user_ids = directory.members(schedule["group_id"])
+        print(f"Sending survey for schedule {schedule['id']}: {nicknames} ({format_event_time(event_time)})")
+        if dry_run:
+            continue
+        dm_group("survey", schedule["id"], nicknames, user_ids, format_survey_dm(event_time, form_url), bot_token)
+        requests_patch(
+            supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+            {"survey_sent_at": now.isoformat()},
+        )
+
+
 def requests_patch(supabase_url: str, service_role_key: str, path: str, body: dict[str, Any]) -> None:
     req = Request(
         f"{supabase_url}{path}",
@@ -585,8 +785,21 @@ def main() -> int:
 
     now = datetime.now(timezone.utc)
 
+    survey_form_url = os.environ.get("MATCHING_SURVEY_FORM_URL", DEFAULT_SURVEY_FORM_URL).strip()
+
+    headers_select = {"apikey": service_role_key, "Authorization": f"Bearer {service_role_key}"}
+
+    def get(path: str) -> Any:
+        req = Request(f"{supabase_url}{path}", headers=headers_select, method="GET")
+        with urlopen(req, timeout=30) as res:
+            return json.loads(res.read().decode("utf-8"))
+
+    directory = GroupDirectory(get, bot_token, guild_id)
+
     confirm_schedules(supabase_url, service_role_key, channel_id, guild_id, bot_token, now, args.dry_run)
+    send_reminders(supabase_url, service_role_key, directory, get, bot_token, now, args.dry_run)
     cleanup_voice_channels(supabase_url, service_role_key, bot_token, now, args.dry_run)
+    send_surveys(supabase_url, service_role_key, directory, get, bot_token, now, survey_form_url, args.dry_run)
     return 0
 
 
