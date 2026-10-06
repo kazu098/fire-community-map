@@ -299,6 +299,17 @@
     .onboarding-intro { max-height: 180px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; line-height: 1.6;
       color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin: 4px 0 10px; }
     .onboarding-hint { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 0 0 6px; }
+    .onboarding-section-title { font-size: 13px; font-weight: bold; color: #374151; margin: 14px 0 2px; }
+    .onboarding-category { margin: 8px 0 0; }
+    .onboarding-category-label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .onboarding-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .onboarding-chip { border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .onboarding-chip.selected { background: #5865f2; border-color: #5865f2; color: white; }
+    .onboarding-chip-add { display: flex; gap: 4px; margin-top: 6px; }
+    .onboarding-chip-add input { flex: 1; min-width: 0; font-size: 12px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 999px; }
+    .onboarding-chip-add button { font-size: 12px; padding: 4px 10px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 999px; cursor: pointer; }
+    .onboarding-location { width: 100%; box-sizing: border-box; font-size: 13px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 8px; }
+    #login-gate-card { max-height: calc(100% - 32px); overflow-y: auto; }
     .onboarding-error { font-size: 12px; color: #b91c1c; margin: 6px 0 0; }
     .onboarding-secondary { display: block; margin: 10px auto 0; background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; text-decoration: underline; }
     #login-gate-note { font-size: 12px; color: #6b7280; line-height: 1.6; margin: 14px 0 0; }
@@ -7320,9 +7331,24 @@ function renderOnboardingPreview(data, { previewOnly }) {
   intro.textContent = data.self_intro_text || '自己紹介の投稿が見つかりませんでした。登録後、プロフィールから追加できます。';
   extra.appendChild(intro);
 
+  const tagPicker = buildOnboardingTagPicker(data.tag_options || {}, data.suggested_tags || []);
+  extra.appendChild(tagPicker.element);
+
+  const locationTitle = document.createElement('div');
+  locationTitle.className = 'onboarding-section-title';
+  locationTitle.textContent = '居住地(都道府県など。地図に表示されます)';
+  extra.appendChild(locationTitle);
+  const locationInput = document.createElement('input');
+  locationInput.type = 'text';
+  locationInput.className = 'onboarding-location';
+  locationInput.placeholder = '例: 東京都、神奈川県横浜市(空欄でもOK)';
+  locationInput.value = data.suggested_location || '';
+  extra.appendChild(locationInput);
+
   const hint = document.createElement('p');
   hint.className = 'onboarding-hint';
-  hint.textContent = 'プロフィールはメンバーだけに表示されます(外部公開はオフ)。登録後、自分のプロフィールからタグや自己紹介を追加・編集できます。';
+  hint.style.marginTop = '10px';
+  hint.textContent = 'プロフィールはメンバーだけに表示されます(外部公開はオフ)。登録後も、自分のプロフィールからタグや自己紹介を追加・編集できます。';
   extra.appendChild(hint);
 
   const error = document.createElement('p');
@@ -7341,8 +7367,11 @@ function renderOnboardingPreview(data, { previewOnly }) {
     if (!nickname) { showError('ニックネームを入力してください。'); return; }
     button.disabled = true;
     button.textContent = '登録しています…';
-    const result = await callOnboarding({ action: 'create', nickname });
-    if (result.status === 'created' || result.status === 'linked') { await finishOnboarding(); return; }
+    const result = await callOnboarding({ action: 'create', nickname, tags: tagPicker.selected() });
+    if (result.status === 'created' || result.status === 'linked') {
+      await finishOnboarding({ location: locationInput.value.trim() });
+      return;
+    }
     button.disabled = false;
     button.textContent = 'この内容で登録する';
     if (result.status === 'nickname_taken') showError('このニックネームはすでに使われています。別のニックネームにしてください。');
@@ -7359,10 +7388,90 @@ function renderOnboardingPreview(data, { previewOnly }) {
   document.getElementById('login-gate-secondary').appendChild(logout);
 }
 
-async function finishOnboarding() {
+// タグの選択欄。カテゴリごとに、よく使われているタグをボタンで並べ、自己紹介から拾った候補は
+// 選択済みにしておく。自由入力でも追加できる。
+const ONBOARDING_TAG_CATEGORIES = ['fire_status', 'investment_style', 'mbti', 'interest', 'skill', 'consultation', 'wants_to_know'];
+
+function buildOnboardingTagPicker(options, suggested) {
+  const selected = new Set(suggested.map(t => `${t.category}\t${t.value}`));
+  const element = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'onboarding-section-title';
+  title.textContent = 'タグ(自己紹介から候補を選んであります。押して付け外しできます)';
+  element.appendChild(title);
+
+  ONBOARDING_TAG_CATEGORIES.forEach(category => {
+    const values = [...new Set([
+      ...suggested.filter(t => t.category === category).map(t => t.value),
+      ...(options[category] || []),
+    ])];
+    const block = document.createElement('div');
+    block.className = 'onboarding-category';
+    const label = document.createElement('div');
+    label.className = 'onboarding-category-label';
+    label.textContent = CATEGORY_META[category] ? CATEGORY_META[category].label : category;
+    const chips = document.createElement('div');
+    chips.className = 'onboarding-chips';
+    const addChip = value => {
+      const key = `${category}\t${value}`;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'onboarding-chip' + (selected.has(key) ? ' selected' : '');
+      chip.textContent = value;
+      chip.addEventListener('click', () => {
+        if (selected.has(key)) selected.delete(key); else selected.add(key);
+        chip.classList.toggle('selected', selected.has(key));
+      });
+      chips.appendChild(chip);
+      return chip;
+    };
+    values.forEach(addChip);
+
+    const addRow = document.createElement('div');
+    addRow.className = 'onboarding-chip-add';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 30;
+    input.placeholder = 'ほかに追加…';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.textContent = '追加';
+    const add = () => {
+      const value = input.value.trim();
+      if (!value) return;
+      const key = `${category}\t${value}`;
+      if (!selected.has(key)) {
+        selected.add(key);
+        if (![...chips.children].some(c => c.textContent === value)) addChip(value);
+        else [...chips.children].find(c => c.textContent === value).classList.add('selected');
+      }
+      input.value = '';
+    };
+    addBtn.addEventListener('click', add);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+    addRow.append(input, addBtn);
+
+    block.append(label, chips, addRow);
+    element.appendChild(block);
+  });
+
+  return {
+    element,
+    selected: () => [...selected].map(key => {
+      const [category, value] = key.split('\t');
+      return { category, value };
+    }),
+  };
+}
+
+async function finishOnboarding({ location = '' } = {}) {
   await applyAuthSession(authSession);
-  if (authMemberNickname) startApp();
-  else showLoginGate('error');
+  if (!authMemberNickname) { showLoginGate('error'); return; }
+  startApp();
+  // 登録できたら自分のプロフィールを開く。居住地は既存の保存処理(地図のピンも更新)で保存する。
+  try { await directoryLoadPromise; } catch (e) {}
+  if (location) await saveLocation(authMemberNickname, location);
+  else openMemberDetail(authMemberNickname);
 }
 
 function startApp() {
