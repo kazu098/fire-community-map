@@ -692,5 +692,19 @@
     "discord_channel_name": "オフ会",
     "discord_message_id": "1555170604166946846",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555170604166946846"
+  },
+  {
+    "title": "ゼロから分かる！F研コミュニティマップ使いこなし講座 〜今さら聞けない質問、大歓迎〜",
+    "tags": ["オンライン", "勉強会", "IT", "コミュニティマップ"],
+    "starts_at": "2026-10-22T20:00:00+09:00",
+    "format": "online",
+    "prefecture": "オンライン",
+    "location_label": "Discord / 寺小屋",
+    "participant_count": 4,
+    "participation_note": "Discordのサーバーイベントから参加。今後コミュニティマップへの登録は必須となる予定のため、ぜひ参加を。今さら聞けない質問も大歓迎。",
+    "summary": "ITチームで進めているF研コミュニティマップの使い方を教える寺小屋。基本操作から気軽な質問まで、ゼロから分かるように解説する。",
+    "discord_channel_name": "寺小屋",
+    "discord_message_id": "scheduled_event:1557176274089156709",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1557176274089156709"
   }
 ]
