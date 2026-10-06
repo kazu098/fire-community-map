@@ -252,6 +252,15 @@ MEMBER_BOOKS: list[dict[str, Any]] = [
         "drive_pdf_url": "https://drive.google.com/file/d/1meKaIZykPjeujLHSloK5D-KJrjnDRur5/view",
         "sort_order": 17,
     },
+    {
+        "member_nickname": "みかん",
+        "title": "コミュニティ運営という仕事、たぶん: FIRE研究所、正解のないまま続けている",
+        "author_name": "FIREサラリーマン みかん",
+        "amazon_url": "https://link.amazon/B05PRBspM",
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0HM3G982J.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/1ObaigA909LNuYqs2TsbdyB9-zfskA57y/view",
+        "sort_order": 18,
+    },
 ]
 
 
