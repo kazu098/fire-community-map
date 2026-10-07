@@ -245,7 +245,7 @@
     /* ---- Discord ログイン(Issue #253、?login=1 のときだけ表示) ---- */
     #auth-bar { display: none; align-items: center; gap: 6px; margin-left: 8px; }
     #auth-bar.visible { display: flex; }
-    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; border: 1px solid #e5e7eb; box-sizing: border-box; }
     #auth-label:hover { background: rgba(255,255,255,0.1); }
     #auth-label.warn { color: #fcd34d; }
     #auth-button {
@@ -437,7 +437,7 @@
       border: 1px solid #e5e7eb; text-decoration: none; color: #1f2937; transition: box-shadow 0.15s, border-color 0.15s;
     }
     .official-link-card:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .official-link-icon { width: 28px; height: 28px; flex-shrink: 0; object-fit: contain; border-radius: 6px; }
+    .official-link-icon { width: 28px; height: 28px; flex-shrink: 0; object-fit: contain; border-radius: 6px; border: 1px solid #e5e7eb; box-sizing: border-box; }
     .official-link-name { font-size: 13px; font-weight: bold; }
     .official-link-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
     .official-section-title { font-size: 14px; font-weight: bold; color: #374151; margin: 24px 0 10px; display: flex; align-items: baseline; gap: 10px; }
@@ -7684,7 +7684,7 @@ function buildBookshelfCard(book) {
 // note/YouTube/Xはサイト全体のiframe埋め込みを許可していないため、一覧+リンクで見せる。
 const OFFICIAL_LINKS = [
   { icon: 'assets/brand/firekenkyujo.jpg', name: '公式サイト', sub: 'firekenkyujo.com', url: 'https://firekenkyujo.com/' },
-  { icon: 'assets/brand/note.svg', name: '公式note', sub: 'note.com/firekenkyujo2025', url: 'https://note.com/firekenkyujo2025' },
+  { icon: 'assets/brand/note.png', name: '公式note', sub: 'note.com/firekenkyujo2025', url: 'https://note.com/firekenkyujo2025' },
   { icon: 'assets/brand/youtube.svg', name: 'YouTube', sub: 'FIRE研究所チャンネル', url: 'https://www.youtube.com/channel/UC0I-WGSW2xKIHX1tRuzv6-A' },
   { icon: 'assets/brand/x.svg', name: 'X (旧Twitter)', sub: '@FireKenkyujo', url: 'https://x.com/FireKenkyujo' },
 ];
@@ -7862,7 +7862,7 @@ const CONTENT_TYPE_META = {
   book: { label: '読んだ本', icon: '📚' },
   travel: { label: '旅行グルメ', icon: '✈️' },
   question_consultation: { label: '質問・相談', icon: '💬' },
-  note: { label: 'note', icon: 'assets/brand/note.svg' },
+  note: { label: 'note', icon: 'assets/brand/note.png' },
   money_consultation: { label: 'お金の相談', icon: '💰' },
   care_medical: { label: '介護・医療', icon: '🏥' },
   parenting: { label: '子育て', icon: '👶' },
