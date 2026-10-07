@@ -424,10 +424,43 @@
     .bookshelf-book-links a:hover { text-decoration: underline; }
     #bookshelf-empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 40px 0; }
 
+    /* ---- F研公式タブ (公式サイト・note・YouTube・Xへの導線と新着一覧) ---- */
+    #official-header {
+      position: sticky; top: 0; z-index: 5; background: #f9fafb; border-bottom: 1px solid #e5e7eb; padding: 12px 24px;
+    }
+    #official-header h2 { font-size: 15px; margin: 0 0 2px; color: #1f2937; }
+    #official-header p { font-size: 12px; color: #6b7280; margin: 0; }
+    #official-body { max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; }
+    .official-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 8px; }
+    .official-link-card {
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: white; border-radius: 10px;
+      border: 1px solid #e5e7eb; text-decoration: none; color: #1f2937; transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .official-link-card:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .official-link-icon { width: 28px; height: 28px; flex-shrink: 0; object-fit: contain; border-radius: 6px; border: 1px solid #e5e7eb; box-sizing: border-box; }
+    .official-link-name { font-size: 13px; font-weight: bold; }
+    .official-link-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .official-section-title { font-size: 14px; font-weight: bold; color: #374151; margin: 24px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+    .official-section-title a { font-size: 12px; font-weight: normal; color: #2563eb; text-decoration: none; }
+    .official-section-title a:hover { text-decoration: underline; }
+    .official-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .official-item {
+      display: block; background: white; border-radius: 10px; overflow: hidden; border: 1px solid #e5e7eb;
+      text-decoration: none; color: inherit; cursor: pointer; text-align: left; padding: 0; font: inherit;
+    }
+    .official-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .official-thumb { aspect-ratio: 16 / 9; background: #e5e7eb; display: block; width: 100%; }
+    .official-thumb img, .official-thumb iframe { width: 100%; height: 100%; object-fit: cover; display: block; border: 0; }
+    .official-thumb-text { display: flex; align-items: center; justify-content: center; font-size: 28px; color: #9ca3af; }
+    .official-item-title { font-size: 12px; font-weight: bold; line-height: 1.5; padding: 8px 10px 2px; color: #1f2937; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .official-item-date { font-size: 11px; color: #9ca3af; padding: 0 10px 8px; }
+    .official-note { font-size: 12px; color: #9ca3af; padding: 8px 0; }
+
     /* ---- Community posts view (書籍・旅行・相談などのストック型コンテンツ) ---- */
     #community-view,
     #events-view,
     #bookshelf-view,
+    #official-view,
     #usage-view {
       position: fixed;
       top: 38px; left: 0; right: 0; bottom: 0;
@@ -2176,6 +2209,7 @@
   <button class="view-tab" id="tab-map" onclick="selectView('map')">地図</button>
   <button class="view-tab" id="tab-community" onclick="selectView('community')">暮らしの知恵</button>
   <button class="view-tab" id="tab-bookshelf" onclick="selectView('bookshelf')">F研図書館</button>
+  <button class="view-tab" id="tab-official" onclick="selectView('official')">F研公式</button>
   <button class="view-tab view-tab-help" id="tab-usage" onclick="selectView('usage')">使い方</button>
   <div id="auth-bar">
     <button type="button" id="auth-label" title="自分のプロフィールを開く"></button>
@@ -2240,6 +2274,14 @@
     <p>FIRE研究所のメンバーが出版した本と、FIRE研究所の公式本をまとめています。</p>
   </div>
   <div id="bookshelf-body"></div>
+</div>
+
+<div id="official-view">
+  <div id="official-header">
+    <h2>F研公式</h2>
+    <p>FIRE研究所の公式サイト・note・YouTube・Xの最新情報をまとめています。</p>
+  </div>
+  <div id="official-body"></div>
 </div>
 
 <div id="usage-view">
@@ -3387,8 +3429,9 @@ function selectView(view) {
   const isCommunity = view === 'community';
   const isEvents = view === 'events';
   const isBookshelf = view === 'bookshelf';
+  const isOfficial = view === 'official';
   const isUsage = view === 'usage';
-  const isDirectory = !isYuruTalk && !isMap && !isCommunity && !isEvents && !isBookshelf && !isUsage;
+  const isDirectory = !isYuruTalk && !isMap && !isCommunity && !isEvents && !isBookshelf && !isOfficial && !isUsage;
 
   // ゆるトークはDiscordの告知メッセージから直接開く共有リンク専用ページなので、通常のタブ
   // ナビゲーション(#view-tabs)ごと隠して単独ページとして表示する。
@@ -3408,6 +3451,7 @@ function selectView(view) {
   document.getElementById('tab-community').classList.toggle('active', isCommunity);
   document.getElementById('tab-events').classList.toggle('active', isEvents);
   document.getElementById('tab-bookshelf').classList.toggle('active', isBookshelf);
+  document.getElementById('tab-official').classList.toggle('active', isOfficial);
   document.getElementById('tab-usage').classList.toggle('active', isUsage);
 
   document.getElementById('header').style.display = isMap ? 'flex' : 'none';
@@ -3416,6 +3460,7 @@ function selectView(view) {
   document.getElementById('community-view').style.display = isCommunity ? 'block' : 'none';
   document.getElementById('events-view').style.display = isEvents ? 'block' : 'none';
   document.getElementById('bookshelf-view').style.display = isBookshelf ? 'block' : 'none';
+  document.getElementById('official-view').style.display = isOfficial ? 'block' : 'none';
   document.getElementById('usage-view').style.display = isUsage ? 'block' : 'none';
   const showMascot = (isMap || isEvents || isCommunity) ? 'block' : 'none';
   document.getElementById('mascot-fainya').style.display = showMascot;
@@ -3440,6 +3485,10 @@ function selectView(view) {
   }
   if (isBookshelf) {
     ensureDirectoryLoaded().then(renderBookshelfView);
+    return;
+  }
+  if (isOfficial) {
+    renderOfficialView();
     return;
   }
   ensureDirectoryLoaded().then(() => {
@@ -7630,6 +7679,149 @@ function buildBookshelfCard(book) {
   return wrap;
 }
 
+// ---- F研公式タブ ----
+// 新着一覧は /api/official-feeds (サーバー側で公式サイト・note・YouTubeのフィードを取得)から読む。
+// note/YouTube/Xはサイト全体のiframe埋め込みを許可していないため、一覧+リンクで見せる。
+const OFFICIAL_LINKS = [
+  { icon: 'assets/brand/firekenkyujo.jpg', name: '公式サイト', sub: 'firekenkyujo.com', url: 'https://firekenkyujo.com/' },
+  { icon: 'assets/brand/note.png', name: '公式note', sub: 'note.com/firekenkyujo2025', url: 'https://note.com/firekenkyujo2025' },
+  { icon: 'assets/brand/youtube.svg', name: 'YouTube', sub: 'FIRE研究所チャンネル', url: 'https://www.youtube.com/channel/UC0I-WGSW2xKIHX1tRuzv6-A' },
+  { icon: 'assets/brand/x.svg', name: 'X (旧Twitter)', sub: '@FireKenkyujo', url: 'https://x.com/FireKenkyujo', pad: 5 },
+];
+let officialFeedsPromise = null;
+
+function loadOfficialFeeds() {
+  if (!officialFeedsPromise) {
+    officialFeedsPromise = fetch('/api/official-feeds')
+      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+      .catch(err => { officialFeedsPromise = null; throw err; });
+  }
+  return officialFeedsPromise;
+}
+
+function officialDateLabel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function officialItemCard(item, { playable = false } = {}) {
+  const card = document.createElement(playable ? 'button' : 'a');
+  card.className = 'official-item';
+  if (!playable) {
+    card.href = item.url;
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+  }
+  const thumb = document.createElement('span');
+  thumb.className = 'official-thumb';
+  if (item.image) {
+    const img = document.createElement('img');
+    img.src = item.image;
+    img.alt = '';
+    img.loading = 'lazy';
+    thumb.appendChild(img);
+  } else {
+    thumb.classList.add('official-thumb-text');
+    thumb.textContent = '🔥';
+  }
+  const title = document.createElement('span');
+  title.className = 'official-item-title';
+  title.textContent = item.title;
+  const date = document.createElement('span');
+  date.className = 'official-item-date';
+  date.textContent = officialDateLabel(item.date);
+  card.append(thumb, title, date);
+  if (playable) {
+    // YouTubeはクリックしたカードのサムネをその場で再生プレイヤーに差し替える
+    card.addEventListener('click', () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(item.videoId)}?autoplay=1&rel=0`;
+      iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      iframe.allowFullscreen = true;
+      iframe.title = item.title;
+      thumb.replaceChildren(iframe);
+    }, { once: true });
+  }
+  return card;
+}
+
+function officialSection(title, linkUrl, linkLabel, feed, opts) {
+  const frag = document.createDocumentFragment();
+  const heading = document.createElement('div');
+  heading.className = 'official-section-title';
+  heading.append(title);
+  const more = document.createElement('a');
+  more.href = linkUrl;
+  more.target = '_blank';
+  more.rel = 'noopener noreferrer';
+  more.textContent = linkLabel;
+  heading.appendChild(more);
+  frag.appendChild(heading);
+  if (!feed || feed.items.length === 0) {
+    const note = document.createElement('div');
+    note.className = 'official-note';
+    note.textContent = feed && feed.error ? '新着を取得できませんでした。しばらくしてからもう一度開いてください。' : '表示できる新着がありません。';
+    frag.appendChild(note);
+    return frag;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'official-grid';
+  feed.items.forEach(item => grid.appendChild(officialItemCard(item, opts)));
+  frag.appendChild(grid);
+  return frag;
+}
+
+async function renderOfficialView() {
+  const body = document.getElementById('official-body');
+  body.innerHTML = '';
+
+  const links = document.createElement('div');
+  links.className = 'official-links';
+  OFFICIAL_LINKS.forEach(l => {
+    const a = document.createElement('a');
+    a.className = 'official-link-card';
+    a.href = l.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    const icon = document.createElement('img');
+    icon.className = 'official-link-icon';
+    icon.src = l.icon;
+    icon.alt = '';
+    if (l.pad) icon.style.padding = `${l.pad}px`; // Xのロゴは枠いっぱいに描かれていて他より大きく見えるため余白で揃える
+    const text = document.createElement('span');
+    const name = document.createElement('div');
+    name.className = 'official-link-name';
+    name.textContent = l.name;
+    const sub = document.createElement('div');
+    sub.className = 'official-link-sub';
+    sub.textContent = l.sub;
+    text.append(name, sub);
+    a.append(icon, text);
+    links.appendChild(a);
+  });
+  body.appendChild(links);
+
+  const loading = document.createElement('div');
+  loading.className = 'official-note';
+  loading.textContent = '新着を読み込み中...';
+  body.appendChild(loading);
+
+  let feeds = null;
+  try {
+    feeds = await loadOfficialFeeds();
+  } catch (err) {
+    console.warn('official feeds fetch failed', err);
+  }
+  // 読み込み中にタブを切り替えられていたら描画しない
+  if (document.getElementById('official-view').style.display === 'none') return;
+  loading.remove();
+  const failed = { items: [], error: 'fetch failed' };
+  body.appendChild(officialSection('YouTube 新着', OFFICIAL_LINKS[2].url, 'チャンネルを開く →', feeds ? feeds.youtube : failed, { playable: true }));
+  body.appendChild(officialSection('note 新着', OFFICIAL_LINKS[1].url, 'noteを開く →', feeds ? feeds.note : failed));
+  body.appendChild(officialSection('公式サイト 新着', OFFICIAL_LINKS[0].url, 'サイトを開く →', feeds ? feeds.site : failed));
+}
+
 function renderBookshelfView() {
   const body = document.getElementById('bookshelf-body');
   body.innerHTML = '';
@@ -8401,7 +8593,7 @@ function startApp() {
   loadTravelPosts();
   markGuideSeen();
   hideLoginGate();
-  selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
+  selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'official', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
 }
 
 // ログイン状態が確定するまでデータを取得せず、メンバーとして確認できたときだけ始める。
