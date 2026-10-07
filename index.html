@@ -3002,7 +3002,7 @@ async function loadMembers() {
 }
 
 memberLayer.addTo(map);
-loadMembers();
+// loadMembers() はログイン確定後に startApp() から呼ぶ(anon keyでは0件になるため)
 
 // ================================================================
 // 旅行投稿レイヤー
@@ -3167,7 +3167,7 @@ async function loadTravelPosts() {
   }
 }
 
-loadTravelPosts();
+// loadTravelPosts() はログイン確定後に startApp() から呼ぶ(削除済み投稿の除外にログインが必要なため)
 
 // ================================================================
 // フィルタートグル
@@ -8397,6 +8397,8 @@ async function finishOnboarding({ location = '' } = {}) {
 
 function startApp() {
   appStarted = true;
+  loadMembers();
+  loadTravelPosts();
   markGuideSeen();
   hideLoginGate();
   selectView(['directory', 'map', 'events', 'community', 'bookshelf', 'usage', 'yuru-talk'].includes(INITIAL_VIEW) ? INITIAL_VIEW : 'directory');
