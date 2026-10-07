@@ -245,7 +245,7 @@
     /* ---- Discord ログイン(Issue #253、?login=1 のときだけ表示) ---- */
     #auth-bar { display: none; align-items: center; gap: 6px; margin-left: 8px; }
     #auth-bar.visible { display: flex; }
-    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; border: 1px solid #e5e7eb; box-sizing: border-box; }
+    #auth-label { color: #dbeafe; font-size: 12px; font-weight: bold; background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
     #auth-label:hover { background: rgba(255,255,255,0.1); }
     #auth-label.warn { color: #fcd34d; }
     #auth-button {
@@ -7686,7 +7686,7 @@ const OFFICIAL_LINKS = [
   { icon: 'assets/brand/firekenkyujo.jpg', name: '公式サイト', sub: 'firekenkyujo.com', url: 'https://firekenkyujo.com/' },
   { icon: 'assets/brand/note.png', name: '公式note', sub: 'note.com/firekenkyujo2025', url: 'https://note.com/firekenkyujo2025' },
   { icon: 'assets/brand/youtube.svg', name: 'YouTube', sub: 'FIRE研究所チャンネル', url: 'https://www.youtube.com/channel/UC0I-WGSW2xKIHX1tRuzv6-A' },
-  { icon: 'assets/brand/x.svg', name: 'X (旧Twitter)', sub: '@FireKenkyujo', url: 'https://x.com/FireKenkyujo' },
+  { icon: 'assets/brand/x.svg', name: 'X (旧Twitter)', sub: '@FireKenkyujo', url: 'https://x.com/FireKenkyujo', pad: 5 },
 ];
 let officialFeedsPromise = null;
 
@@ -7788,6 +7788,7 @@ async function renderOfficialView() {
     icon.className = 'official-link-icon';
     icon.src = l.icon;
     icon.alt = '';
+    if (l.pad) icon.style.padding = `${l.pad}px`; // Xのロゴは枠いっぱいに描かれていて他より大きく見えるため余白で揃える
     const text = document.createElement('span');
     const name = document.createElement('div');
     name.className = 'official-link-name';
@@ -7862,11 +7863,11 @@ const CONTENT_TYPE_META = {
   book: { label: '読んだ本', icon: '📚' },
   travel: { label: '旅行グルメ', icon: '✈️' },
   question_consultation: { label: '質問・相談', icon: '💬' },
-  note: { label: 'note', icon: 'assets/brand/note.png' },
+  note: { label: 'note', icon: '📝' },
   money_consultation: { label: 'お金の相談', icon: '💰' },
   care_medical: { label: '介護・医療', icon: '🏥' },
   parenting: { label: '子育て', icon: '👶' },
-  real_estate: { label: '不動産', icon: 'assets/brand/firekenkyujo.jpg' },
+  real_estate: { label: '不動産', icon: '🏠' },
 };
 const COMMUNITY_CONTENT_TYPE_ORDER = ['book', 'question_consultation', 'note', 'money_consultation', 'care_medical', 'parenting', 'real_estate'];
 const DETAIL_CONTENT_TYPE_ORDER = ['book', 'travel'];
