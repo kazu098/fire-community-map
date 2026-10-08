@@ -712,12 +712,6 @@
       background: #dcfce7;
       color: #166534;
     }
-    .events-calendar-more {
-      color: #6b7280;
-      font-size: 11px;
-      margin-top: 4px;
-      padding-left: 2px;
-    }
     .events-section-title {
       font-size: 13px; font-weight: bold; color: #374151;
       margin: 18px 0 10px;
@@ -7434,7 +7428,7 @@ function renderEventCalendar(events, mode) {
     day.appendChild(dateLabel);
 
     const dayEvents = eventsByDate[key] || [];
-    dayEvents.slice(0, 3).forEach(event => {
+    dayEvents.forEach(event => {
       const eventButton = document.createElement('button');
       eventButton.className = 'events-calendar-event' + (event.format === 'offline' ? ' offline' : '');
       eventButton.type = 'button';
@@ -7450,12 +7444,6 @@ function renderEventCalendar(events, mode) {
       });
       day.appendChild(eventButton);
     });
-    if (dayEvents.length > 3) {
-      const more = document.createElement('div');
-      more.className = 'events-calendar-more';
-      more.textContent = `他 ${dayEvents.length - 3}件`;
-      day.appendChild(more);
-    }
     grid.appendChild(day);
   }
 
