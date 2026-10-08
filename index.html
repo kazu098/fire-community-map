@@ -7111,7 +7111,11 @@ function normalizeEventTitle(value) {
 }
 
 function isLikelyDuplicateEvent(a, b) {
-  if (!isScheduledEventRow(a) && !isScheduledEventRow(b)) return false;
+  // Only a (raw Discord scheduled event) + (curated row describing the same
+  // gathering) pair should merge. Two distinct native scheduled-event rows
+  // (e.g. two separate ゆるマッチング groups booked for the same slot) each
+  // have their own Discord event id and must never be collapsed together.
+  if (isScheduledEventRow(a) === isScheduledEventRow(b)) return false;
   if (a.format !== b.format) return false;
   const aStart = new Date(a.starts_at);
   const bStart = new Date(b.starts_at);
