@@ -4191,6 +4191,14 @@ function canEditMember(nickname) {
   return Boolean(authMemberNickname) && authMemberNickname === nickname;
 }
 
+// ログイン中の本人を先頭に出す(自分のプロフィールを編集しやすくする)。他の並びは維持。
+function pinAuthMemberFirst(members) {
+  if (!authMemberNickname) return members;
+  const own = members.filter(m => m.nickname === authMemberNickname);
+  if (!own.length) return members;
+  return [...own, ...members.filter(m => m.nickname !== authMemberNickname)];
+}
+
 // 自分(myNickname)を設定しているときだけ選べる並び替え。「default」は読み込み順のまま。
 let listSortMode = 'default';
 
@@ -4380,7 +4388,7 @@ function renderActiveFilterChips() {
 
 function renderMemberGrid() {
   const query = document.getElementById('directory-search').value;
-  const filtered = directoryMembers.filter(m => matchesFilters(m, query) && (directoryViewMode !== 'list' || matchesListFilters(m)));
+  const filtered = pinAuthMemberFirst(directoryMembers.filter(m => matchesFilters(m, query) && (directoryViewMode !== 'list' || matchesListFilters(m))));
   document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
 
   document.getElementById('mode-card').classList.toggle('active', directoryViewMode === 'card');
@@ -4398,7 +4406,7 @@ function renderMemberGrid() {
     const sorted = myNickname && listSortMode === 'sharedTags'
       ? [...filtered].sort((a, b) => sharedTagCount(b) - sharedTagCount(a))
       : filtered;
-    renderMemberList(sorted);
+    renderMemberList(pinAuthMemberFirst(sorted));
     return;
   }
   document.getElementById('active-filter-chips').style.display = 'none';
@@ -4428,6 +4436,7 @@ function renderMemberGrid() {
     const name = document.createElement('div');
     name.className = 'card-nickname';
     name.textContent = m.nickname;
+    if (canEditMember(m.nickname)) name.textContent += '（あなた）';
     info.appendChild(name);
     const locationLabel = directoryLocationLabel(m);
     if (locationLabel) {
@@ -4570,7 +4579,7 @@ function renderMemberList(filtered) {
     nameRow.className = 'list-name-row';
     const name = document.createElement('span');
     name.className = 'list-nickname';
-    name.textContent = m.nickname;
+    name.textContent = canEditMember(m.nickname) ? `${m.nickname}（あなた）` : m.nickname;
     nameRow.appendChild(name);
     const locationLabel = directoryLocationLabel(m);
     if (locationLabel) {
