@@ -1,5 +1,46 @@
 [
   {
+    "discord_message_id": "1558039482001784832",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1558039482001784832",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "ちゃん",
+    "avatar_path": "data/travel-avatars/1de2fcffbdff.png",
+    "avatarColor": "#f97316",
+    "init": "ち",
+    "prefecture": "東京都",
+    "municipality_optional": null,
+    "lat": 35.68944,
+    "lng": 139.69167,
+    "date": "2026/10/09",
+    "posted_at": "2026-10-09T08:52:39.483000+00:00",
+    "comment": "前から行きたいと思っていた隣町の「孤独のグルメ」に出ていた定食屋さんに行ってきました☺️\n懐かしい雰囲気の店内に合うこれぞご飯の進む定食という生姜焼き＆唐揚げで美味しかったです！\n\n割烹・定食 さがら\n\n東京都豊島区南長崎5-18-2\nhttps://tabelog.com/tokyo/A1321/A132101/13024072/",
+    "photos": [
+      "data/travel-photos/1558039482001784832-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1557973061616148511",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1557973061616148511",
+    "discord_channel_name": "グルメ・料理",
+    "nickname": "まさやん",
+    "avatar_path": "data/travel-avatars/6bc490712023.png",
+    "avatarColor": "#f97316",
+    "init": "ま",
+    "prefecture": "北海道",
+    "municipality_optional": null,
+    "lat": 43.06417,
+    "lng": 141.34694,
+    "date": "2026/10/09",
+    "posted_at": "2026-10-09T04:28:43.629000+00:00",
+    "comment": "北海道初心者として王道を楽しんでいます😉\n\n今日のランチは札幌駅にあるサンドイッチ自販機のタマゴサンド230円也\nパンはふわふわ、玉子の味付けも程よくて。行列していたのも納得のお味☺️\n札幌来たら、これ食べないと損ってくらい美味しかったあ",
+    "photos": [
+      "data/travel-photos/1557973061616148511-1.jpg",
+      "data/travel-photos/1557973061616148511-2.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1556854166079545354",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1556854166079545354",
     "discord_channel_name": "グルメ・料理",
