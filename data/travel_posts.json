@@ -1,5 +1,25 @@
 [
   {
+    "discord_message_id": "1558712954944491530",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1558712954944491530",
+    "discord_channel_name": "旅行",
+    "nickname": "ひほひ",
+    "avatar_path": "data/travel-avatars/96c17763402e.png",
+    "avatarColor": "#f97316",
+    "init": "ひ",
+    "prefecture": "京都府",
+    "municipality_optional": null,
+    "lat": 35.02139,
+    "lng": 135.75556,
+    "date": "2026/10/11",
+    "posted_at": "2026-10-11T05:28:47.945000+00:00",
+    "comment": "推し活で京都のフェスに来ています。\n夏みたいな暑さです。\n一時期はホテル代も下がってましたが今回はそれなりに高かったです。",
+    "photos": [
+      "data/travel-photos/1558712954944491530-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
     "discord_message_id": "1558039482001784832",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1558039482001784832",
     "discord_channel_name": "グルメ・料理",
