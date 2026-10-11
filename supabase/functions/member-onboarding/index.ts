@@ -10,6 +10,8 @@
 //   POST { action: "preview" }  -> what the profile would look like, plus tag
 //                                  choices and rule-based tag suggestions
 //   POST { action: "create", nickname: "...", tags: [{ category, value }] } -> create it
+//   POST { action: "refresh_avatar" } -> re-fetch the caller's own Discord avatar into
+//                                        Storage right now (the weekly job is the fallback)
 //
 // Tag suggestions are rule-based only (no paid API): existing tag phrases used by
 // at least two other members that appear in the self-introduction, keyword rules
@@ -43,6 +45,11 @@ const TAG_CATEGORIES = new Set([
 const ONBOARDING_TAG_OPTIONS: Record<string, number> = {
   fire_status: 10, investment_style: 14, mbti: 17, interest: 16, skill: 12, consultation: 10, wants_to_know: 10,
 };
+const AVATAR_BUCKET = "member-avatars";
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" };
+const AVATAR_COOLDOWN_MS = 60_000;
+const lastAvatarRefresh = new Map<string, number>(); // best effort per instance; just stops button mashing
 const SUGGESTION_MIN_USERS = 2; // ignore phrases only one member uses
 const FIRE_RULES: Array<[RegExp, string]> = [ // matched against normalized text; first match wins
   [/サイドfire(済|達成|しました|中です|してい)/, "サイドFIRE"],
@@ -137,6 +144,25 @@ function avatarUrl(member: any, discordId: string): string | null {
   if (member?.avatar) return `https://cdn.discordapp.com/guilds/${GUILD_ID}/users/${discordId}/avatars/${member.avatar}.png?size=256`;
   if (member?.user?.avatar) return `https://cdn.discordapp.com/avatars/${discordId}/${member.user.avatar}.png?size=256`;
   return null;
+}
+
+// Same Storage path / ?v= scheme as scripts/refresh_member_avatars.py, so the weekly job and this
+// button agree on avatar_url (the path never changes; ?v= busts the 1-year browser cache).
+async function mirrorAvatar(admin: any, nickname: string, sourceUrl: string): Promise<string | null> {
+  const res = await fetch(sourceUrl, { headers: { "User-Agent": "fire-community-map-onboarding/0.1" } });
+  if (!res.ok) return null;
+  const contentType = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  const ext = AVATAR_TYPES[contentType];
+  if (!ext) return null;
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length === 0 || bytes.length > AVATAR_MAX_BYTES) return null;
+  const toHex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const pathDigest = toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(nickname))).slice(0, 16);
+  const version = toHex(await crypto.subtle.digest("SHA-256", bytes)).slice(0, 10);
+  const path = `member-profiles/${pathDigest}.${ext}`;
+  const { error } = await admin.storage.from(AVATAR_BUCKET).upload(path, bytes, { contentType, upsert: true });
+  if (error) return null;
+  return `${Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "")}/storage/v1/object/public/${AVATAR_BUCKET}/${path}?v=${version}`;
 }
 
 function normalizeText(value: string): string {
@@ -253,11 +279,29 @@ Deno.serve(async (req: Request) => {
 
   let body: any = {};
   try { body = await req.json(); } catch (_) { /* empty body */ }
-  const action = body?.action === "create" ? "create" : "preview";
+  const action = body?.action === "create" ? "create" : body?.action === "refresh_avatar" ? "refresh_avatar" : "preview";
 
   // 2. Already a member? Nothing to create.
   const { data: existing } = await admin
     .from("member_profiles").select("nickname").eq("discord_user_id", discordId).maybeSingle();
+
+  if (action === "refresh_avatar") {
+    if (!existing) return json(req, { status: "error", error: "no_profile" }, 404);
+    const last = lastAvatarRefresh.get(discordId) ?? 0;
+    if (Date.now() - last < AVATAR_COOLDOWN_MS) return json(req, { status: "error", error: "too_soon" }, 429);
+    lastAvatarRefresh.set(discordId, Date.now());
+    const { status: st, data: gm } = await discordGet(`/guilds/${GUILD_ID}/members/${discordId}`, botToken);
+    if (st === 404) return json(req, { status: "not_in_guild" });
+    if (st !== 200 || !gm) return json(req, { status: "error", error: "discord_unavailable" }, 502);
+    const source = avatarUrl(gm, discordId);
+    if (!source) return json(req, { status: "error", error: "no_avatar" }, 404);
+    const mirrored = await mirrorAvatar(admin, existing.nickname, source);
+    if (!mirrored) return json(req, { status: "error", error: "avatar_download_failed" }, 502);
+    const { error: updateError } = await admin
+      .from("member_profiles").update({ avatar_url: mirrored }).eq("discord_user_id", discordId);
+    if (updateError) return json(req, { status: "error", error: "update_failed" }, 500);
+    return json(req, { status: "ok", avatar_url: mirrored });
+  }
 
   // 3. Must be in the FIRE研究所 Discord server.
   const { status: memberStatus, data: guildMember } = await discordGet(`/guilds/${GUILD_ID}/members/${discordId}`, botToken);
