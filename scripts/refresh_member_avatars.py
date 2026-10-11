@@ -176,7 +176,11 @@ def main() -> int:
             continue
 
         storage_path = build_storage_path(nickname, content_type)
-        public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/{args.bucket}/{storage_path}"
+        # The Storage object keeps the same path but is served with a 1-year
+        # cache-control, so a changed avatar would never show up in browsers.
+        # A content-hash query string makes avatar_url change with the image.
+        version = hashlib.sha256(body).hexdigest()[:10]
+        public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/{args.bucket}/{storage_path}?v={version}"
 
         if args.dry_run:
             print(f"[dry-run] {nickname}: {member.get('avatar_url')!r} -> {public_url!r}")
