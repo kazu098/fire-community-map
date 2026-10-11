@@ -69,9 +69,11 @@ DISCORD_API_BASE = "https://discord.com/api/v10"
 USER_AGENT = "fire-community-map-member-matching/0.1"
 COOLDOWN_DAYS = 60  # avoid re-grouping the same pair within this window
 GROUP_SIZE = 4  # fixed group size; no fallback to smaller groups, see run_matching
-# メンター方式(issue #325): 実行ごとにこの確率で、入会時期が違う人たちの組を最大1つ先に作ってみる。
+# メンター方式(issue #325): 実行ごとにこの確率で、入会時期が違う人たちの組を先に作ってみる。
 # 組めなければ(条件に合う4人がいなければ)黙って通常のマッチングだけを行う。毎回は使わない。
-MENTOR_MODE_PROBABILITY = 0.3
+# 固定メンバー化の苦情(issue #362)を受けて、発動率と1回の実行で試行するグループ数を増やした。
+MENTOR_MODE_PROBABILITY = 0.5
+MENTOR_MAX_GROUPS_PER_RUN = 2  # 条件に合う人がいる限り、1回の実行でここまで試行する
 # 「3ヶ月おき」のような厳密な条件にはしない。組の全員が、他の誰とも入会月が2か月以上離れていればよい。
 MENTOR_MIN_GAP_MONTHS = 2
 SCHEDULE_CONFIRM_THRESHOLD = 3  # of 4 group members reacting to the same date option
@@ -610,8 +612,11 @@ def run_matching(
     results: list[dict[str, Any]] = []
 
     if mentor_group_first and joined_months:
-        mentor_group = find_mentor_group(pool, slot_index, excluded_pairs, joined_months, rng, group_size)
-        if mentor_group:
+        for _ in range(MENTOR_MAX_GROUPS_PER_RUN):
+            remaining_pool = [n for n in pool if n not in matched]
+            mentor_group = find_mentor_group(remaining_pool, slot_index, excluded_pairs, joined_months, rng, group_size)
+            if not mentor_group:
+                break
             common = set.intersection(*(slot_index[n] for n in mentor_group))
             day_of_week, hour = rng.choice(sorted(common))
             results.append({
