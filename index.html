@@ -1596,6 +1596,12 @@
     #detail-nickname { font-size: 19px; font-weight: bold; color: #1f2937; }
     #detail-name-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     #detail-joined { font-size: 12px; color: #4b5563; }
+    #detail-avatar-sync {
+      align-self: flex-start; margin-top: 4px; font-size: 12px; padding: 4px 10px;
+      border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; cursor: pointer;
+    }
+    #detail-avatar-sync:hover:not(:disabled) { background: #f3f4f6; }
+    #detail-avatar-sync:disabled { opacity: 0.6; cursor: default; }
     .detail-tabs {
       display: flex; border-bottom: 1px solid #e5e7eb; margin: -4px 0 18px;
     }
@@ -6349,6 +6355,36 @@ function buildIntroSection(member) {
   return section;
 }
 
+// 自分のアイコンを今すぐDiscordと同期する。通常は週1回の自動同期を待つが、Discordで変えた直後に
+// 確認したい人向け。サーバー側(member-onboarding の refresh_avatar)がログイン中の本人のDiscordから取得する。
+function buildAvatarSyncButton(member, avatarEl) {
+  const btn = document.createElement('button');
+  btn.id = 'detail-avatar-sync';
+  btn.type = 'button';
+  const idleLabel = 'Discordのアイコンを今すぐ同期';
+  btn.textContent = idleLabel;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = '同期しています…';
+    const data = await callOnboarding({ action: 'refresh_avatar' });
+    if (data.status === 'ok' && data.avatar_url) {
+      member.avatar_url = data.avatar_url;
+      avatarEl.textContent = '';
+      const img = document.createElement('img');
+      img.src = data.avatar_url;
+      avatarEl.appendChild(img);
+      btn.textContent = '同期しました';
+      renderMemberGrid();
+    } else if (data.error === 'too_soon') {
+      btn.textContent = '少し時間をおいてからもう一度お試しください';
+    } else {
+      btn.textContent = '同期できませんでした。時間をおいて再度お試しください';
+    }
+    setTimeout(() => { btn.textContent = idleLabel; btn.disabled = false; }, 3000);
+  });
+  return btn;
+}
+
 function openMemberDetail(nickname, {
   updateHash = true,
   publicSettingsOpen = false,
@@ -6412,6 +6448,9 @@ function openMemberDetail(nickname, {
     joinedEl.id = 'detail-joined';
     joinedEl.textContent = `${joinedLabel}入会`;
     nameBlock.appendChild(joinedEl);
+  }
+  if (member.nickname === myNickname) {
+    nameBlock.appendChild(buildAvatarSyncButton(member, avatar));
   }
   head.appendChild(avatar);
   head.appendChild(nameBlock);
