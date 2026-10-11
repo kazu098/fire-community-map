@@ -408,6 +408,34 @@ def excluded_pairs_from_recent_groups(group_members: list[dict[str, Any]]) -> se
     return pairs
 
 
+def nicknames_with_pending_schedule(
+    pending_schedules: list[dict[str, Any]],
+    group_members: list[dict[str, Any]],
+    now: datetime,
+) -> set[str]:
+    """Members who already have an unresolved or not-yet-happened match.
+
+    A member whose previous group is still voting on a date (status='proposed') or has
+    confirmed a date in the future should not be bundled into a new group yet -- their
+    `last_matched_at` was already bumped when that group formed, but `interval_days` can
+    elapse before the group even meets, which double-books them into two groups with
+    overlapping schedules (reported in the 2026-10 post-event survey). Groups whose
+    schedule already 'expired' (nobody confirmed) or whose confirmed date has passed are
+    not pending -- those members are free to be matched again.
+    """
+    pending_group_ids = set()
+    for schedule in pending_schedules:
+        if schedule["status"] == "proposed":
+            pending_group_ids.add(schedule["group_id"])
+        elif schedule["status"] == "confirmed":
+            confirmed_date = schedule.get("confirmed_date")
+            if confirmed_date and datetime.fromisoformat(confirmed_date.replace("Z", "+00:00")) > now:
+                pending_group_ids.add(schedule["group_id"])
+    return {
+        row["member_nickname"] for row in group_members if row["group_id"] in pending_group_ids
+    }
+
+
 def pairwise_topics(members: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
     """Topic suggestions for every 2-member combination within the group.
 
@@ -792,13 +820,25 @@ def main() -> int:
         if recent_group_ids else set()
     )
     recent_group_members = [row for row in recent_group_members if row["group_id"] not in expired_group_ids]
+    pending_schedules = (
+        get(
+            f"/rest/v1/member_match_schedules?select=group_id,status,confirmed_date"
+            f"&group_id=in.({','.join(recent_group_ids)})&status=in.(proposed,confirmed)"
+        )
+        if recent_group_ids else []
+    )
     member_tags = get("/rest/v1/member_tags?select=member_nickname,category,value")
     profiles = get("/rest/v1/member_profiles?select=nickname,self_intro_text,avatar_url,joined_month")
     member_links = get("/rest/v1/member_links?select=member_nickname,label,url")
     member_locations = get("/rest/v1/member_locations?select=nickname,prefecture")
     talk_wishes = get("/rest/v1/member_talk_wishes?select=member_nickname,target_nickname")
 
-    due_nicknames = [s["member_nickname"] for s in settings if is_due(s, now)]
+    pending_nicknames = nicknames_with_pending_schedule(pending_schedules, recent_group_members, now)
+    due_nicknames = [
+        s["member_nickname"]
+        for s in settings
+        if is_due(s, now) and s["member_nickname"] not in pending_nicknames
+    ]
     slot_index = build_slot_index(availability)
     excluded_pairs = excluded_pairs_from_recent_groups(recent_group_members)
 
