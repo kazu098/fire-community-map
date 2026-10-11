@@ -66,6 +66,12 @@ THREAD_LOOKBACK_LIMIT = 200
 
 POSITIVE_DATE_RE = re.compile(r"(?:OK|ok|いけ|行け|大丈夫|空いて|あいて|できます|参加|可能|可|よい|良い)")
 NEGATIVE_DATE_RE = re.compile(r"(?:NG|ng|無理|厳し|だめ|ダメ|不可|行けない|いけない|難し)")
+# Same-day absence, unrelated to the date-negotiation regexes above (no date mention needed --
+# "今日休みます" has no 月/日, so NEGATIVE_DATE_RE's date-anchored matching never sees it).
+ABSENCE_RE = re.compile(r"(?:欠席|休みます|お休みします|行けません|行けなくなっ|無理になっ|体調不良|キャンセル|参加できません|参加できなくなっ)")
+# A group this short of its original 4 is considered at risk of an early-disband, low-turnout
+# event (issue #360's survey complaint).
+LOW_ATTENDANCE_MAX_REMAINING = 2
 DATE_RE = re.compile(r"(?:(20\d{2})\s*[年/.-]\s*)?(\d{1,2})\s*(?:月|/|-)\s*(\d{1,2})\s*日?")
 DAY_ONLY_RE = re.compile(r"(?<![月/\-\d])(\d{1,2})\s*日")
 
@@ -461,6 +467,81 @@ def expire_schedule(
         )
 
 
+def check_low_attendance_merge(
+    supabase_url: str,
+    service_role_key: str,
+    schedule: dict[str, Any],
+    thread_id: str,
+    group_user_ids: set[str],
+    nicknames: list[str],
+    confirmed_date: datetime,
+    bot_token: str,
+    now: datetime,
+    get: Any,
+    dry_run: bool,
+) -> None:
+    """On the day of a confirmed event, offer a same-time merge if too many members have said
+    they can't make it (issue #360's survey complaint about early-disbanded, low-turnout groups).
+
+    There's no signal for who actually shows up to the voice channel, so this only reacts to
+    explicit same-day absence messages in the thread (ABSENCE_RE) -- a proxy, not a headcount.
+    Only runs once per schedule (merge_offered_at), and only matches against another confirmed
+    group at the exact same confirmed_date that hasn't been offered a merge either.
+    """
+    if schedule.get("merge_offered_at") or not group_user_ids:
+        return
+    if confirmed_date.date() != now.astimezone(matching.JST).date():
+        return  # only worth checking on the day of the event itself
+
+    messages = fetch_channel_messages(thread_id, bot_token)
+    absent_user_ids = {
+        str((message.get("author") or {}).get("id") or "")
+        for message in messages
+        if ABSENCE_RE.search(str(message.get("content") or ""))
+    } & group_user_ids
+    remaining = len(group_user_ids) - len(absent_user_ids)
+    if not absent_user_ids or remaining > LOW_ATTENDANCE_MAX_REMAINING:
+        return
+
+    same_time_schedules = get(
+        "/rest/v1/member_match_schedules"
+        "?select=id,group_id,voice_channel_id,thread_id"
+        "&status=eq.confirmed&merge_offered_at=is.null"
+        f"&confirmed_date=eq.{quote(confirmed_date.isoformat())}&id=neq.{schedule['id']}"
+    )
+    other = next(
+        (s for s in same_time_schedules if s["group_id"] != schedule["group_id"] and s.get("voice_channel_id")),
+        None,
+    )
+    if not other:
+        print(f"Schedule {schedule['id']} looks short-handed ({remaining} left) but no same-time group to merge with.")
+        return
+
+    print(f"Offering merge between schedule {schedule['id']} ({remaining} left) and {other['id']}")
+    if dry_run:
+        return
+    mention_prefix = " ".join(f"<@{user_id}>" for user_id in sorted(group_user_ids))
+    matching.discord_post(
+        thread_id, bot_token,
+        f"{mention_prefix}\n🐾 今日は人数が少なくなってしまったみたいですね。"
+        f"同じ時間帯に予定している別のグループがあるので、よければそちらの通話部屋（<#{other['voice_channel_id']}>）にも遊びに来てください！",
+        list(group_user_ids),
+    )
+    if other.get("thread_id"):
+        matching.discord_post(
+            other["thread_id"], bot_token,
+            "🐾 同じ時間の別グループの人数が少なくなってしまったようで、もしかしたらこちらの部屋に遊びに来るかもしれません。ウェルカムしてあげてください！",
+        )
+    requests_patch(
+        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+        {"merge_offered_at": now.isoformat()},
+    )
+    requests_patch(
+        supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{other['id']}",
+        {"merge_offered_at": now.isoformat()},
+    )
+
+
 def check_reschedule(
     supabase_url: str,
     service_role_key: str,
@@ -579,7 +660,7 @@ def confirm_schedules(
     schedules = get(
         "/rest/v1/member_match_schedules"
         "?select=id,group_id,proposed_dates,discord_message_id,thread_id,thread_confirmation_message_id,"
-        "thread_confirmation_date,status,confirmed_date"
+        "thread_confirmation_date,status,confirmed_date,voice_channel_id,merge_offered_at"
         "&status=in.(proposed,confirmed)"
     )
     if not schedules:
@@ -626,6 +707,10 @@ def confirm_schedules(
             # to reschedule, and without a thread there's nowhere to detect a change from.
             confirmed_date = datetime.fromisoformat(schedule["confirmed_date"]).astimezone(matching.JST)
             if confirmed_date > now and thread_id:
+                check_low_attendance_merge(
+                    supabase_url, service_role_key, schedule, thread_id, group_user_ids, nicknames,
+                    confirmed_date, bot_token, now, get, dry_run,
+                )
                 check_reschedule(
                     supabase_url, service_role_key, schedule, thread_id, group_user_ids, nicknames,
                     confirmed_date, bot_token, now, dry_run,
