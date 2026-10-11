@@ -20,6 +20,26 @@
     "location_source": "prefecture_static"
   },
   {
+    "discord_message_id": "1558636466853249166",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1558636466853249166",
+    "discord_channel_name": "旅行",
+    "nickname": "butabutakun",
+    "avatar_path": "data/travel-avatars/5e973b55f741.png",
+    "avatarColor": "#f97316",
+    "init": "b",
+    "prefecture": "石川県",
+    "municipality_optional": "加賀市",
+    "lat": 36.3003,
+    "lng": 136.3036,
+    "date": "2026/10/11",
+    "posted_at": "2026-10-11T00:24:51.763000+00:00",
+    "comment": "<@1364607569141829692> 加賀　界にきております\nご飯美味しかった😊",
+    "photos": [
+      "data/travel-photos/1558636466853249166-1.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1558039482001784832",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1398934575803273288/1558039482001784832",
     "discord_channel_name": "グルメ・料理",
