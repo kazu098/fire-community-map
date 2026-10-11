@@ -461,6 +461,105 @@ def expire_schedule(
         )
 
 
+def check_reschedule(
+    supabase_url: str,
+    service_role_key: str,
+    schedule: dict[str, Any],
+    thread_id: str,
+    group_user_ids: set[str],
+    nicknames: list[str],
+    confirmed_date: datetime,
+    bot_token: str,
+    now: datetime,
+    dry_run: bool,
+) -> None:
+    """Let a group change an already-confirmed date via the same thread, and keep the
+    reminder DM (issue #321) in sync when they do (issue #358).
+
+    Reuses the thread_confirmation_* columns from the original date negotiation rather than
+    adding new ones: once a reschedule round's confirmation message collects enough ✅,
+    confirmed_date is updated to match thread_confirmation_date, so the next run sees them
+    equal again and treats the schedule as settled with no extra state to track.
+    """
+    thread_confirmation_message_id = schedule.get("thread_confirmation_message_id")
+    raw_thread_confirmation_date = schedule.get("thread_confirmation_date")
+    thread_confirmation_date = (
+        datetime.fromisoformat(raw_thread_confirmation_date).astimezone(matching.JST)
+        if raw_thread_confirmation_date else None
+    )
+    pending_reschedule = (
+        thread_confirmation_message_id is not None
+        and thread_confirmation_date is not None
+        and thread_confirmation_date != confirmed_date
+    )
+
+    if pending_reschedule:
+        reactors = fetch_reactors(thread_id, thread_confirmation_message_id, THREAD_CONFIRM_EMOJI, bot_token) & group_user_ids
+        confirm_count = len(reactors)
+        if confirm_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
+            print(
+                f"Rescheduling schedule {schedule['id']}: {nicknames} -> {thread_confirmation_date.isoformat()} "
+                f"({confirm_count} via thread_confirmation)"
+            )
+            if not dry_run:
+                mention_prefix = " ".join(f"<@{user_id}>" for user_id in sorted(group_user_ids))
+                matching.discord_post(
+                    thread_id, bot_token,
+                    f"{mention_prefix}\n🔄 日程を変更しました！"
+                    f"{thread_confirmation_date.month}/{thread_confirmation_date.day}"
+                    f"({matching.WEEKDAY_KANJI[thread_confirmation_date.weekday()]}) "
+                    f"{thread_confirmation_date.hour:02d}:{thread_confirmation_date.minute:02d}〜 に更新します。",
+                    list(group_user_ids),
+                )
+                requests_patch(
+                    supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+                    {
+                        "confirmed_date": thread_confirmation_date.isoformat(),
+                        "confirmed_reaction_count": confirm_count,
+                        "confirmed_source": "thread_confirmation",
+                        "thread_confirmation_reaction_count": confirm_count,
+                        # Let the day-before reminder (process_member_match_schedules.py's
+                        # send_reminders) fire again for the new date.
+                        "reminder_sent_at": None,
+                    },
+                )
+            return
+        if not dry_run:
+            requests_patch(
+                supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+                {"thread_confirmation_reaction_count": confirm_count},
+            )
+        print(f"Schedule {schedule['id']} reschedule vote still open: {nicknames} (best so far: {confirm_count})")
+        return
+
+    messages = fetch_channel_messages(thread_id, bot_token)
+    votes = thread_date_votes(messages, group_user_ids, [confirmed_date], now)
+    if not votes:
+        return
+    best_date, voters = max(votes.items(), key=lambda item: (len(item[1]), -item[0].timestamp()))
+    if len(voters) < matching.SCHEDULE_CONFIRM_THRESHOLD or best_date.date() == confirmed_date.date():
+        return
+    print(
+        f"Posting reschedule confirmation for schedule {schedule['id']}: "
+        f"{nicknames} -> {best_date.isoformat()} ({len(voters)} text votes)"
+    )
+    if dry_run:
+        return
+    prompt = format_thread_confirmation_prompt(best_date, len(voters))
+    confirmation_message_id = matching.discord_post(thread_id, bot_token, prompt)
+    if confirmation_message_id:
+        matching.discord_add_reaction(thread_id, confirmation_message_id, bot_token, THREAD_CONFIRM_EMOJI)
+        requests_patch(
+            supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+            {
+                "thread_suggested_date": best_date.isoformat(),
+                "thread_confirmation_message_id": confirmation_message_id,
+                "thread_confirmation_date": best_date.isoformat(),
+                "thread_confirmation_reaction_count": 0,
+            },
+        )
+
+
 def confirm_schedules(
     supabase_url: str,
     service_role_key: str,
@@ -479,11 +578,12 @@ def confirm_schedules(
 
     schedules = get(
         "/rest/v1/member_match_schedules"
-        "?select=id,group_id,proposed_dates,discord_message_id,thread_id,thread_confirmation_message_id,thread_confirmation_date"
-        "&status=eq.proposed"
+        "?select=id,group_id,proposed_dates,discord_message_id,thread_id,thread_confirmation_message_id,"
+        "thread_confirmation_date,status,confirmed_date"
+        "&status=in.(proposed,confirmed)"
     )
     if not schedules:
-        print("No proposed schedules to check.")
+        print("No proposed or upcoming confirmed schedules to check.")
         return
 
     guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(bot_token, guild_id)
@@ -518,6 +618,19 @@ def confirm_schedules(
                     thread_id = fetch_message_thread_id(channel_id, group_message_id, bot_token)
                 except RuntimeError as exc:
                     print(f"  could not fetch match message thread for {schedule['id']}: {exc}")
+
+        if schedule["status"] == "confirmed":
+            # Already met the reaction/thread threshold once (issue #321/#323 depend on
+            # confirmed_date staying accurate); only watch for a later change of mind in the
+            # thread, see check_reschedule(). An event that already happened has nothing left
+            # to reschedule, and without a thread there's nowhere to detect a change from.
+            confirmed_date = datetime.fromisoformat(schedule["confirmed_date"]).astimezone(matching.JST)
+            if confirmed_date > now and thread_id:
+                check_reschedule(
+                    supabase_url, service_role_key, schedule, thread_id, group_user_ids, nicknames,
+                    confirmed_date, bot_token, now, dry_run,
+                )
+            continue
 
         date_reactors: dict[datetime, set[str]] = {}
         counts: list[tuple[datetime, int]] = []
