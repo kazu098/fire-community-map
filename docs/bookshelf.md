@@ -8,7 +8,7 @@
 
 - `source`: `fire_lab`(FIRE研究所公式本) / `member`(メンバー著書)
 - `member_nickname`: メンバー著書の場合、`member_profiles.nickname` と一致させる
-- `amazon_url`: Amazon商品ページ(短縮URL可)。unique制約あり
+- `amazon_url`: Amazon商品ページ(短縮URL可)。unique制約あり。Kindle未出版の本はnull(カードにAmazonリンクを出さずPDFのみ)。nullの本はスクリプト上 source+title で重複判定する
 - `thumbnail_url`: 表紙画像。`bookshelf-covers` Storageバケットの公開URL(取得方法は下記)。未設定の本は書名を表示したスパイン風カードで代替表示
 - `drive_pdf_url`: 任意。Google DriveのPDFへのリンク。設定するとカードに「PDF」リンクが表示される
 - `member_nickname` が設定されている本は、著者名がメンバー詳細画面へのリンクになる

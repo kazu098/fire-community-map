@@ -8,7 +8,7 @@ create table if not exists public.bookshelf_books (
   member_nickname text references public.member_profiles (nickname) on delete set null,
   title text not null,
   author_name text,
-  amazon_url text not null,
+  amazon_url text,  -- Kindle未出版の本はnull(PDFのみ公開)
   thumbnail_url text,
   drive_pdf_url text,
   sort_order integer not null default 0,
@@ -30,5 +30,8 @@ on public.bookshelf_books
 for select
 to anon, authenticated
 using (true);
+
+-- 既存環境向け: Kindle未出版の本を載せられるようにamazon_urlのnot nullを外す。
+alter table public.bookshelf_books alter column amazon_url drop not null;
 
 notify pgrst, 'reload schema';
