@@ -7700,12 +7700,14 @@ function buildBookshelfCard(book) {
 
   const linksRow = document.createElement('div');
   linksRow.className = 'bookshelf-book-links';
-  const amazonLink = document.createElement('a');
-  amazonLink.href = book.amazon_url;
-  amazonLink.target = '_blank';
-  amazonLink.rel = 'noopener noreferrer';
-  amazonLink.textContent = 'Amazon';
-  linksRow.appendChild(amazonLink);
+  if (book.amazon_url) {
+    const amazonLink = document.createElement('a');
+    amazonLink.href = book.amazon_url;
+    amazonLink.target = '_blank';
+    amazonLink.rel = 'noopener noreferrer';
+    amazonLink.textContent = 'Amazon';
+    linksRow.appendChild(amazonLink);
+  }
   if (book.drive_pdf_url) {
     const pdfLink = document.createElement('a');
     pdfLink.href = book.drive_pdf_url;

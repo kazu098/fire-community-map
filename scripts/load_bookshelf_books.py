@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 
@@ -74,6 +75,15 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/B0H1DGJM48.jpg",
         "drive_pdf_url": "https://drive.google.com/file/d/1tdNV2yDRk4mA9lN1Laxwwlj1448Q0yX4/view",
         "sort_order": 3,
+    },
+    {
+        # Kindle未出版のためamazon_urlなし(PDFのみ)。出版されたらamazon_urlを入れて再実行する。
+        "title": "FIRE図鑑 第2巻 自由になったら、何をして生きる？",
+        "author_name": "FIRE研究所ほか4名",
+        "amazon_url": None,
+        "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/fire-zukan-vol2.jpg",
+        "drive_pdf_url": "https://drive.google.com/file/d/14b4ohuDqjKouCz99f0YhOtu9lZOy5Knu/view",
+        "sort_order": 4,
     },
 ]
 
@@ -336,13 +346,23 @@ def main() -> int:
         print(json.dumps(rows, ensure_ascii=False, indent=2))
         return 0
 
+    with_amazon = [r for r in rows if r["amazon_url"]]
+    without_amazon = [r for r in rows if not r["amazon_url"]]
     supabase_request(
         "POST",
         f"{supabase_url}/rest/v1/bookshelf_books?on_conflict=amazon_url",
         service_role_key,
-        body=rows,
+        body=with_amazon,
         prefer="resolution=merge-duplicates,return=minimal",
     )
+    # amazon_urlがない本はunique制約で重複判定できないため、source+titleで既存行を探して更新/追加する。
+    for row in without_amazon:
+        query = f"source=eq.{quote(row['source'])}&title=eq.{quote(row['title'])}"
+        existing = supabase_request("GET", f"{supabase_url}/rest/v1/bookshelf_books?select=id&{query}", service_role_key)
+        if existing:
+            supabase_request("PATCH", f"{supabase_url}/rest/v1/bookshelf_books?{query}", service_role_key, body=row, prefer="return=minimal")
+        else:
+            supabase_request("POST", f"{supabase_url}/rest/v1/bookshelf_books", service_role_key, body=row, prefer="return=minimal")
     print("Upserted bookshelf_books.")
     return 0
 
