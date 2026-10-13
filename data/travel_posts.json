@@ -46,6 +46,29 @@
     "location_source": "manual_alias"
   },
   {
+    "discord_message_id": "1559155233467138088",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1559155233467138088",
+    "discord_channel_name": "旅行",
+    "nickname": "Hiro-shi＠GL",
+    "avatar_path": "data/travel-avatars/ac542b7fc62d.png",
+    "avatarColor": "#f97316",
+    "init": "H",
+    "prefecture": "東京都",
+    "municipality_optional": "葛飾区",
+    "lat": 35.7625,
+    "lng": 139.8738,
+    "date": "2026/10/12",
+    "posted_at": "2026-10-12T10:46:15.362000+00:00",
+    "comment": "今日は葛飾柴又、帝釈天と矢切の渡し、に行ってきました。映画の集客力はすごいですね。",
+    "photos": [
+      "data/travel-photos/1559155233467138088-1.jpg",
+      "data/travel-photos/1559155233467138088-2.jpg",
+      "data/travel-photos/1559155233467138088-3.jpg",
+      "data/travel-photos/1559155233467138088-4.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1558712954944491530",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1558712954944491530",
     "discord_channel_name": "旅行",
