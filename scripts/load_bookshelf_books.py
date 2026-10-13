@@ -77,10 +77,9 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "sort_order": 3,
     },
     {
-        # Kindle未出版のためamazon_urlなし(PDFのみ)。出版されたらamazon_urlを入れて再実行する。
         "title": "FIRE図鑑 第2巻 自由になったら、何をして生きる？",
         "author_name": "FIRE研究所ほか4名",
-        "amazon_url": None,
+        "amazon_url": "https://amzn.asia/d/0bSfC9Hw",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/fire-zukan-vol2.jpg",
         "drive_pdf_url": "https://drive.google.com/file/d/14b4ohuDqjKouCz99f0YhOtu9lZOy5Knu/view",
         "sort_order": 4,
