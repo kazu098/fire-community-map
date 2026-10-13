@@ -1,5 +1,51 @@
 [
   {
+    "discord_message_id": "1559353514386264080",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1559353514386264080",
+    "discord_channel_name": "旅行",
+    "nickname": "とみお",
+    "avatar_path": "data/travel-avatars/b958dbe02c18.png",
+    "avatarColor": "#f97316",
+    "init": "と",
+    "prefecture": "鹿児島県",
+    "municipality_optional": null,
+    "lat": 31.56028,
+    "lng": 130.55806,
+    "date": "2026/10/12",
+    "posted_at": "2026-10-12T23:54:09.217000+00:00",
+    "comment": "鹿児島新港に入港しました🌋\nこれから博多オフ会前乗りで車で博多に向かいます🚙",
+    "photos": [
+      "data/travel-photos/1559353514386264080-1.jpg"
+    ],
+    "location_source": "prefecture_static"
+  },
+  {
+    "discord_message_id": "1559170804963344444",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1559170804963344444",
+    "discord_channel_name": "旅行",
+    "nickname": "Nyupy",
+    "avatar_path": "data/travel-avatars/cf5ccf55a96c.png",
+    "avatarColor": "#f97316",
+    "init": "N",
+    "prefecture": "和歌山県",
+    "municipality_optional": "伊都郡高野町",
+    "lat": 34.214108,
+    "lng": 135.584108,
+    "date": "2026/10/12",
+    "posted_at": "2026-10-12T11:48:07.896000+00:00",
+    "comment": "お天気と私の都合が合わず延期になってた高野山に行ってきました⛰️ \n宿坊目当てのインパウンド多めで、高野山は多言語対応バッチリでした👌",
+    "photos": [
+      "data/travel-photos/1559170804963344444-1.jpg",
+      "data/travel-photos/1559170804963344444-2.jpg",
+      "data/travel-photos/1559170804963344444-3.jpg",
+      "data/travel-photos/1559170804963344444-4.jpg",
+      "data/travel-photos/1559170804963344444-5.jpg",
+      "data/travel-photos/1559170804963344444-6.jpg",
+      "data/travel-photos/1559170804963344444-7.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1558712954944491530",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1558712954944491530",
     "discord_channel_name": "旅行",
