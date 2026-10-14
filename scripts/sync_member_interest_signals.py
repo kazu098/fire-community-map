@@ -112,12 +112,12 @@ def fetch_messages_since(token: str, channel_id: str, after_id: str) -> list[dic
 
 def collect_discord_counts(
     token: str, guild_id: str, nickname_by_user_id: dict[str, str], now: datetime,
-) -> dict[str, dict[str, int]]:
-    """nickname -> {theme: 件数}"""
+) -> dict[str, dict[str, dict[str, int]]]:
+    """nickname -> {theme: {チャンネル名: 件数}}。話題の詳細に「Discord #旅行」と出すためチャンネル別に数える。"""
     channels = discord_get(f"/guilds/{guild_id}/channels", token)
     id_by_name = {c.get("name"): str(c["id"]) for c in channels if c.get("type") == 0}
     after_id = snowflake_from_datetime(now - timedelta(days=DISCORD_WINDOW_DAYS))
-    counts: dict[str, dict[str, int]] = {}
+    counts: dict[str, dict[str, dict[str, int]]] = {}
     names = [n for n in [*CHANNEL_CONTENT_TYPES, *DIGEST_EXTRA_CHANNEL_NAMES] if n not in EXCLUDED_CHANNELS]
     for channel_name in dict.fromkeys(names):
         channel_id = id_by_name.get(channel_name)
@@ -137,8 +137,8 @@ def collect_discord_counts(
             if channel_name in CHANNEL_THEMES:
                 themes.add(CHANNEL_THEMES[channel_name])
             for theme in themes:
-                counts.setdefault(nickname, {}).setdefault(theme, 0)
-                counts[nickname][theme] += 1
+                by_channel = counts.setdefault(nickname, {}).setdefault(theme, {})
+                by_channel[channel_name] = by_channel.get(channel_name, 0) + 1
         print(f"  {channel_name}: {len(messages)} messages")
     return counts
 
@@ -173,11 +173,9 @@ def fetch_note_items(rss_url: str, now: datetime) -> list[dict[str, str]]:
     return items
 
 
-def collect_note_counts(
-    note_urls: dict[str, list[str]], now: datetime,
-) -> tuple[dict[str, dict[str, int]], dict[str, list[dict[str, str]]]]:
-    counts: dict[str, dict[str, int]] = {}
-    titles: dict[str, list[dict[str, str]]] = {}
+def collect_note_items(note_urls: dict[str, list[str]], now: datetime) -> dict[str, list[dict[str, Any]]]:
+    """nickname -> 直近の記事 [{"title", "published_at", "themes"}](新しい順)。"""
+    items_by_nickname: dict[str, list[dict[str, Any]]] = {}
     for nickname, urls in note_urls.items():
         rss_urls = list(dict.fromkeys(u for u in (note_rss_url(x) for x in urls) if u))
         for rss_url in rss_urls:
@@ -186,33 +184,38 @@ def collect_note_counts(
             except (HTTPError, URLError, ET.ParseError, TimeoutError) as exc:
                 print(f"  note RSS failed for {nickname} ({rss_url}): {exc}")
                 continue
-            for item in items:
-                for theme in themes_in_text(item["text"]):
-                    counts.setdefault(nickname, {}).setdefault(theme, 0)
-                    counts[nickname][theme] += 1
-            titles.setdefault(nickname, []).extend(
-                {"title": i["title"], "published_at": i["published_at"]} for i in items
+            items_by_nickname.setdefault(nickname, []).extend(
+                {"title": i["title"], "published_at": i["published_at"], "themes": sorted(themes_in_text(i["text"]))}
+                for i in items
             )
             time.sleep(0.5)  # noteへの連続アクセスを控えめに
-        if nickname in titles:
-            titles[nickname] = sorted(titles[nickname], key=lambda t: t["published_at"], reverse=True)[:NOTE_MAX_TITLES]
-    return counts, titles
+        if nickname in items_by_nickname:
+            items_by_nickname[nickname].sort(key=lambda t: t["published_at"], reverse=True)
+    return items_by_nickname
 
 
 def build_rows(
     nicknames: list[str],
-    discord_counts: dict[str, dict[str, int]],
-    note_counts: dict[str, dict[str, int]],
-    note_titles: dict[str, list[dict[str, str]]],
+    discord_counts: dict[str, dict[str, dict[str, int]]],
+    note_items: dict[str, list[dict[str, Any]]],
     now: datetime,
 ) -> list[dict[str, Any]]:
     rows = []
     for nickname in nicknames:
         d = discord_counts.get(nickname, {})
-        n = note_counts.get(nickname, {})
-        theme_counts = {
-            theme: {"discord": d.get(theme, 0), "note": n.get(theme, 0)} for theme in sorted(set(d) | set(n))
-        }
+        notes = note_items.get(nickname, [])
+        note_themes = {t for item in notes for t in item["themes"]}
+        theme_counts = {}
+        for theme in sorted(set(d) | note_themes):
+            channels = d.get(theme, {})
+            titles = [item["title"] for item in notes if theme in item["themes"]]
+            theme_counts[theme] = {
+                "discord": sum(channels.values()),
+                "note": len(titles),
+                # 話題の詳細表示用: 件数の多いチャンネル上位2つ、新しい記事タイトル2件
+                "channels": dict(sorted(channels.items(), key=lambda kv: -kv[1])[:2]),
+                "note_titles": titles[:2],
+            }
         qualified = [
             theme for theme, c in theme_counts.items()
             if c["discord"] >= DISCORD_MIN_COUNT or c["note"] >= NOTE_MIN_COUNT
@@ -223,7 +226,9 @@ def build_rows(
             "member_nickname": nickname,
             "recent_themes": recent_themes,
             "theme_counts": theme_counts,
-            "recent_note_titles": note_titles.get(nickname, []),
+            "recent_note_titles": [
+                {"title": i["title"], "published_at": i["published_at"]} for i in notes[:NOTE_MAX_TITLES]
+            ],
             "updated_at": now.isoformat(),
         })
     return rows
@@ -260,19 +265,18 @@ def main() -> int:
         if link["member_nickname"] in targets and "note.com" in (link.get("url") or ""):
             note_urls.setdefault(link["member_nickname"], []).append(link["url"])
 
-    discord_counts: dict[str, dict[str, int]] = {}
+    discord_counts: dict[str, dict[str, dict[str, int]]] = {}
     if not args.skip_discord:
         print(f"Discord (last {DISCORD_WINDOW_DAYS} days):")
         discord_counts = collect_discord_counts(
             require_env("DISCORD_BOT_TOKEN"), require_env("DISCORD_GUILD_ID"), nickname_by_user_id, now,
         )
-    note_counts: dict[str, dict[str, int]] = {}
-    note_titles: dict[str, list[dict[str, str]]] = {}
+    note_items: dict[str, list[dict[str, Any]]] = {}
     if not args.skip_note:
         print(f"note (last {NOTE_WINDOW_DAYS} days): {len(note_urls)} members")
-        note_counts, note_titles = collect_note_counts(note_urls, now)
+        note_items = collect_note_items(note_urls, now)
 
-    rows = build_rows(nicknames, discord_counts, note_counts, note_titles, now)
+    rows = build_rows(nicknames, discord_counts, note_items, now)
     for row in rows:
         if row["recent_themes"]:
             counts = row["theme_counts"]

@@ -18,7 +18,7 @@ from urllib.request import Request, urlopen
 
 import process_member_match_schedules as schedules
 import run_member_matching as matching
-from yuru_talk_group_topics import build_group_topics, format_topic_line
+from yuru_talk_group_topics import build_group_topics
 
 
 def main() -> int:
@@ -61,6 +61,7 @@ def main() -> int:
             "tags": tags.get(n, {}),
             "intro": profiles[n].get("self_intro_text"),
             "recent_themes": (signals.get(n) or {}).get("recent_themes") or [],
+            "recent_details": (signals.get(n) or {}).get("theme_counts") or {},
         }
         for n in args.nicknames
     ]
@@ -71,12 +72,14 @@ def main() -> int:
     topics = build_group_topics(members, random.Random(args.seed))
     print("\n話題の出どころ:")
     for t in topics:
-        print(f"  [{t['source']}] {format_topic_line(t, args.nicknames)}")
+        print(f"  [{t['source']}] {t['text'][:30]}…")
 
     match = {"members": args.nicknames, "day_of_week": "sat", "hour": 10}
     url = f"{matching.SITE_BASE_URL}/?view=yuru-talk&group=<group_id>"
     print("\n===== マッチング告知 =====")
-    print(matching.format_announcement(match, topics, {}, yuru_talk_url=url))
+    announcement = matching.format_announcement(match, topics, {}, yuru_talk_url=url)
+    print(announcement)
+    print(f"({len(announcement)}文字 / 上限{matching.DISCORD_MESSAGE_LIMIT})")
     print("\n===== 通話部屋のチャット =====")
     print(schedules.format_voice_channel_topics(topics, args.nicknames, "<group_id>"))
     return 0

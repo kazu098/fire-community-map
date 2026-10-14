@@ -62,7 +62,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from topic_news import NEWS_ELIGIBLE_CATEGORIES, get_or_fetch_topic_news
-from yuru_talk_group_topics import build_group_topics, format_topic_line
+from yuru_talk_group_topics import build_group_topics, format_topic_details, format_topic_line
 from yuru_talk_questions import questions_for_tag
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -662,11 +662,35 @@ def run_matching(
     return results
 
 
-def format_group_topic_lines(group_topics: list[dict[str, Any]], nicknames: list[str]) -> list[str]:
-    """「💬 みんなで話せそうな話題」の見出し+箇条書き。マッチング告知と通話部屋のチャットで共用。"""
+# Discordのメッセージ本文は2000文字まで。話題の詳細行で超えそうなときは詳細を後ろの話題から削る。
+DISCORD_MESSAGE_LIMIT = 1900
+
+
+def format_group_topic_lines(
+    group_topics: list[dict[str, Any]], nicknames: list[str], detail_count: int | None = None,
+) -> list[str]:
+    """「💬 みんなで話せそうな話題」の見出し+箇条書き(+各話題の詳細)。告知と通話部屋のチャットで共用。
+
+    detail_count: 先頭から何個の話題に詳細行を付けるか(Noneなら全部)。
+    """
     if not group_topics:
         return []
-    return ["💬 みんなで話せそうな話題:"] + [f"- {format_topic_line(t, nicknames)}" for t in group_topics]
+    lines = ["💬 みんなで話せそうな話題:"]
+    for index, topic in enumerate(group_topics):
+        lines.append(f"- {format_topic_line(topic, nicknames)}")
+        details = format_topic_details(topic)
+        if details and (detail_count is None or index < detail_count):
+            lines.append(f"  - {details}")
+    return lines
+
+
+def fit_discord_limit(render: Any, group_topics: list[dict[str, Any]]) -> str:
+    """render(detail_count)で組み立てた本文が上限を超える間、詳細行を後ろから減らす。"""
+    for detail_count in range(len(group_topics), -1, -1):
+        content = render(detail_count)
+        if len(content) <= DISCORD_MESSAGE_LIMIT:
+            return content
+    return content
 
 
 def format_announcement(
@@ -674,6 +698,19 @@ def format_announcement(
     group_topics: list[dict[str, Any]],
     discord_user_ids: dict[str, str] | None = None,
     yuru_talk_url: str | None = None,
+) -> str:
+    return fit_discord_limit(
+        lambda detail_count: _format_announcement(match, group_topics, discord_user_ids, yuru_talk_url, detail_count),
+        group_topics,
+    )
+
+
+def _format_announcement(
+    match: dict[str, Any],
+    group_topics: list[dict[str, Any]],
+    discord_user_ids: dict[str, str] | None,
+    yuru_talk_url: str | None,
+    detail_count: int | None,
 ) -> str:
     """Render the Discord announcement in ふぁいにゃ's voice (docs/fainya-persona.md).
 
@@ -695,7 +732,7 @@ def format_announcement(
         f"みんな「{day}曜{hour}時」が空いているみたい",
     ]
 
-    topic_lines = format_group_topic_lines(group_topics, members)
+    topic_lines = format_group_topic_lines(group_topics, members, detail_count)
     if topic_lines:
         lines.append("")
         lines.extend(topic_lines)
@@ -829,11 +866,11 @@ def main() -> int:
     # 最近のDiscord/noteの投稿から集計した興味(scripts/sync_member_interest_signals.pyが1日1回更新)。
     # テーブル未作成・取得失敗でも話題がプロフィールだけになるだけなので、マッチングは止めない。
     try:
-        interest_signals = get("/rest/v1/member_interest_signals?select=member_nickname,recent_themes")
+        interest_signals = get("/rest/v1/member_interest_signals?select=member_nickname,recent_themes,theme_counts")
     except (HTTPError, URLError) as exc:
         print(f"Could not load member_interest_signals, using profiles only: {exc}")
         interest_signals = []
-    recent_themes_by_nickname = {row["member_nickname"]: row.get("recent_themes") or [] for row in interest_signals}
+    signals_by_nickname = {row["member_nickname"]: row for row in interest_signals}
 
     pending_nicknames = nicknames_with_pending_schedule(pending_schedules, recent_group_members, now)
     due_nicknames = [
@@ -862,7 +899,8 @@ def main() -> int:
             "links": links_by_nickname.get(nickname, []),
             "prefecture": prefecture_by_nickname.get(nickname),
             "has_avatar": bool(profile.get("avatar_url")),
-            "recent_themes": recent_themes_by_nickname.get(nickname, []),
+            "recent_themes": (signals_by_nickname.get(nickname) or {}).get("recent_themes") or [],
+            "recent_details": (signals_by_nickname.get(nickname) or {}).get("theme_counts") or {},
         }
 
     joined_months = {
@@ -892,6 +930,8 @@ def main() -> int:
         print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{match['hour']}時){mentor_note}")
         for topic in match.get("group_topics", []):
             print(f"    [{topic['source']}] {format_topic_line(topic, match['members'])}")
+            if details := format_topic_details(topic):
+                print(f"        {details}")
 
     if args.dry_run:
         print("--dry-run: no writes to Supabase, no Discord post.")
