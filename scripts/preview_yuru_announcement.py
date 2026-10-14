@@ -65,7 +65,6 @@ def main() -> int:
             "tags": tags.get(n, {}),
             "intro": profiles[n].get("self_intro_text"),
             "recent_themes": (signals.get(n) or {}).get("recent_themes") or [],
-            "recent_details": (signals.get(n) or {}).get("theme_counts") or {},
         }
         for n in args.nicknames
     ]
@@ -85,7 +84,7 @@ def main() -> int:
     print("\n===== マッチング告知 =====")
     announcement = matching.format_announcement(match, topics, member_hooks, {}, yuru_talk_url=url)
     print(announcement)
-    print(f"({len(announcement)}文字 / 上限{matching.DISCORD_MESSAGE_LIMIT})")
+    print(f"({len(announcement)}文字)")
     print("\n===== 通話部屋のチャット =====")
     print(schedules.format_voice_channel_topics(topics, args.nicknames, "<group_id>", member_hooks))
     return 0

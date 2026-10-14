@@ -384,19 +384,16 @@ def format_thread_confirmation_prompt(date: datetime, count: int) -> str:
 def format_voice_channel_topics(
     group_topics: list[dict[str, Any]], nicknames: list[str], group_id: str, member_hooks: list[dict[str, str]] | None = None,
 ) -> str:
-    """通話部屋のチャット用。告知と違い、ネタは全部(最大5つ)と詳細行も載せる。"""
-    def render(detail_count: int) -> str:
-        lines = ["🐾 ここがみんなの通話部屋だにゃ♪ 話のきっかけに使ってください", ""]
-        hook_lines = matching.format_member_hook_lines(member_hooks or [])
-        if hook_lines:
-            lines.extend(hook_lines)
-            lines.append("")
-        lines.extend(matching.format_group_topic_lines(group_topics, nicknames, detail_count))
+    """通話部屋のチャット用。告知と違い、ネタは全部(最大5つ)載せる。"""
+    lines = ["🐾 ここがみんなの通話部屋だにゃ♪ 話のきっかけに使ってください", ""]
+    hook_lines = matching.format_member_hook_lines(member_hooks or [])
+    if hook_lines:
+        lines.extend(hook_lines)
         lines.append("")
-        lines.append(f"🗨️ 共通タグや関連ニュース: {matching.SITE_BASE_URL}/?view=yuru-talk&group={group_id}")
-        return "\n".join(lines)
-
-    return matching.fit_discord_limit(render, group_topics)
+    lines.extend(matching.format_group_topic_lines(group_topics, nicknames))
+    lines.append("")
+    lines.append(f"🗨️ 共通タグや関連ニュース: {matching.SITE_BASE_URL}/?view=yuru-talk&group={group_id}")
+    return "\n".join(lines)
 
 
 def post_topics_to_voice_channel(

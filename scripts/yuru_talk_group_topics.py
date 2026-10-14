@@ -221,11 +221,8 @@ def _exact_tag_question(category: str, value: str) -> str:
 
 def _fire_mix_topic(members: list[dict[str, Any]], nicknames: list[str]) -> dict[str, Any] | None:
     done, ahead = [], []
-    details = []
     for member in members:
         statuses = (member.get("tags") or {}).get("fire_status", [])
-        if statuses:
-            details.append({"nickname": member["nickname"], "items": statuses[:2]})
         if any(w in s for s in statuses for w in FIRE_AHEAD_WORDS):
             ahead.append(member["nickname"])
         elif any(w in s for s in statuses for w in FIRE_DONE_WORDS):
@@ -237,7 +234,6 @@ def _fire_mix_topic(members: list[dict[str, Any]], nicknames: list[str]) -> dict
         "text": f"FIRE済の{done_names}に、FIRE前にやっておいてよかったこと・FIRE後に意外だったことを聞いてみませんか？",
         "members": list(nicknames),
         "source": "fire_mix",
-        "details": details,
     }
 
 
@@ -277,36 +273,6 @@ def member_themes(member: dict[str, Any]) -> set[str]:
     return profile_themes(member) | set(member.get("recent_themes") or [])
 
 
-MAX_DETAIL_ITEMS = 2
-
-
-def theme_detail_items(member: dict[str, Any], theme: dict[str, Any]) -> list[str]:
-    """そのメンバーがテーマに当てはまる具体的な中身(話題の下に「かずさん: …」と添える)。
-
-    該当するタグの値 → よく投稿しているDiscordチャンネル → 自己紹介文の語、の順。
-    noteの記事タイトルは引用しない: キーワード一致だけでは「資産1億円あっても結婚できないのか？」の
-    ような、本人が告知で取り上げられたくなさそうな記事も拾ってしまうため。記事にもとづく話題は、
-    人の目で選ぶ「この人に聞いてみたい」(member_conversation_hooks)で扱う。
-    """
-    keywords = theme["keywords"]
-    items: list[str] = []
-    recent = ((member.get("recent_details") or {}).get(theme["key"])) or {}
-    tag_values = [
-        v for c in THEME_TAG_CATEGORIES for v in (member.get("tags") or {}).get(c, [])
-        if _has_keyword(v, keywords)
-    ]
-    items.extend(dict.fromkeys(tag_values))
-    for channel in list((recent.get("channels") or {}))[:1]:
-        items.append(f"Discord #{channel}")
-    if not items:
-        intro_words = [kw for kw in keywords if kw in _clean(member.get("intro") or "")]
-        if intro_words:
-            items.append(f"自己紹介に「{intro_words[0]}」")
-        elif recent.get("note"):
-            items.append("最近のnoteで")
-    return list(dict.fromkeys(items))[:MAX_DETAIL_ITEMS]
-
-
 def _theme_topics(
     members: list[dict[str, Any]], nicknames: list[str], min_members: int, rng: random.Random, covered_values: list[str],
 ) -> list[dict[str, Any]]:
@@ -314,7 +280,6 @@ def _theme_topics(
     for member in members:
         for key in member_themes(member):
             holders.setdefault(key, set()).add(member["nickname"])
-    member_by_nickname = {m["nickname"]: m for m in members}
     topics = []
     for index, theme in enumerate(THEMES):
         names = holders.get(theme["key"], set())
@@ -323,17 +288,10 @@ def _theme_topics(
         # 完全一致タグの話題(例: インデックス投資)で既に出ているテーマは重ねない
         if any(kw in value for kw in theme["keywords"] for value in covered_values):
             continue
-        ordered = _ordered(nicknames, names)
-        details = [
-            {"nickname": n, "items": items}
-            for n in ordered
-            if (items := theme_detail_items(member_by_nickname[n], theme))
-        ]
         topics.append((len(names), index, {
             "text": f"【{theme['label']}】{rng.choice(theme['questions'])}",
-            "members": ordered,
+            "members": _ordered(nicknames, names),
             "source": "theme",
-            "details": details,
         }))
     topics.sort(key=lambda t: (-t[0], t[1]))
     return [t[2] for t in topics]
@@ -367,14 +325,12 @@ def build_group_topics(members: list[dict[str, Any]], rng: random.Random | None 
 
 
 def format_topic_line(topic: dict[str, Any], group_nicknames: list[str]) -> str:
-    """Discord/画面用の1行。詳細がなく、対象が3人だけの話題には名前を添える(詳細があればそちらで分かる)。"""
+    """Discord/画面用の1行。グループ全員が対象なら名前は省略し、3人だけの話題には名前を添える。
+
+    以前は各話題の下に「かずさん: 自己紹介に『出版』 ／ …」という根拠の詳細行も出していたが、
+    冗長なのでやめた(かずさんのフィードバック、2026-10-14)。具体性は「この人に聞いてみたい」で補う。
+    """
     members = topic.get("members") or []
-    if topic.get("details") or not members or set(members) >= set(group_nicknames):
+    if not members or set(members) >= set(group_nicknames):
         return topic["text"]
     return f"{topic['text']}（{'・'.join(f'{n}さん' for n in members)}）"
-
-
-def format_topic_details(topic: dict[str, Any]) -> str | None:
-    """「かずさん: note「…」・米国個別株 ／ みかんさん: ブログ」のような詳細の1行。無ければNone。"""
-    parts = [f"{d['nickname']}さん: {'・'.join(d['items'])}" for d in topic.get("details") or [] if d.get("items")]
-    return " ／ ".join(parts) if parts else None

@@ -820,8 +820,6 @@
     .yuru-talk-news-source { font-size: 11px; color: #9ca3af; margin-top: 2px; }
     .yuru-talk-empty { font-size: 12px; color: #9ca3af; padding: 4px 0; }
     .yuru-talk-topic-line { font-size: 13px; color: #1f2937; margin: 0 0 6px; }
-    .yuru-talk-topic-details { list-style: none; margin: -2px 0 10px; padding: 0 0 0 12px; border-left: 2px solid #e5e7eb; }
-    .yuru-talk-topic-details li { font-size: 11.5px; color: #6b7280; line-height: 1.6; }
     .yuru-talk-error {
       text-align: center;
       color: #6b7280;
@@ -8336,21 +8334,9 @@ async function renderYuruTalkView(groupId) {
       const line = document.createElement('p');
       line.className = 'yuru-talk-topic-line';
       const topicMembers = Array.isArray(t.members) ? t.members : [];
-      const details = (Array.isArray(t.details) ? t.details : []).filter(d => Array.isArray(d.items) && d.items.length);
       const everyone = topicMembers.length === 0 || nicknames.every(n => topicMembers.includes(n));
-      // 詳細(誰がどんな中身でそのテーマに当てはまるか)があれば名前はそちらで分かるので、末尾の名前は省く
-      line.textContent = (everyone || details.length) ? t.text : `${t.text}（${topicMembers.map(n => `${n}さん`).join('・')}）`;
+      line.textContent = everyone ? t.text : `${t.text}（${topicMembers.map(n => `${n}さん`).join('・')}）`;
       topicCard.appendChild(line);
-      if (details.length) {
-        const detailList = document.createElement('ul');
-        detailList.className = 'yuru-talk-topic-details';
-        details.forEach(d => {
-          const item = document.createElement('li');
-          item.textContent = `${d.nickname}さん: ${d.items.join('・')}`;
-          detailList.appendChild(item);
-        });
-        topicCard.appendChild(detailList);
-      }
     });
     body.appendChild(topicCard);
   } else if (topics.group_topic || (topics.pair_topics || []).length) {
