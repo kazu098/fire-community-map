@@ -8305,23 +8305,6 @@ async function renderYuruTalkView(groupId) {
 
   // 2026-10-14以降のグループはgroup_topics(3人以上が乗れる話題を文章で4〜5個)を持つ。
   // それ以前のグループだけ、従来のgroup_topic/pair_topics表示にフォールバックする。
-  const memberHooks = Array.isArray(topics.member_hooks) ? topics.member_hooks : [];
-  if (memberHooks.length) {
-    const hookCard = document.createElement('div');
-    hookCard.className = 'yuru-talk-card';
-    const hookHeading = document.createElement('p');
-    hookHeading.className = 'yuru-talk-card-title';
-    hookHeading.textContent = '🎤 この人に聞いてみたい';
-    hookCard.appendChild(hookHeading);
-    memberHooks.forEach(h => {
-      const line = document.createElement('p');
-      line.className = 'yuru-talk-topic-line';
-      line.textContent = `${h.nickname}さん：${h.text}`;
-      hookCard.appendChild(line);
-    });
-    body.appendChild(hookCard);
-  }
-
   const groupTopics = Array.isArray(topics.group_topics) ? topics.group_topics : [];
   if (groupTopics.length) {
     const topicCard = document.createElement('div');
@@ -8360,6 +8343,23 @@ async function renderYuruTalkView(groupId) {
       topicCard.appendChild(line);
     });
     body.appendChild(topicCard);
+  }
+
+  const memberHooks = Array.isArray(topics.member_hooks) ? topics.member_hooks : [];
+  if (memberHooks.length) {
+    const hookCard = document.createElement('div');
+    hookCard.className = 'yuru-talk-card';
+    const hookHeading = document.createElement('p');
+    hookHeading.className = 'yuru-talk-card-title';
+    hookHeading.textContent = '🎤 この人に聞いてみたい';
+    hookCard.appendChild(hookHeading);
+    memberHooks.forEach(h => {
+      const line = document.createElement('p');
+      line.className = 'yuru-talk-topic-line';
+      line.textContent = `${h.nickname}さん：${h.text}`;
+      hookCard.appendChild(line);
+    });
+    body.appendChild(hookCard);
   }
 
   if (!commonTags.length) {
