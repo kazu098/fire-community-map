@@ -1,0 +1,1221 @@
+[
+  {
+    "discord_message_id": "scheduled_event:1545612465050488972",
+    "discord_event_id": "1545612465050488972",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "F研1.5周年オフ会＠大阪",
+    "description": "",
+    "scheduled_start_time": "2026-12-05T03:00:00+00:00",
+    "scheduled_end_time": "2026-12-05T04:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "大阪",
+    "user_count": 6,
+    "posted_at": "2026-12-05T03:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1545612465050488972"
+  },
+  {
+    "discord_message_id": "scheduled_event:1555810800881377361",
+    "discord_event_id": "1555810800881377361",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "伊勢志摩オフ会",
+    "description": "参加者の募集は終了しました～！",
+    "scheduled_start_time": "2026-12-03T06:00:00+00:00",
+    "scheduled_end_time": "2026-12-04T07:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "三重県伊勢市",
+    "user_count": 2,
+    "posted_at": "2026-12-03T06:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1555810800881377361"
+  },
+  {
+    "discord_message_id": "scheduled_event:1535451325779677284",
+    "discord_event_id": "1535451325779677284",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "文学フリマ東京＆打ち上げ！",
+    "description": "文学フリマ東京に出店します！\nその後の打ち上げも予定しています～！",
+    "scheduled_start_time": "2026-11-08T03:00:00+00:00",
+    "scheduled_end_time": "2026-11-08T08:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "https://bunfree.net/event/tokyo43/",
+    "user_count": 3,
+    "posted_at": "2026-11-08T03:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1535451325779677284"
+  },
+  {
+    "discord_message_id": "scheduled_event:1550376624158023700",
+    "discord_event_id": "1550376624158023700",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "【第３回】開墾オフ会",
+    "description": "3回目の開墾オフ会です～！",
+    "scheduled_start_time": "2026-11-04T06:00:00+00:00",
+    "scheduled_end_time": "2026-11-05T07:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "三重県志摩市",
+    "user_count": 3,
+    "posted_at": "2026-11-04T06:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1550376624158023700"
+  },
+  {
+    "discord_message_id": "scheduled_event:1555943678298693642",
+    "discord_event_id": "1555943678298693642",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "description": "さわやかハンバーグを食べ、同日開催の大道芸ワールドカップを観戦します",
+    "scheduled_start_time": "2026-11-01T02:00:00+00:00",
+    "scheduled_end_time": "2026-11-01T09:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "静岡",
+    "user_count": 2,
+    "posted_at": "2026-11-01T02:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1555943678298693642"
+  },
+  {
+    "discord_message_id": "scheduled_event:1550431386647928852",
+    "discord_event_id": "1550431386647928852",
+    "source_type": "scheduled_event",
+    "channel_name": "ゲーム",
+    "name": "オンライン麻雀",
+    "description": "東南戦･60秒",
+    "scheduled_start_time": "2026-10-26T11:00:00+00:00",
+    "scheduled_end_time": null,
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1447769725479157881",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-26T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1550431386647928852"
+  },
+  {
+    "discord_message_id": "scheduled_event:1545922768154132521",
+    "discord_event_id": "1545922768154132521",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "ITチームオフ会！@東京",
+    "description": "",
+    "scheduled_start_time": "2026-10-26T04:00:00+00:00",
+    "scheduled_end_time": "2026-10-26T09:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "東京",
+    "user_count": 2,
+    "posted_at": "2026-10-26T04:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1545922768154132521"
+  },
+  {
+    "discord_message_id": "scheduled_event:1537801413722243162",
+    "discord_event_id": "1537801413722243162",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "那須ハイランド貸し切りオフ会",
+    "description": "最初で最後の遊園地貸し切りオフ会です！！\n▼詳細はこちら\nhttps://discordapp.com/channels/1389921372683112539/1537669365732876319",
+    "scheduled_start_time": "2026-10-25T08:00:00+00:00",
+    "scheduled_end_time": "2026-10-25T10:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "那須ハイランド",
+    "user_count": 5,
+    "posted_at": "2026-10-25T08:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1537801413722243162"
+  },
+  {
+    "discord_message_id": "scheduled_event:1557267015402655796",
+    "discord_event_id": "1557267015402655796",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1023",
+    "name": "ゆるマッチング 10/23(金)",
+    "description": "チミヱ、Nyupy、閣下、めめとさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-23T10:00:00+00:00",
+    "scheduled_end_time": "2026-10-23T12:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1557267013104173177",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-23T10:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1557267015402655796"
+  },
+  {
+    "discord_message_id": "scheduled_event:1557195848050282537",
+    "discord_event_id": "1557195848050282537",
+    "source_type": "scheduled_event",
+    "channel_name": "飲み会1",
+    "name": "寺子屋後の飲み会",
+    "description": "寺子屋後の恒例飲み会です！参加したい方はご自由にどうぞ！耳だけの参加も大歓迎です～！",
+    "scheduled_start_time": "2026-10-22T12:00:00+00:00",
+    "scheduled_end_time": null,
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1396672957039906906",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-22T12:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1557195848050282537"
+  },
+  {
+    "discord_message_id": "scheduled_event:1557176274089156709",
+    "discord_event_id": "1557176274089156709",
+    "source_type": "scheduled_event",
+    "channel_name": "寺小屋",
+    "name": "ゼロから分かる！F研コミュニティマップ使いこなし講座 〜今さら聞けない質問、大歓迎〜",
+    "description": "ITチームで進めているコミュニティマップの使い方の寺子屋です。今後コミュニティマップへの登録は必須とする予定ですので是非ご参加お願いします～！",
+    "scheduled_start_time": "2026-10-22T11:00:00+00:00",
+    "scheduled_end_time": null,
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1399364889696272526",
+    "location": null,
+    "user_count": 22,
+    "posted_at": "2026-10-22T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1557176274089156709"
+  },
+  {
+    "discord_message_id": "scheduled_event:1550768870313435136",
+    "discord_event_id": "1550768870313435136",
+    "source_type": "scheduled_event",
+    "channel_name": "ゲーム",
+    "name": "【玉の間】オンライン麻雀",
+    "description": "雀豪以上での対局。\n画面共有で配信しますので、観戦可能です。",
+    "scheduled_start_time": "2026-10-22T04:30:00+00:00",
+    "scheduled_end_time": null,
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1447769725479157881",
+    "location": null,
+    "user_count": 2,
+    "posted_at": "2026-10-22T04:30:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1550768870313435136"
+  },
+  {
+    "discord_message_id": "scheduled_event:1551815487036592169",
+    "discord_event_id": "1551815487036592169",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1021",
+    "name": "ゆるマッチング 10/21(水)",
+    "description": "にょろ、natsu、さいふぉん、Nyupyさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-21T01:00:00+00:00",
+    "scheduled_end_time": "2026-10-21T03:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1551815484469678153",
+    "location": null,
+    "user_count": 2,
+    "posted_at": "2026-10-21T01:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1551815487036592169"
+  },
+  {
+    "discord_message_id": "scheduled_event:1556827756665511986",
+    "discord_event_id": "1556827756665511986",
+    "source_type": "scheduled_event",
+    "channel_name": null,
+    "name": "Xチームりぜさん歓迎会＆打ち合わせ",
+    "description": "Xチームメンバーのみのイベントです～！",
+    "scheduled_start_time": "2026-10-18T11:00:00+00:00",
+    "scheduled_end_time": "2026-10-18T12:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "external",
+    "channel_id": null,
+    "location": "Xチームグルチャ",
+    "user_count": 2,
+    "posted_at": "2026-10-18T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1556827756665511986"
+  },
+  {
+    "discord_message_id": "scheduled_event:1550430918668193842",
+    "discord_event_id": "1550430918668193842",
+    "source_type": "scheduled_event",
+    "channel_name": "ゲーム",
+    "name": "オンライン麻雀",
+    "description": "東風戦・300秒",
+    "scheduled_start_time": "2026-10-18T01:00:00+00:00",
+    "scheduled_end_time": null,
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1447769725479157881",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-18T01:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1550430918668193842"
+  },
+  {
+    "discord_message_id": "scheduled_event:1559116987026645032",
+    "discord_event_id": "1559116987026645032",
+    "source_type": "scheduled_event",
+    "channel_name": "一般",
+    "name": "新人交流会（10月入会）",
+    "description": "10月に入られた方の新人交流会です～！耳だけの参加でしたら既存メンバーの参加も大歓迎です！",
+    "scheduled_start_time": "2026-10-17T11:00:00+00:00",
+    "scheduled_end_time": null,
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1389921373153005610",
+    "location": null,
+    "user_count": 7,
+    "posted_at": "2026-10-17T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1559116987026645032"
+  },
+  {
+    "discord_message_id": "scheduled_event:1555091383163813919",
+    "discord_event_id": "1555091383163813919",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1017",
+    "name": "ゆるマッチング 10/17(土)",
+    "description": "そーだ、モンチ、ちぃ、きこさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-17T10:00:00+00:00",
+    "scheduled_end_time": "2026-10-17T12:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1555091382526414849",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-17T10:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1555091383163813919"
+  },
+  {
+    "discord_message_id": "scheduled_event:1557069966149165178",
+    "discord_event_id": "1557069966149165178",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1016",
+    "name": "ゆるマッチング 10/16(金)",
+    "description": "もずく、とみと、さとりーまん、あきらさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-16T11:00:00+00:00",
+    "scheduled_end_time": "2026-10-16T13:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1557069965201379348",
+    "location": null,
+    "user_count": 0,
+    "posted_at": "2026-10-16T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1557069966149165178"
+  },
+  {
+    "discord_message_id": "scheduled_event:1555262962472714325",
+    "discord_event_id": "1555262962472714325",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1015",
+    "name": "ゆるマッチング 10/15(木)",
+    "description": "チミヱ、ネコ先生、あきら、ドロリッチさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-15T11:00:00+00:00",
+    "scheduled_end_time": "2026-10-15T13:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1555262960262189116",
+    "location": null,
+    "user_count": 2,
+    "posted_at": "2026-10-15T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1555262962472714325"
+  },
+  {
+    "discord_message_id": "scheduled_event:1557631399324815444",
+    "discord_event_id": "1557631399324815444",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1015",
+    "name": "ゆるマッチング 10/15(木)",
+    "description": "きこ、かず、瑠璃、りぜさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-15T11:00:00+00:00",
+    "scheduled_end_time": "2026-10-15T13:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1557631398540611706",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-15T11:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1557631399324815444"
+  },
+  {
+    "discord_message_id": "scheduled_event:1556611619809787924",
+    "discord_event_id": "1556611619809787924",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1015",
+    "name": "ゆるマッチング 10/15(木)",
+    "description": "第三環境、Chloé、にょろ、haruさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-15T08:00:00+00:00",
+    "scheduled_end_time": "2026-10-15T10:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1556611618350047383",
+    "location": null,
+    "user_count": 1,
+    "posted_at": "2026-10-15T08:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1556611619809787924"
+  },
+  {
+    "discord_message_id": "scheduled_event:1552964206209405018",
+    "discord_event_id": "1552964206209405018",
+    "source_type": "scheduled_event",
+    "channel_name": "ゆるマッチング_1015",
+    "name": "ゆるマッチング 10/15(木)",
+    "description": "さいふぉん、かず、haruさんのゆるマッチング",
+    "scheduled_start_time": "2026-10-15T05:00:00+00:00",
+    "scheduled_end_time": "2026-10-15T07:00:00+00:00",
+    "status": "scheduled",
+    "entity_type": "voice",
+    "channel_id": "1552964203948679248",
+    "location": null,
+    "user_count": 0,
+    "posted_at": "2026-10-15T05:00:00+00:00",
+    "discord_permalink": "https://discord.com/events/1389921372683112539/1552964206209405018"
+  },
+  {
+    "discord_message_id": "1559431155575558205",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "matcha",
+    "member_nickname": "matcha",
+    "content": "折角まだ会社員向けの週末も候補日も入れてくださったのに、予定が、、😭\n参加のみなさん、楽しんできてください！サムギョプサル食べたい！！",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-13T05:02:40.319000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559431155575558205"
+  },
+  {
+    "discord_message_id": "1559425374276816957",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "しまった！　資料のタイトルが「オンライン編み物体験会」になってる💦\n上野オフラインに参加の方も同様とお考えください！\n\nまた、既にかぎ針や毛糸をお持ちの方は、もちろん手持ちのものでOKです。\nわざわざ新しく買っていただく必要はありませんのでご心配なくー。",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-13T04:39:41.950000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559425374276816957"
+  },
+  {
+    "discord_message_id": "1559423490992508989",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-13T04:32:12.940000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559423490992508989"
+  },
+  {
+    "discord_message_id": "1559422386842116127",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "持ち物のご案内です。\nオンライン＆オフラインともに、材料は各自で事前準備をお願いいたします。\n体験会なので100円均一のもので十分です（※）\n添付のPDFにおすすめ道具などをまとめましたのでご参考になさってください。\n\n※ちなみに「これから長く編み物を続けるぜ！」と気合たっぷりの方には、\n　100円均一よりもメーカー品のかぎ針をおすすめします。1本1000円前後します。\n　ご興味あれば、こちらもおすすめをご紹介するのでお問い合わせください。",
+    "embeds": [],
+    "attachments": [
+      {
+        "filename": "13d2acfca1ea776d.pdf",
+        "content_type": "application/pdf",
+        "url": "https://cdn.discordapp.com/attachments/1559414093041893386/1559422386514952223/13d2acfca1ea776d.pdf?ex=6ad0ff05&is=6acfad85&hm=62a0982398a463a4afbe41890ef2f758679192c67fce170d054d9ea5b9b84a97&"
+      }
+    ],
+    "posted_at": "2026-10-13T04:27:49.690000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559422386842116127"
+  },
+  {
+    "discord_message_id": "1559420908018606144",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-13T04:21:57.111000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559420908018606144"
+  },
+  {
+    "discord_message_id": "1559420494758019092",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "<@1441758834208014377> <@1481271787546214400> <@1492389158206046228> <@1525075655472189511> <@475982510573092884> <@720779993717801060> <@1395382666865541337> <@1414565257967566869> <@1431209697200836640> \n\n【編み物モニター会｜オフライン日程アンケート】\n\nモニターに手を挙げてくださった皆さま、ありがとうございます！\n9名もの方に参加表明いただき、とても心強いです🧶\n\nまずは**上野でのオフライン会（1回のみ開催）**の日程を決めたいと思います。\n「オフラインで参加」「どちらでもOK」と答えてくださった方は、参加できる日に投票をお願いします。\n複数選択OKです。一番人数が多い日に開催とさせていただきます。\n\n■時間\n9:30～10:00　集合（9:30に会議室の鍵を開けるので、それより前のご来場はお控えください）\n10:00〜12:00　レッスン\n12:30　完全撤収\n※その後、お時間のある方はランチもいかがでしょうか。ランチは自由参加・各自精算です。\n\n■場所（予定）\nTHE BLOOM UENO 4階 4D会議室（上野駅から徒歩1分）\nhttps://bloomoffice.co.jp/ueno/\n\n■回答期限\n10月20日（火）まで\n\nオフラインの日程が合わない「どちらでもOK」の方には、\nオンライン会のほうでご参加いただけるよう、別途ご相談させてください。\n\n「オンラインで参加」の方の日程調整は、このあと別にご連絡します！",
+    "embeds": [
+      {
+        "type": "link",
+        "url": "https://bloomoffice.co.jp/ueno/",
+        "title": "上野のレンタルオフィス｜完全個室・格安 会議室...",
+        "description": "上野のレンタルオフィス「THE BLOOM UENO」。上野駅徒歩1分、1～4名の完全個室を格安で。法人登記可・会議室・高速Wi-Fi完備。更新費・退去費用は無料。上野でオフィスをお探しの方は内覧予約を。",
+        "provider": {
+          "name": "THE BLOOM UENO　レンタル＆シェアオフィス　ザ・ブルーム上野"
+        },
+        "thumbnail": {
+          "url": "https://bloomoffice.co.jp/common/img/ogp_img.png",
+          "proxy_url": "https://images-ext-1.discordapp.net/external/HpYM6QdAMwVlr0mbxIKIA9QUrSOl9TX6DQWRClODr2w/https/bloomoffice.co.jp/common/img/ogp_img.png",
+          "width": 1200,
+          "height": 630,
+          "content_type": "image/png",
+          "placeholder": "OggKBICZiId4d4d/doUAAAAAAA==",
+          "placeholder_version": 1,
+          "flags": 0
+        },
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-13T04:20:18.582000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559420494758019092"
+  },
+  {
+    "discord_message_id": "1559414782841454643",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "■概要\n内容：かぎ針編みの方眼模様のミニコースター\nレベル：初心者〜。かぎ針の持ち方から、鎖編み・長編みの編み方までレクチャーします。\n参加費：無料\n道具：かぎ針と毛糸は各自でご用意ください。100均のものでも十分です。\n時間：2時間\n時期：10月後半～11月中を予定\n場所：オンライン or 上野駅近辺のレンタルスペース\n人数：1回最大6人程度（複数回開催の可能性あり）\n備考：オンラインの場合はカメラオンでご参加ください。顔出しはなしでOKですが、進み具合を確認するため手元を映していただく必要があります。\n\n■モニターとしてお願いしたいこと\n2時間でどこまで編めたかの記録と、説明のわかりやすさについての簡単な感想をいただけると助かります。\n\n■補足\n初めての試みなので、２時間で編み終わらなかったらごめんなさい！🙇‍♀️ \nその場合は講座後もオンラインでアフターフォローさせていただきます！\n\n**飛び入り参加者も募集中なので、このフォーラムを見て興味がわいた方はご連絡くださーい！✨**",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-13T03:57:36.755000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559414782841454643"
+  },
+  {
+    "discord_message_id": "1559414093041893386",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集中】かぎ針編み体験会🧶　オンライン＆オフライン開催",
+    "discord_author_display_name": "はるた",
+    "member_nickname": "はるた",
+    "content": "はるた主催のかぎ針編み体験会のフォーラムです。こちらでお知らせや日程調整していきます。",
+    "embeds": [],
+    "attachments": [
+      {
+        "filename": "IMG_20261012_coaster_class_fixed.png",
+        "content_type": "image/png",
+        "url": "https://cdn.discordapp.com/attachments/1559414093041893386/1559414093612453928/IMG_20261012_coaster_class_fixed.png?ex=6ad0f74c&is=6acfa5cc&hm=ba300056caad0d4166a08669e7bbc3af98c8d05ffbd8a160900bb7722c484e53&"
+      }
+    ],
+    "posted_at": "2026-10-13T03:54:52.294000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1559414093041893386/1559414093041893386"
+  },
+  {
+    "discord_message_id": "1559207466011590727",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "追加情報です。\n当日は静岡伊勢丹で大北海道展も開催されてます。\n大道芸も観戦して、北海道展でお土産も買えますよ😁\nhttps://www.isetan.mistore.jp/content/dam/isetan_mitsukoshi/site/shizuoka/event_calendar/pdf/20261021hokkaidoten.pdf",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T14:13:48.571000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1559207466011590727"
+  },
+  {
+    "discord_message_id": "1559206525170356387",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T14:10:04.257000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1559206525170356387"
+  },
+  {
+    "discord_message_id": "1559205335301103739",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "みなさま、こんばんわ。\n前日入りされる方が多いようでしたら、かるーく飲みに行けたら思っていますが、皆様のご予定はどうでしょう？",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T14:05:20.570000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1559205335301103739"
+  },
+  {
+    "discord_message_id": "1559192078209130577",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "推し旅トラベラー０",
+    "member_nickname": "推し旅トラベラー",
+    "content": "残念、日程合わずです(;_;)",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T13:12:39.833000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559192078209130577"
+  },
+  {
+    "discord_message_id": "1559167557850636309",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "とみと",
+    "member_nickname": "とみと",
+    "content": "わーん\n予定ありで…\n行かれる人たのしんでくださいませ✨",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T11:35:13.724000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559167557850636309"
+  },
+  {
+    "discord_message_id": "1559156062727307375",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "たびお",
+    "member_nickname": "たびお",
+    "content": "ぜんぜん知らない人でーす👍　\n韓国料理うまそうですね。よろしくお願いします🤣🤣",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T10:49:33.073000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559156062727307375"
+  },
+  {
+    "discord_message_id": "1559147624647491598",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "Hiro-shi＠GL",
+    "member_nickname": "Hiro-shi",
+    "content": "韓国在住時、ペク先生のお店、「本家(ほんが)」、「香港飯店0410、にお世話になってました。上野のセマウル食堂は２Fですが、同じビルの1Fに香港飯店が入っていますね。",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T10:16:01.278000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559147624647491598"
+  },
+  {
+    "discord_message_id": "1559146958529232997",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "natsu🏝️",
+    "member_nickname": "natsu",
+    "content": "白と黒のスプーン🥄の人ですね！ペクアジョシ〜",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T10:13:22.463000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559146958529232997"
+  },
+  {
+    "discord_message_id": "1559146260513030144",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "Hiro-shi＠GL",
+    "member_nickname": "Hiro-shi",
+    "content": "",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-12T10:10:36.043000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559146260513030144"
+  },
+  {
+    "discord_message_id": "1559145652758257724",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "Hiro-shi＠GL",
+    "member_nickname": "Hiro-shi",
+    "content": "@everyone \n【緩募】韓国料理とマッコリ飲み食いOFF\n\n突然ですが、、、\n韓国で有名な料理研究家・実業家であるペク・ジョンウォン氏のお店で韓国料理、食べましょう。\n\n「韓国焼肉 セマウル食堂 上野店」\n\n食事は、\nサムギョプサル（豚ばら）、チャドルバギ（牛あばら薄切）\n7分テジ（豚）キムチチゲ、スンドゥブ（純豆腐）チゲ\nケランチム（玉子蒸し）、コマキンパ　等々\n\nアルコールは、\nメクチュ（ビール）、ソジュ（焼酎）、マッコリ　等\n\n【候補日】\n10/30（金）、10/31（土）、11/20（金）、11/21（土）\n午後、2時間くらい\n\n【場所】\n韓国焼肉 セマウル食堂 上野店\n東京都台東区上野４－４－５　\n上野c-roadBidg 2階\n\n上野広小路駅、御徒町駅、上野駅から徒歩でアクセスできます\n\n【会費】\n当日割り勘で。3000-5000円予定\n\n【参加方法】\n下記アンケートに、参加可能な日をご回答ください。\n\n3名以上で開催、7名まで。\n\n予約不可の場合、Plan B　として、以下を。\n東京スカイツリー駅近くの「韓国料理オミガ Korean Cuisine, OMIGA 한국요리 오미가」\n\nご検討のほど、宜しくお願い致します！！\n\n韓国焼肉 セマウル食堂 上野店\nhttps://maps.app.goo.gl/HKm2eDvZP2WJgQvPA\n\n韓国料理オミガ\nhttps://maps.app.goo.gl/mfRyTdFE167hrQeZ9",
+    "embeds": [
+      {
+        "type": "link",
+        "url": "https://maps.app.goo.gl/HKm2eDvZP2WJgQvPA",
+        "title": "Saemaeul Shokudo Ueno Ten · 韓国料理 居酒屋 サムギョプ...",
+        "description": "★★★★☆ · Korean restaurant",
+        "provider": {
+          "name": "Saemaeul Shokudo Ueno Ten · 韓国料理 居酒屋 サムギョプサル 上野c-roadBidg 2階, 4 Chome-4-5 Ueno, Taito City, Tokyo 110-0005, Japan"
+        },
+        "thumbnail": {
+          "url": "https://lh3.googleusercontent.com/gps-cs-s/ANWiy9Tq-q13E3k09rwwAFew2G_s_qmb-WG2y38im6ltTGEYpTxhBfiwYO1zPhn16hpIUwTMz4nE_EDr1dFckcJsbNw6QLoYocjGgZ2o8V1B-fW8begNsU4f4gg3yAMwHFLOrh2Z12ZB46PbC3SU=w900-h900-p-k-no",
+          "proxy_url": "https://images-ext-1.discordapp.net/external/8tG5907FASvURIEcaCUA5DrBE8o6E23BIwGsGRtD8x8/https/lh3.googleusercontent.com/gps-cs-s/ANWiy9Tq-q13E3k09rwwAFew2G_s_qmb-WG2y38im6ltTGEYpTxhBfiwYO1zPhn16hpIUwTMz4nE_EDr1dFckcJsbNw6QLoYocjGgZ2o8V1B-fW8begNsU4f4gg3yAMwHFLOrh2Z12ZB46PbC3SU%3Dw900-h900-p-k-no",
+          "width": 900,
+          "height": 900,
+          "content_type": "image/jpeg",
+          "placeholder": "HhgODwL3qJh7eIl3h4l3Z6eH9z7YL34M",
+          "placeholder_version": 1,
+          "flags": 0
+        },
+        "content_scan_version": 4
+      },
+      {
+        "type": "link",
+        "url": "https://maps.app.goo.gl/mfRyTdFE167hrQeZ9",
+        "title": "Korean Cuisine, OMIGA · 2 Chome-1-1 Oshiage, Sumida City, Tokyo 13...",
+        "description": "★★★★★ · Korean restaurant",
+        "provider": {
+          "name": "Korean Cuisine, OMIGA · 2 Chome-1-1 Oshiage, Sumida City, Tokyo 131-0045, Japan"
+        },
+        "thumbnail": {
+          "url": "https://lh3.googleusercontent.com/gps-cs-s/ANWiy9R_Tar8XllH2TypLDfhEs86qkF0ywUIQgmzytgfXU6u_T36rANkW6NE7jMN7hszUBti8cSpft34IHHrsoR6oTN0k0YlCmtlReCpnhHqziYyzQh-D4ahwKzWjFP1c6u0XhUuf1TQ=w900-h900-p-k-no",
+          "proxy_url": "https://images-ext-1.discordapp.net/external/oVRmqBuRGaVDst5ca-MvGdf-hgePXCzgZF9h99wKOfk/https/lh3.googleusercontent.com/gps-cs-s/ANWiy9R_Tar8XllH2TypLDfhEs86qkF0ywUIQgmzytgfXU6u_T36rANkW6NE7jMN7hszUBti8cSpft34IHHrsoR6oTN0k0YlCmtlReCpnhHqziYyzQh-D4ahwKzWjFP1c6u0XhUuf1TQ%3Dw900-h900-p-k-no",
+          "width": 900,
+          "height": 900,
+          "content_type": "image/jpeg",
+          "placeholder": "oecJHwR4eGh+eHiLiFd2R4l/VAdFdFAD",
+          "placeholder_version": 1,
+          "flags": 0
+        },
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-12T10:08:11.143000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1559145652758257724"
+  },
+  {
+    "discord_message_id": "1557346738732269619",
+    "channel_name": "オンラインイベント",
+    "thread_name": null,
+    "discord_author_display_name": "ぽに",
+    "member_nickname": "ぽに",
+    "content": "@everyone \n今から副業チャレンジ公開打ち合わせするので良かったらぜひ～！一般チャンネルにてやってます✨",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-07T10:59:56.617000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1557346738732269619"
+  },
+  {
+    "discord_message_id": "1557278465923883079",
+    "channel_name": "オンラインイベント",
+    "thread_name": null,
+    "discord_author_display_name": "チミヱ",
+    "member_nickname": "チミヱ",
+    "content": "承知いたしました！お大事にしてください！",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-07T06:28:39.111000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1557278465923883079"
+  },
+  {
+    "discord_message_id": "1557209316870852682",
+    "channel_name": "オンラインイベント",
+    "thread_name": null,
+    "discord_author_display_name": "ドロリッチ",
+    "member_nickname": "ドロリッチ",
+    "content": "<@1395382666865541337> \n今日のイベント楽しみにしてたのですが、体調不良のためお休みさせてください。\nお誘いいただいたところ申し訳ないです…\n週末には治ると思うので、出版打ち合わせでお話できれば！",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-07T01:53:52.692000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1557209316870852682"
+  },
+  {
+    "discord_message_id": "1557190127586119814",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集締切】10／20 昼飲みガチ中華",
+    "discord_author_display_name": "瑠璃",
+    "member_nickname": "瑠璃",
+    "content": "浮雲さん、ありがとうございます！\n楽しみにしています🎵",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-07T00:37:37.610000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1557179188568395796/1557190127586119814"
+  },
+  {
+    "discord_message_id": "1557182172870352907",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集締切】10／20 昼飲みガチ中華",
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "【募集締切】10／20 昼飲みガチ中華",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-07T00:06:01.058000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1557179188568395796/1557182172870352907"
+  },
+  {
+    "discord_message_id": "1557179524611969057",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集締切】10／20 昼飲みガチ中華",
+    "discord_author_display_name": "かず",
+    "member_nickname": "かず",
+    "content": "ご予約ありがとうございます！\n皆さんにお会いできるのを楽しみにしてます^^",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-06T23:55:29.664000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1557179188568395796/1557179524611969057"
+  },
+  {
+    "discord_message_id": "1557179188568395796",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "【募集締切】10／20 昼飲みガチ中華",
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "<@1332684713709539330> <@1531904481959215239> <@1408740394765652061> <@1411758648295690242> <@936157075665461270> \n\nみなさまお申込みありがとうございました！\nイベント用フォーラムを作りました。\n下記の通り予約しました(予約名:ナカノ)\n当日楽しみにしています😃\n\n【日程】10/20（火）14:00-17:00\n\n【場所】\n東京・味坊（神田駅徒歩3分）\nhttps://s.tabelog.com/tokyo/A1310/A131002/13009143/\n\n【会費】\n当日割り勘で。3000-5000円くらいかと",
+    "embeds": [
+      {
+        "type": "link",
+        "url": "https://s.tabelog.com/tokyo/A1310/A131002/13009143/",
+        "title": "味坊 (神田/中華料理)",
+        "description": "★★★☆☆3.51 ■多数のメディアに取材された、話題の中華料理の人気店！！ ■予算(夜):￥2,000～￥2,999",
+        "provider": {
+          "name": "食べログ"
+        },
+        "thumbnail": {
+          "url": "https://tblg.k-img.com/resize/640x640c/restaurant/images/Rvw/9228/9228020.jpg?token=2d92822&api=v2",
+          "proxy_url": "https://images-ext-1.discordapp.net/external/guVN1psszVEABYYn9wFE3M5HLh6Rt8KvDbiRd73RCP0/%3Ftoken%3D2d92822%26api%3Dv2/https/tblg.k-img.com/resize/640x640c/restaurant/images/Rvw/9228/9228020.jpg",
+          "width": 640,
+          "height": 640,
+          "content_type": "image/jpeg",
+          "placeholder": "mwgKHwJTe4ZviXhteahnh2iJeHsJ5IcA",
+          "placeholder_version": 1,
+          "flags": 0
+        },
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-06T23:54:09.545000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1557179188568395796/1557179188568395796"
+  },
+  {
+    "discord_message_id": "1557176850629927006",
+    "channel_name": "オンラインイベント",
+    "thread_name": null,
+    "discord_author_display_name": "みかん０",
+    "member_nickname": "みかん🍊",
+    "content": "",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-06T23:44:52.137000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1557176850629927006"
+  },
+  {
+    "discord_message_id": "1556656730417528863",
+    "channel_name": "オンラインイベント",
+    "thread_name": null,
+    "discord_author_display_name": "チミヱ",
+    "member_nickname": "チミヱ",
+    "content": "@everyone 明後日7日に予定しております副業500円チャレンジ、アンケートに答えてくださった方ご協力ありがとうございました！！\n\n当日アンケート内容を共有しないで〜！という方がいらっしゃれば私までDMをください！\n\nお名前がわからないようにざっくりと共有させていただきたいなーと思った回答の方が何人かいらっしゃるので・・・",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-05T13:18:05.815000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1556656730417528863"
+  },
+  {
+    "discord_message_id": "1556656726684467281",
+    "channel_name": "オンラインイベント",
+    "thread_name": null,
+    "discord_author_display_name": "チミヱ",
+    "member_nickname": "チミヱ",
+    "content": "",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-05T13:18:04.925000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1395761853753200711/1556656726684467281"
+  },
+  {
+    "discord_message_id": "1556269750789869701",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "momomi",
+    "member_nickname": "momomi",
+    "content": "こちらこそよろしくお願いいします！確かに女子少ないですね～",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-04T11:40:22.682000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1556269750789869701"
+  },
+  {
+    "discord_message_id": "1556209813573345311",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "kon",
+    "member_nickname": "kon",
+    "content": "きたさん、フォーラム作成ありがとうございます！\nオフ会楽しみにしてます！",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-04T07:42:12.536000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1556209813573345311"
+  },
+  {
+    "discord_message_id": "1556134344077082637",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "みなくさ",
+    "member_nickname": "みなくさ",
+    "content": "mmomiさん、女子が少ないですがどうぞ宜しくお願いいたします。🙇",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-04T02:42:19.206000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1556134344077082637"
+  },
+  {
+    "discord_message_id": "1556084167924514819",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "momomi",
+    "member_nickname": "momomi",
+    "content": "きたさん、企画諸々ありがとうございます😊\n20数年ぶりの大道芸ワールドカップを皆さんと覗けるのが楽しみです！よろしくお願いします💕",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T23:22:56.279000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1556084167924514819"
+  },
+  {
+    "discord_message_id": "1556079265001373809",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "Takano",
+    "member_nickname": "Takano",
+    "content": "きたさんありがとうございます😆\n 皆様はじめましてですので緊張しますが楽しみです。よろしくお願いします😍",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T23:03:27.331000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1556079265001373809"
+  },
+  {
+    "discord_message_id": "1556070839907123272",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "きたさん、ありがとうございます！楽しみです😊",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T22:29:58.632000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1556070839907123272"
+  },
+  {
+    "discord_message_id": "1555952445610270825",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "まさやん",
+    "member_nickname": "まさやん",
+    "content": "きたさん、企画ありがとうございます！どうぞよろしくお願いします",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T14:39:31.232000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1555952445610270825"
+  },
+  {
+    "discord_message_id": "1555949922753183876",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "みなくさ",
+    "member_nickname": "みなくさ",
+    "content": "きたさん、お手配ありがとうございます。めっちゃ増えててびっくりです。３人かと思ってました（笑）。どうぞ宜しお願いいたします。",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T14:29:29.736000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1555949922753183876"
+  },
+  {
+    "discord_message_id": "1555941580584525916",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "<@720779993717801060> 　<@766532532547485726> 　<@888635825850560512> 　<@1083738770601414756>  <@1403968570123354205> 　<@1546810611743068294> \n私を含めた7名の方が今回の参加者になります。\n遠方からのご参加の方も多く、ありがとうございます。\nまだ、お会いしたことがない方もいらっしゃるので会っていろいろお話できるのを楽しみにしています😁 \n当日までの連絡や日程調整などをこちらで行いますのでよろしくお願いします。",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T13:56:20.808000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1555941580584525916"
+  },
+  {
+    "discord_message_id": "1555938340585345186",
+    "channel_name": "イベント用フォーラム",
+    "thread_name": "2026/11/1（日）第２回静岡さわやかオフ会＋大道芸ワールドカップ観戦ツアー",
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "第2回さわやかオフ会＋大道芸ワールドカップ観戦ツアーのフォーラムになります😁",
+    "embeds": [],
+    "attachments": [
+      {
+        "filename": "5237749c42a303b9.jpg",
+        "content_type": "image/jpeg",
+        "url": "https://cdn.discordapp.com/attachments/1555938340585345186/1555938341030072320/5237749c42a303b9.jpg?backend=b2&ex=6ad0d880&is=6acf8700&hm=3d02d357c37328dec167997ac07b9d58fbb56d4f41c3131a787593b0aa38de95&"
+      }
+    ],
+    "posted_at": "2026-10-03T13:43:28.332000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1555938340585345186/1555938340585345186"
+  },
+  {
+    "discord_message_id": "1555936470311899137",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "@everyone  第2回さわやかオフ会は11月1日開催に決定しました。\nイベント用フォーラムを作成しますので、参加者の方はそちらをご覧ください。\n今回、残念ながら日程が合わなかった方も、是非静岡をご案内したいと思いますので次の機会にご検討いただけたらと思います🙂‍↕️",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T13:36:02.424000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555936470311899137"
+  },
+  {
+    "discord_message_id": "1555932815424757881",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "とりさん、また企画しますので次回は是非〜🥟",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-03T13:21:31.031000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555932815424757881"
+  },
+  {
+    "discord_message_id": "1555926818387923046",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "きたさん",
+    "member_nickname": "きたさん",
+    "content": "",
+    "embeds": [
+      {
+        "type": "poll_result",
+        "fields": [
+          {
+            "name": "poll_question_text",
+            "value": "第2回さわやかオフ会参加可能日",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_votes",
+            "value": "6",
+            "inline": false
+          },
+          {
+            "name": "total_votes",
+            "value": "13",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_id",
+            "value": "1",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_text",
+            "value": "11月1日（日）",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_emoji_name",
+            "value": "🥩",
+            "inline": false
+          }
+        ],
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-03T12:57:41.226000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555926818387923046"
+  },
+  {
+    "discord_message_id": "1555588458435715205",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "とり",
+    "member_nickname": "とり",
+    "content": "あ〜私も出遅れました…昼中華行きたかった〜🤤",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-02T14:33:09.927000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555588458435715205"
+  },
+  {
+    "discord_message_id": "1555523718988697613",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "ご関心いただき嬉しいです！『昼飲み中華』は意外と好評だったので、また企画したいと思います。その時はぜひ🥟",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-02T10:15:54.840000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555523718988697613"
+  },
+  {
+    "discord_message_id": "1555378149213208586",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "みかん０",
+    "member_nickname": "みかん🍊",
+    "content": "@everyone 10/25の那須ハイランド貸し切りオフ会の宿泊組があと1人か2人増えたらいいな～と思っています！\n▼オフ会フォーラム\nhttps://discordapp.com/channels/1389921372683112539/1537669365732876319\n現在はちゃんさん、ひつじさん、私の3人が宿泊予定で泊る場所はここです！\nhttps://www.pure-cottages.jp/plan/1816\n希望者がいたら是非教えてください～！\n※日帰り参加者ももちろん募集中です！",
+    "embeds": [
+      {
+        "type": "link",
+        "url": "https://www.pure-cottages.jp/plan/1816",
+        "title": "【公式】TOWAピュアコテージ｜那須ハイランドパー...",
+        "description": "青と白を基調とした爽やかな色合いの建物。インテリアとしてラグジュアリーな家具を配置した、海を連想させるカルフォルニア調の新コンセプトの貸別荘です。那須の緑溢れる雄大な自然の中に居ながらも、カリフォルニアの海辺で過ごしているかのよう...",
+        "thumbnail": {
+          "url": "https://www.pure-cottages.jp/upload/RoomContents/images/imgrc_33_3ab4493e-dfd8-4cae-a408-61081ad353d9.jpg",
+          "proxy_url": "https://images-ext-1.discordapp.net/external/WWiniIOhxVC2ujElWBhOAsktC5WWc2mSk0rsmovNa_k/https/www.pure-cottages.jp/upload/RoomContents/images/imgrc_33_3ab4493e-dfd8-4cae-a408-61081ad353d9.jpg",
+          "width": 1200,
+          "height": 797,
+          "content_type": "image/jpeg",
+          "placeholder": "nPgFFYS56DQfp1m4V1e2inngrAbf",
+          "placeholder_version": 1,
+          "flags": 0
+        },
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-02T00:37:28.301000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555378149213208586"
+  },
+  {
+    "discord_message_id": "1555362881179226113",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "Chloé 🐈‍⬛",
+    "member_nickname": "Chloé 🐈‍⬛",
+    "content": "ああ残念！定員満席ですか…\nキャンセル出たら参加したいです🥹",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T23:36:48.118000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555362881179226113"
+  },
+  {
+    "discord_message_id": "1555194383308034178",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "",
+    "embeds": [
+      {
+        "type": "poll_result",
+        "fields": [
+          {
+            "name": "poll_question_text",
+            "value": "昼飲みガチ中華飲み会申込",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_votes",
+            "value": "6",
+            "inline": false
+          },
+          {
+            "name": "total_votes",
+            "value": "13",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_id",
+            "value": "3",
+            "inline": false
+          },
+          {
+            "name": "victor_answer_text",
+            "value": "10/20(火)",
+            "inline": false
+          }
+        ],
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-01T12:27:15.095000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555194383308034178"
+  },
+  {
+    "discord_message_id": "1555181929895034891",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "<@1332684713709539330> <@1411758648295690242> <@1408740394765652061> <@1531904481959215239> <@936157075665461270> 早速の申込ありがとうございました！定員達ましたので10/20(火)で決定とさせていただきます。詳細別途ご連絡いたします😄",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T11:37:45.970000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555181929895034891"
+  },
+  {
+    "discord_message_id": "1555180008111341725",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "ゆうかか",
+    "member_nickname": "ゆうかか",
+    "content": "時間帯によっては途中で抜けるかもしれませんが、1日だけ投票しました。🙇",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T11:30:07.781000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555180008111341725"
+  },
+  {
+    "discord_message_id": "1555176687631597669",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "どーやん",
+    "member_nickname": "どーやん",
+    "content": "時間少しだけ遅くなるかもですが、1日だけ候補日投票してみました😊",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T11:16:56.117000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555176687631597669"
+  },
+  {
+    "discord_message_id": "1555174655038595125",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "瑠璃",
+    "member_nickname": "瑠璃",
+    "content": "ほぼ 飲めないですし、1日しか 候補日を出せなかったんですけど、行けたら嬉しいです🎵",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T11:08:51.509000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555174655038595125"
+  },
+  {
+    "discord_message_id": "1555171616177262616",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "natsu🏝️",
+    "member_nickname": "natsu",
+    "content": "味坊大好きです😍早速投票しました🗳️",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T10:56:46.988000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555171616177262616"
+  },
+  {
+    "discord_message_id": "1555171001568993454",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "",
+    "embeds": [],
+    "attachments": [],
+    "posted_at": "2026-10-01T10:54:20.454000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555171001568993454"
+  },
+  {
+    "discord_message_id": "1555170604166946846",
+    "channel_name": "オフ会",
+    "thread_name": null,
+    "discord_author_display_name": "nano",
+    "member_nickname": "浮雲",
+    "content": "@everyone \n【募集締切】【昼飲みガチ中華のお誘い🍻】\n\n神田の「味坊」で、昼から中華を食べながら飲みませんか😃\n\n味坊は、神田駅東口のガード下にある、本場・中国東北地方の家庭料理のお店です。\n\n私のお気に入りは、羊肉串と地三鮮（ジャガイモ・茄子・ピーマン炒め）。\n自然派ワインもあります🍷\n\nみんなでいろいろ注文して、昼からゆるく3時間くらい楽しめればと思っています。\n\n【候補日】\n10/8（木）、10/13（火）、10/20（火）\n午後の時間帯で3時間くらい\n\n【場所】\n東京・味坊（神田駅徒歩3分）\nhttps://s.tabelog.com/tokyo/A1310/A131002/13009143/\n\n【会費】\n当日割り勘で。3000-5000円くらいかと\n\n【参加方法】\n下記アンケートに、参加可能な日をご回答ください。\n\n3名以上で開催、6名定員です。\n6名集まった日ができたら、その日で募集終了とします。\n\n平日昼間なので大丈夫だと思いますが、もし味坊が予約できなかった場合は、バックアップとして池袋の「永利」を考えています。こちらもガチ中華で有名なお店です。\n\n「昼から中華で飲みたい！」という方、ぜひご一緒しましょう🍻",
+    "embeds": [
+      {
+        "type": "link",
+        "url": "https://s.tabelog.com/tokyo/A1310/A131002/13009143/",
+        "title": "味坊 (神田/中華料理)",
+        "description": "★★★☆☆3.51 ■多数のメディアに取材された、話題の中華料理の人気店！！ ■予算(夜):￥2,000～￥2,999",
+        "provider": {
+          "name": "食べログ"
+        },
+        "thumbnail": {
+          "url": "https://tblg.k-img.com/resize/640x640c/restaurant/images/Rvw/9228/9228020.jpg?token=2d92822&api=v2",
+          "proxy_url": "https://images-ext-1.discordapp.net/external/guVN1psszVEABYYn9wFE3M5HLh6Rt8KvDbiRd73RCP0/%3Ftoken%3D2d92822%26api%3Dv2/https/tblg.k-img.com/resize/640x640c/restaurant/images/Rvw/9228/9228020.jpg",
+          "width": 640,
+          "height": 640,
+          "content_type": "image/jpeg",
+          "placeholder": "mwgKHwJTe4ZviXhteahnh2iJeHsJ5IcA",
+          "placeholder_version": 1,
+          "flags": 0
+        },
+        "content_scan_version": 4
+      }
+    ],
+    "attachments": [],
+    "posted_at": "2026-10-01T10:52:45.706000+00:00",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1432216927438372935/1555170604166946846"
+  }
+]
