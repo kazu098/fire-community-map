@@ -22,13 +22,12 @@ For each member whose matching interval has elapsed (member_matching_settings
   4. Post an announcement to the Discord matching channel, if configured.
 
 The announcement is written in the voice of the community mascot ふぁいにゃ
-(see docs/fainya-persona.md) and includes conversation-starter suggestions
-derived from the group's shared tags (member_tags) and self-introductions
-(member_profiles.self_intro_text): one for the whole group, plus one for
-each 2-member combination within it (shown by default alongside the group
-topic, not only as a fallback -- two members hitting it off while a third
-listens in is part of the fun), so the match feels less like a cold random
-pairing.
+(see docs/fainya-persona.md) and lists 4-5 sentence-level conversation starters
+that at least 3 members of the group can join in on, generated from the
+group's tags (member_tags) and self-introductions (member_profiles.
+self_intro_text) -- see scripts/yuru_talk_group_topics.py. Topics only two
+members share used to be listed per pair, but in a 3-4 person call that left
+the others just listening, so they are no longer shown.
 
 The announcement also links to a ゆるトーク page (index.html, ?view=yuru-talk&
 group=<id>) with the group's shared tags, conversation-starter questions
@@ -63,6 +62,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from topic_news import NEWS_ELIGIBLE_CATEGORIES, get_or_fetch_topic_news
+from yuru_talk_group_topics import build_group_topics, format_topic_line
 from yuru_talk_questions import questions_for_tag
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -443,20 +443,6 @@ def nicknames_with_pending_schedule(
     }
 
 
-def pairwise_topics(members: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
-    """Topic suggestions for every 2-member combination within the group.
-
-    Shown by default alongside the group-wide topic (not only when the group has none) --
-    two members hitting it off while a third listens in is part of the fun.
-    """
-    results = []
-    for a, b in itertools.combinations(members, 2):
-        topic = build_topic_suggestion([a, b])
-        if topic:
-            results.append((a["nickname"], b["nickname"], topic))
-    return results
-
-
 def build_common_tags(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Tags shared by 2+ members of the group, for the ゆるトーク page (docs/yuru-matching.md).
 
@@ -676,10 +662,42 @@ def run_matching(
     return results
 
 
+# 告知は通知で流れてくるので短くする: ネタは上位3つ。通話部屋のチャットとゆるトーク画面には全部(最大5つ)出す。
+ANNOUNCEMENT_MAX_TOPICS = 3
+# 「この人に聞いてみたい」は月1回ほど手で更新する想定。これより古いものは使わない。
+HOOK_MAX_AGE_DAYS = 45
+
+
+def format_group_topic_lines(group_topics: list[dict[str, Any]], nicknames: list[str]) -> list[str]:
+    """「💬 みんなで話せそうなネタ」の見出し+箇条書き。告知と通話部屋のチャットで共用。"""
+    if not group_topics:
+        return []
+    return ["💬 みんなで話せそうなネタ:"] + [f"- {format_topic_line(t, nicknames)}" for t in group_topics]
+
+
+def format_member_hook_lines(member_hooks: list[dict[str, str]]) -> list[str]:
+    """「🎤 この人に聞いてみたい」の見出し+1人1行。誰の分も無ければ空。"""
+    if not member_hooks:
+        return []
+    return ["🎤 この人に聞いてみたい:"] + [f"- {h['nickname']}さん：{h['text']}" for h in member_hooks]
+
+
+def pick_member_hooks(
+    nicknames: list[str], hooks_by_nickname: dict[str, list[dict[str, Any]]], rng: random.Random,
+) -> list[dict[str, str]]:
+    """グループの各メンバーから「聞いてみたい」を1つずつ選ぶ(複数あればランダム)。無い人は載せない。"""
+    picked = []
+    for nickname in nicknames:
+        hooks = [h for h in hooks_by_nickname.get(nickname, []) if h.get("text")]
+        if hooks:
+            picked.append({"nickname": nickname, "text": rng.choice(hooks)["text"]})
+    return picked
+
+
 def format_announcement(
     match: dict[str, Any],
-    group_topic: str | None,
-    pair_topics: list[tuple[str, str, str]],
+    group_topics: list[dict[str, Any]],
+    member_hooks: list[dict[str, str]] | None = None,
     discord_user_ids: dict[str, str] | None = None,
     yuru_talk_url: str | None = None,
 ) -> str:
@@ -703,18 +721,15 @@ def format_announcement(
         f"みんな「{day}曜{hour}時」が空いているみたい",
     ]
 
-    topic_lines = []
-    if group_topic:
-        label = "(全員) " if len(members) > 2 else ""
-        topic_lines.append(f"{label}{group_topic}")
-    for a, b, topic in pair_topics:
-        if topic == group_topic:
-            continue  # already covered by the (全員) line above
-        topic_lines.append(f"({a}さん×{b}さん) {topic}")
+    topic_lines = format_group_topic_lines(group_topics[:ANNOUNCEMENT_MAX_TOPICS], members)
     if topic_lines:
         lines.append("")
-        lines.append("💡 盛り上がりそうな話題:")
-        lines.extend(f"- {t}" for t in topic_lines)
+        lines.extend(topic_lines)
+
+    hook_lines = format_member_hook_lines(member_hooks or [])
+    if hook_lines:
+        lines.append("")
+        lines.extend(hook_lines)
 
     if match.get("mentor"):
         lines.append("")
@@ -842,6 +857,24 @@ def main() -> int:
     member_links = get("/rest/v1/member_links?select=member_nickname,label,url")
     member_locations = get("/rest/v1/member_locations?select=nickname,prefecture")
     talk_wishes = get("/rest/v1/member_talk_wishes?select=member_nickname,target_nickname")
+    # 最近のDiscord/noteの投稿から集計した興味(scripts/sync_member_interest_signals.pyが1日1回更新)。
+    # テーブル未作成・取得失敗でも話題がプロフィールだけになるだけなので、マッチングは止めない。
+    try:
+        interest_signals = get("/rest/v1/member_interest_signals?select=member_nickname,recent_themes")
+    except (HTTPError, URLError) as exc:
+        print(f"Could not load member_interest_signals, using profiles only: {exc}")
+        interest_signals = []
+    signals_by_nickname = {row["member_nickname"]: row for row in interest_signals}
+    # 「この人に聞いてみたい」(scripts/load_conversation_hooks.pyでレビュー済みのものを投入)。古いものは使わない。
+    try:
+        hook_rows = get(
+            "/rest/v1/member_conversation_hooks?select=member_nickname,hooks"
+            f"&updated_at=gte.{quote((now - timedelta(days=HOOK_MAX_AGE_DAYS)).isoformat())}"
+        )
+    except (HTTPError, URLError) as exc:
+        print(f"Could not load member_conversation_hooks, skipping them: {exc}")
+        hook_rows = []
+    hooks_by_nickname = {row["member_nickname"]: row.get("hooks") or [] for row in hook_rows}
 
     pending_nicknames = nicknames_with_pending_schedule(pending_schedules, recent_group_members, now)
     due_nicknames = [
@@ -870,6 +903,7 @@ def main() -> int:
             "links": links_by_nickname.get(nickname, []),
             "prefecture": prefecture_by_nickname.get(nickname),
             "has_avatar": bool(profile.get("avatar_url")),
+            "recent_themes": (signals_by_nickname.get(nickname) or {}).get("recent_themes") or [],
         }
 
     joined_months = {
@@ -886,7 +920,8 @@ def main() -> int:
     for match in matches:
         member_inputs = [member_topic_input(n) for n in match["members"]]
         match["group_topic"] = build_topic_suggestion(member_inputs)
-        match["pair_topics"] = pairwise_topics(member_inputs) if len(member_inputs) > 2 else []
+        match["group_topics"] = build_group_topics(member_inputs, rng)
+        match["member_hooks"] = pick_member_hooks(match["members"], hooks_by_nickname, rng)
         match["common_tags"] = build_common_tags(member_inputs)
         # Generated up front (not by the DB default) so the ゆるトーク link can go in the same
         # Discord announcement message that creates this row -- see the group insert below.
@@ -897,10 +932,10 @@ def main() -> int:
         names = " / ".join(match["members"])
         mentor_note = "  [入会時期ばらけ]" if match.get("mentor") else ""
         print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{match['hour']}時){mentor_note}")
-        if match.get("group_topic"):
-            print(f"    group topic: {match['group_topic']}")
-        for a, b, topic in match.get("pair_topics", []):
-            print(f"    {a} x {b}: {topic}")
+        for topic in match.get("group_topics", []):
+            print(f"    [{topic['source']}] {format_topic_line(topic, match['members'])}")
+        for hook in match.get("member_hooks", []):
+            print(f"    [hook] {hook['nickname']}: {hook['text']}")
 
     if args.dry_run:
         print("--dry-run: no writes to Supabase, no Discord post.")
@@ -932,7 +967,7 @@ def main() -> int:
             if channel_id and bot_token:
                 mentioned_ids = [discord_user_ids[n] for n in match["members"] if n in discord_user_ids]
                 content = format_announcement(
-                    match, match.get("group_topic"), match.get("pair_topics", []), discord_user_ids,
+                    match, match.get("group_topics", []), match.get("member_hooks", []), discord_user_ids,
                     yuru_talk_url=yuru_talk_url,
                 )
                 message_id = discord_post(channel_id, bot_token, content, mentioned_ids)
@@ -972,7 +1007,8 @@ def main() -> int:
             body=[{
                 "group_id": group_id,
                 "group_topic": match.get("group_topic"),
-                "pair_topics": [{"a": a, "b": b, "topic": t} for a, b, t in match.get("pair_topics", [])],
+                "group_topics": match.get("group_topics", []),
+                "member_hooks": match.get("member_hooks", []),
                 "common_tags": common_tags,
             }],
             prefer="return=minimal",

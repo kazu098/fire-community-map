@@ -30,6 +30,18 @@ jobs:
             --output tmp/community_posts_raw.json \
             --state-file data/community_posts_sync_state.json
 
+      # ゆるマッチングの話題づくり用に、参加メンバーの最近の興味(Discord直近30日・note直近60日)を
+      # テーマ別件数としてmember_interest_signalsへ保存する(scripts/sync_member_interest_signals.py)。
+      # 失敗しても後続のコンテンツ同期は止めない。
+      - name: Sync member interest signals for ゆるマッチング topics
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+        run: python3 scripts/sync_member_interest_signals.py
+
       - name: Build auto-curated book posts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
