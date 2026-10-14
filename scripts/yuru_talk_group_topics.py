@@ -24,7 +24,7 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from yuru_talk_questions import QUESTION_BANK, questions_for_tag
+from yuru_talk_questions import questions_for_tag
 
 MAX_GROUP_TOPICS = 5
 MIN_GROUP_TOPICS = 4
@@ -32,10 +32,12 @@ MIN_GROUP_TOPICS = 4
 MIN_TOPIC_MEMBERS = 3
 
 # 完全一致のタグから作る話題に使うカテゴリ(run_member_matching.TOPIC_TAG_CATEGORIESと同じ並び)。
-EXACT_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "affiliation", "skill", "fire_status", "mbti"]
+# affiliation(所属チーム・部活)は使わない: そのチームには定期ミーティングがあって話す場は足りているうえ、
+# チームにいない人からすると内輪ネタになる(かずさんの判断、2026-10-14)。テーマ判定・詳細の材料からも外す。
+EXACT_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "skill", "fire_status", "mbti"]
 # テーマ判定に使うカテゴリ。consultation(相談できること)は不妊治療・持病など踏み込んだ内容が
 # 入っているので使わない。mbtiは記号なので対象外。
-THEME_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "affiliation", "skill", "wants_to_know"]
+THEME_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "skill", "wants_to_know"]
 
 # キーワードはタグ値・自己紹介文への部分一致。自己紹介文にも当てるので、「本」(日本)や「IT」
 # のように別の語に含まれやすい短い語は入れない。健康・家族の踏み込んだ話題(病気・妊活など)は
@@ -73,7 +75,7 @@ THEMES: list[dict[str, Any]] = [
     {
         "key": "writing",
         "label": "発信・執筆",
-        "keywords": ["note", "ブログ", "YouTube", "X運用", "発信", "Kindle", "kindle", "出版", "ラジオ", "執筆"],
+        "keywords": ["note", "ブログ", "YouTube", "発信", "Kindle", "kindle", "出版", "ラジオ", "執筆"],
         "questions": [
             "発信や執筆を続けていて、よかったこと・大変なことは何ですか？",
             "書いたり話したりするネタは、どうやって見つけていますか？",
@@ -145,7 +147,7 @@ THEMES: list[dict[str, Any]] = [
     {
         "key": "tech",
         "label": "AI・テック",
-        "keywords": ["AI", "プログラミング", "Vibe coding", "エンジニア", "ITチーム", "開発"],
+        "keywords": ["AI", "プログラミング", "Vibe coding", "エンジニア", "開発"],
         "questions": [
             "仕事や生活で、AIをどんなふうに使っていますか？",
         ],
@@ -214,10 +216,6 @@ def _exact_tag_topics(members: list[dict[str, Any]], nicknames: list[str], min_m
 
 
 def _exact_tag_question(category: str, value: str) -> str:
-    # 「ITチーム」「麻雀部」のようなF研内の活動は、汎用の「〜について最近気になっていること」だと
-    # ぎこちないので、活動そのものを聞く言い回しにする。
-    if category == "affiliation" and value not in QUESTION_BANK:
-        return f"{value}では、最近どんなことをしていますか？ 入ってよかったことも聞いてみたいです。"
     return questions_for_tag(value, category)[0]
 
 
@@ -279,27 +277,20 @@ def member_themes(member: dict[str, Any]) -> set[str]:
     return profile_themes(member) | set(member.get("recent_themes") or [])
 
 
-# 詳細に出す記事タイトルの最大文字数(Discordの1行が長くなりすぎないように)
-MAX_DETAIL_TITLE_CHARS = 18
 MAX_DETAIL_ITEMS = 2
-
-
-def _shorten(text: str, limit: int = MAX_DETAIL_TITLE_CHARS) -> str:
-    text = " ".join(text.split())
-    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def theme_detail_items(member: dict[str, Any], theme: dict[str, Any]) -> list[str]:
     """そのメンバーがテーマに当てはまる具体的な中身(話題の下に「かずさん: …」と添える)。
 
-    最近のnote記事タイトル → 該当するタグの値 → よく投稿しているDiscordチャンネル → 自己紹介文の語、の順。
-    いずれもメンバー本人がサイト・Discord・noteで公開している範囲の情報だけを使う。
+    該当するタグの値 → よく投稿しているDiscordチャンネル → 自己紹介文の語、の順。
+    noteの記事タイトルは引用しない: キーワード一致だけでは「資産1億円あっても結婚できないのか？」の
+    ような、本人が告知で取り上げられたくなさそうな記事も拾ってしまうため。記事にもとづく話題は、
+    人の目で選ぶ「この人に聞いてみたい」(member_conversation_hooks)で扱う。
     """
     keywords = theme["keywords"]
     items: list[str] = []
     recent = ((member.get("recent_details") or {}).get(theme["key"])) or {}
-    for title in (recent.get("note_titles") or [])[:1]:
-        items.append(f"note「{_shorten(title)}」")
     tag_values = [
         v for c in THEME_TAG_CATEGORIES for v in (member.get("tags") or {}).get(c, [])
         if _has_keyword(v, keywords)
@@ -307,11 +298,12 @@ def theme_detail_items(member: dict[str, Any], theme: dict[str, Any]) -> list[st
     items.extend(dict.fromkeys(tag_values))
     for channel in list((recent.get("channels") or {}))[:1]:
         items.append(f"Discord #{channel}")
-    intro = member.get("intro") or ""
-    if len(items) == 0:
-        intro_words = [kw for kw in keywords if kw in _clean(intro)]
+    if not items:
+        intro_words = [kw for kw in keywords if kw in _clean(member.get("intro") or "")]
         if intro_words:
             items.append(f"自己紹介に「{intro_words[0]}」")
+        elif recent.get("note"):
+            items.append("最近のnoteで")
     return list(dict.fromkeys(items))[:MAX_DETAIL_ITEMS]
 
 
@@ -383,6 +375,6 @@ def format_topic_line(topic: dict[str, Any], group_nicknames: list[str]) -> str:
 
 
 def format_topic_details(topic: dict[str, Any]) -> str | None:
-    """「かずさん: note「…」・ITチーム ／ みかんさん: ブログ」のような詳細の1行。無ければNone。"""
+    """「かずさん: note「…」・米国個別株 ／ みかんさん: ブログ」のような詳細の1行。無ければNone。"""
     parts = [f"{d['nickname']}さん: {'・'.join(d['items'])}" for d in topic.get("details") or [] if d.get("items")]
     return " ／ ".join(parts) if parts else None

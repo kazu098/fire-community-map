@@ -51,6 +51,10 @@ def main() -> int:
             f"&member_nickname=in.{names_filter}"
         )
     }
+    hooks_by_nickname = {
+        h["member_nickname"]: h.get("hooks") or []
+        for h in get(f"/rest/v1/member_conversation_hooks?select=member_nickname,hooks&member_nickname=in.{names_filter}")
+    }
     missing = [n for n in args.nicknames if n not in profiles]
     if missing:
         raise SystemExit(f"見つからないニックネーム: {', '.join(missing)}")
@@ -69,7 +73,9 @@ def main() -> int:
     for m in members:
         print(f"  {m['nickname']}: {', '.join(m['recent_themes']) or '(なし)'}")
 
-    topics = build_group_topics(members, random.Random(args.seed))
+    rng = random.Random(args.seed)
+    topics = build_group_topics(members, rng)
+    member_hooks = matching.pick_member_hooks(args.nicknames, hooks_by_nickname, rng)
     print("\n話題の出どころ:")
     for t in topics:
         print(f"  [{t['source']}] {t['text'][:30]}…")
@@ -77,11 +83,11 @@ def main() -> int:
     match = {"members": args.nicknames, "day_of_week": "sat", "hour": 10}
     url = f"{matching.SITE_BASE_URL}/?view=yuru-talk&group=<group_id>"
     print("\n===== マッチング告知 =====")
-    announcement = matching.format_announcement(match, topics, {}, yuru_talk_url=url)
+    announcement = matching.format_announcement(match, topics, member_hooks, {}, yuru_talk_url=url)
     print(announcement)
     print(f"({len(announcement)}文字 / 上限{matching.DISCORD_MESSAGE_LIMIT})")
     print("\n===== 通話部屋のチャット =====")
-    print(schedules.format_voice_channel_topics(topics, args.nicknames, "<group_id>"))
+    print(schedules.format_voice_channel_topics(topics, args.nicknames, "<group_id>", member_hooks))
     return 0
 
 

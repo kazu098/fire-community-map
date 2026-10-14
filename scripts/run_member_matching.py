@@ -664,24 +664,47 @@ def run_matching(
 
 # Discordのメッセージ本文は2000文字まで。話題の詳細行で超えそうなときは詳細を後ろの話題から削る。
 DISCORD_MESSAGE_LIMIT = 1900
+# 告知は通知で流れてくるので短くする: ネタは上位3つ・詳細行なし。詳細は通話部屋のチャットとゆるトーク画面へ。
+ANNOUNCEMENT_MAX_TOPICS = 3
+# 「この人に聞いてみたい」は月1回ほど手で更新する想定。これより古いものは使わない。
+HOOK_MAX_AGE_DAYS = 45
 
 
 def format_group_topic_lines(
     group_topics: list[dict[str, Any]], nicknames: list[str], detail_count: int | None = None,
 ) -> list[str]:
-    """「💬 みんなで話せそうな話題」の見出し+箇条書き(+各話題の詳細)。告知と通話部屋のチャットで共用。
+    """「💬 みんなで話せそうなネタ」の見出し+箇条書き(+各話題の詳細)。告知と通話部屋のチャットで共用。
 
-    detail_count: 先頭から何個の話題に詳細行を付けるか(Noneなら全部)。
+    detail_count: 先頭から何個の話題に詳細行を付けるか(Noneなら全部、0なら詳細なし)。
     """
     if not group_topics:
         return []
-    lines = ["💬 みんなで話せそうな話題:"]
+    lines = ["💬 みんなで話せそうなネタ:"]
     for index, topic in enumerate(group_topics):
         lines.append(f"- {format_topic_line(topic, nicknames)}")
         details = format_topic_details(topic)
         if details and (detail_count is None or index < detail_count):
             lines.append(f"  - {details}")
     return lines
+
+
+def format_member_hook_lines(member_hooks: list[dict[str, str]]) -> list[str]:
+    """「🎤 この人に聞いてみたい」の見出し+1人1行。誰の分も無ければ空。"""
+    if not member_hooks:
+        return []
+    return ["🎤 この人に聞いてみたい:"] + [f"- {h['nickname']}さん：{h['text']}" for h in member_hooks]
+
+
+def pick_member_hooks(
+    nicknames: list[str], hooks_by_nickname: dict[str, list[dict[str, Any]]], rng: random.Random,
+) -> list[dict[str, str]]:
+    """グループの各メンバーから「聞いてみたい」を1つずつ選ぶ(複数あればランダム)。無い人は載せない。"""
+    picked = []
+    for nickname in nicknames:
+        hooks = [h for h in hooks_by_nickname.get(nickname, []) if h.get("text")]
+        if hooks:
+            picked.append({"nickname": nickname, "text": rng.choice(hooks)["text"]})
+    return picked
 
 
 def fit_discord_limit(render: Any, group_topics: list[dict[str, Any]]) -> str:
@@ -696,21 +719,9 @@ def fit_discord_limit(render: Any, group_topics: list[dict[str, Any]]) -> str:
 def format_announcement(
     match: dict[str, Any],
     group_topics: list[dict[str, Any]],
+    member_hooks: list[dict[str, str]] | None = None,
     discord_user_ids: dict[str, str] | None = None,
     yuru_talk_url: str | None = None,
-) -> str:
-    return fit_discord_limit(
-        lambda detail_count: _format_announcement(match, group_topics, discord_user_ids, yuru_talk_url, detail_count),
-        group_topics,
-    )
-
-
-def _format_announcement(
-    match: dict[str, Any],
-    group_topics: list[dict[str, Any]],
-    discord_user_ids: dict[str, str] | None,
-    yuru_talk_url: str | None,
-    detail_count: int | None,
 ) -> str:
     """Render the Discord announcement in ふぁいにゃ's voice (docs/fainya-persona.md).
 
@@ -732,10 +743,15 @@ def _format_announcement(
         f"みんな「{day}曜{hour}時」が空いているみたい",
     ]
 
-    topic_lines = format_group_topic_lines(group_topics, members, detail_count)
+    topic_lines = format_group_topic_lines(group_topics[:ANNOUNCEMENT_MAX_TOPICS], members, detail_count=0)
     if topic_lines:
         lines.append("")
         lines.extend(topic_lines)
+
+    hook_lines = format_member_hook_lines(member_hooks or [])
+    if hook_lines:
+        lines.append("")
+        lines.extend(hook_lines)
 
     if match.get("mentor"):
         lines.append("")
@@ -871,6 +887,16 @@ def main() -> int:
         print(f"Could not load member_interest_signals, using profiles only: {exc}")
         interest_signals = []
     signals_by_nickname = {row["member_nickname"]: row for row in interest_signals}
+    # 「この人に聞いてみたい」(scripts/load_conversation_hooks.pyでレビュー済みのものを投入)。古いものは使わない。
+    try:
+        hook_rows = get(
+            "/rest/v1/member_conversation_hooks?select=member_nickname,hooks"
+            f"&updated_at=gte.{quote((now - timedelta(days=HOOK_MAX_AGE_DAYS)).isoformat())}"
+        )
+    except (HTTPError, URLError) as exc:
+        print(f"Could not load member_conversation_hooks, skipping them: {exc}")
+        hook_rows = []
+    hooks_by_nickname = {row["member_nickname"]: row.get("hooks") or [] for row in hook_rows}
 
     pending_nicknames = nicknames_with_pending_schedule(pending_schedules, recent_group_members, now)
     due_nicknames = [
@@ -918,6 +944,7 @@ def main() -> int:
         member_inputs = [member_topic_input(n) for n in match["members"]]
         match["group_topic"] = build_topic_suggestion(member_inputs)
         match["group_topics"] = build_group_topics(member_inputs, rng)
+        match["member_hooks"] = pick_member_hooks(match["members"], hooks_by_nickname, rng)
         match["common_tags"] = build_common_tags(member_inputs)
         # Generated up front (not by the DB default) so the ゆるトーク link can go in the same
         # Discord announcement message that creates this row -- see the group insert below.
@@ -932,6 +959,8 @@ def main() -> int:
             print(f"    [{topic['source']}] {format_topic_line(topic, match['members'])}")
             if details := format_topic_details(topic):
                 print(f"        {details}")
+        for hook in match.get("member_hooks", []):
+            print(f"    [hook] {hook['nickname']}: {hook['text']}")
 
     if args.dry_run:
         print("--dry-run: no writes to Supabase, no Discord post.")
@@ -963,7 +992,8 @@ def main() -> int:
             if channel_id and bot_token:
                 mentioned_ids = [discord_user_ids[n] for n in match["members"] if n in discord_user_ids]
                 content = format_announcement(
-                    match, match.get("group_topics", []), discord_user_ids, yuru_talk_url=yuru_talk_url,
+                    match, match.get("group_topics", []), match.get("member_hooks", []), discord_user_ids,
+                    yuru_talk_url=yuru_talk_url,
                 )
                 message_id = discord_post(channel_id, bot_token, content, mentioned_ids)
                 posted_at = datetime.now(timezone.utc).isoformat()
@@ -1003,6 +1033,7 @@ def main() -> int:
                 "group_id": group_id,
                 "group_topic": match.get("group_topic"),
                 "group_topics": match.get("group_topics", []),
+                "member_hooks": match.get("member_hooks", []),
                 "common_tags": common_tags,
             }],
             prefer="return=minimal",

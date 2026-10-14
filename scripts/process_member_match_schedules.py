@@ -381,9 +381,16 @@ def format_thread_confirmation_prompt(date: datetime, count: int) -> str:
     )
 
 
-def format_voice_channel_topics(group_topics: list[dict[str, Any]], nicknames: list[str], group_id: str) -> str:
+def format_voice_channel_topics(
+    group_topics: list[dict[str, Any]], nicknames: list[str], group_id: str, member_hooks: list[dict[str, str]] | None = None,
+) -> str:
+    """通話部屋のチャット用。告知と違い、ネタは全部(最大5つ)と詳細行も載せる。"""
     def render(detail_count: int) -> str:
         lines = ["🐾 ここがみんなの通話部屋だにゃ♪ 話のきっかけに使ってください", ""]
+        hook_lines = matching.format_member_hook_lines(member_hooks or [])
+        if hook_lines:
+            lines.extend(hook_lines)
+            lines.append("")
         lines.extend(matching.format_group_topic_lines(group_topics, nicknames, detail_count))
         lines.append("")
         lines.append(f"🗨️ 共通タグや関連ニュース: {matching.SITE_BASE_URL}/?view=yuru-talk&group={group_id}")
@@ -404,13 +411,16 @@ def post_topics_to_voice_channel(
     try:
         rows = matching.supabase_request(
             "GET",
-            f"{supabase_url}/rest/v1/member_match_group_topics?group_id=eq.{group_id}&select=group_topics",
+            f"{supabase_url}/rest/v1/member_match_group_topics?group_id=eq.{group_id}&select=group_topics,member_hooks",
             service_role_key,
         )
         group_topics = (rows[0].get("group_topics") if rows else None) or []
-        if not group_topics:
+        member_hooks = (rows[0].get("member_hooks") if rows else None) or []
+        if not group_topics and not member_hooks:
             return
-        matching.discord_post(voice_channel_id, bot_token, format_voice_channel_topics(group_topics, nicknames, group_id))
+        matching.discord_post(
+            voice_channel_id, bot_token, format_voice_channel_topics(group_topics, nicknames, group_id, member_hooks),
+        )
     except RuntimeError as exc:
         print(f"  posting topics to voice channel failed: {exc}")
 
