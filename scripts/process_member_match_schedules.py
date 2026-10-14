@@ -384,8 +384,18 @@ def format_thread_confirmation_prompt(date: datetime, count: int) -> str:
 def format_voice_channel_topics(
     group_topics: list[dict[str, Any]], nicknames: list[str], group_id: str, member_hooks: list[dict[str, str]] | None = None,
 ) -> str:
-    """通話部屋のチャット用。告知と違い、ネタは全部(最大5つ)載せる。"""
-    lines = ["🐾 ここがみんなの通話部屋だにゃ♪ 話のきっかけに使ってください", ""]
+    """通話部屋のチャット用。告知と違い、ネタは全部(最大5つ)載せる。
+
+    冒頭に当日の進め方(最初の5分は自己紹介→そのあと話題を1つ選ぶ)を書いておく。
+    初対面どうしだといきなり話題に入りにくいため(かずさんの提案、2026-10-14)。
+    """
+    lines = [
+        "🐾 ここがみんなの通話部屋だにゃ♪",
+        "",
+        "🕐 はじめの5分: 初対面の人がいたら、お互いに自己紹介してみてください",
+        "🗣️ そのあと: 下の話題から1つ選んで話してみましょう（盛り上がったら2つ目もどうぞ）",
+        "",
+    ]
     hook_lines = matching.format_member_hook_lines(member_hooks or [])
     if hook_lines:
         lines.extend(hook_lines)

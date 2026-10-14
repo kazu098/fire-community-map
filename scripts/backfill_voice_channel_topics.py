@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import process_member_match_schedules as schedules
@@ -30,6 +31,11 @@ def main() -> int:
     parser.add_argument("--env-file", default=".env")
     parser.add_argument("--dry-run", action="store_true", help="Print the messages without saving or posting.")
     parser.add_argument("--markdown", help="With --dry-run, also write the messages to this .md file.")
+    parser.add_argument(
+        "--edit-posted", action="store_true",
+        help="Instead of posting new messages, re-render the bot's already-posted message in each upcoming voice "
+             "channel from the saved topics (e.g. after changing format_voice_channel_topics). Edits don't notify anyone.",
+    )
     args = parser.parse_args()
 
     matching.load_dotenv(Path(args.env_file))
@@ -57,6 +63,9 @@ def main() -> int:
         h["member_nickname"]: h.get("hooks") or []
         for h in get("/rest/v1/member_conversation_hooks?select=member_nickname,hooks")
     }
+
+    if args.edit_posted:
+        return edit_posted(upcoming, get, args.dry_run, bot_token)
 
     md_lines = ["# 開催前のゆるマッチング: 通話部屋に投稿する文面", "", f"{now.astimezone(matching.JST):%Y-%m-%d %H:%M} 時点で開催決定済み・開催前の組。", ""]
     for schedule in upcoming:
@@ -112,6 +121,50 @@ def main() -> int:
     if args.dry_run and args.markdown:
         Path(args.markdown).write_text("\n".join(md_lines), encoding="utf-8")
         print(f"\nwrote {args.markdown}")
+    return 0
+
+
+def edit_posted(upcoming: list[dict[str, Any]], get: Any, dry_run: bool, bot_token: str | None) -> int:
+    """投稿済みの通話部屋メッセージを、保存済みの話題から今の書式で作り直して編集する(文面の中身は変えない)。"""
+    for schedule in upcoming:
+        group_id = schedule["group_id"]
+        rows = get(f"/rest/v1/member_match_group_topics?group_id=eq.{group_id}&select=group_topics,member_hooks")
+        if not rows or not (rows[0].get("group_topics") or rows[0].get("member_hooks")):
+            print(f"skip {group_id}: no saved topics")
+            continue
+        nicknames = [
+            r["member_nickname"] for r in get(f"/rest/v1/member_match_group_members?group_id=eq.{group_id}&select=member_nickname")
+        ]
+        content = schedules.format_voice_channel_topics(
+            rows[0].get("group_topics") or [], nicknames, group_id, rows[0].get("member_hooks") or [],
+        )
+        print(f"\n===== {' / '.join(nicknames)}\n{content}")
+        if dry_run:
+            continue
+        channel_id = schedule["voice_channel_id"]
+        bot_user_id = schedules.fetch_bot_user_id(bot_token)
+        messages = schedules.fetch_channel_messages(channel_id, bot_token, limit=50)
+        target = next(
+            (m for m in messages
+             if str((m.get("author") or {}).get("id")) == bot_user_id
+             and str(m.get("content") or "").startswith("🐾 ここがみんなの通話部屋")),
+            None,
+        )
+        if not target:
+            print(f"  no posted message found in {channel_id}, skipped")
+            continue
+        req = Request(
+            f"{matching.DISCORD_API_BASE}/channels/{channel_id}/messages/{target['id']}",
+            data=json.dumps({"content": content, "allowed_mentions": {"parse": []}}).encode("utf-8"),
+            headers={"Authorization": f"Bot {bot_token}", "User-Agent": matching.USER_AGENT, "Content-Type": "application/json"},
+            method="PATCH",
+        )
+        try:
+            with urlopen(req, timeout=30):
+                pass
+            print(f"  edited message {target['id']}")
+        except HTTPError as exc:
+            print(f"  edit failed for {channel_id}: {exc.code} {exc.read().decode('utf-8', errors='replace')}")
     return 0
 
 
