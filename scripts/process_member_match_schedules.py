@@ -53,6 +53,10 @@ VOICE_CHANNEL_CLEANUP_BUFFER_HOURS = 4
 # VIEW_CHANNEL (0x400) + CONNECT (0x100000): enough to see and join the temporary
 # voice channel, nothing more.
 VOICE_CHANNEL_PERMISSION_BITS = 0x400 | 0x100000
+# ボイスチャンネル付属のチャット欄に「みんなで話せそうな話題」を置くため、許可する側
+# (Bot・対象メンバー)にはSEND_MESSAGES(0x800)とREAD_MESSAGE_HISTORY(0x10000)も付ける。
+# @everyoneのdenyはVIEW/CONNECTだけで十分(見えなければ書けない)なので変えない。
+VOICE_CHANNEL_ALLOW_BITS = VOICE_CHANNEL_PERMISSION_BITS | 0x800 | 0x10000
 THREAD_CONFIRM_EMOJI = "✅"
 REMINDER_HOUR_JST = 19
 # Surveys are only sent for events this recent, so the first run after deploying the survey
@@ -218,10 +222,10 @@ def create_voice_channel(guild_id: str, name: str, member_user_ids: list[str], b
     # 見える/操作できるようにしておく。
     overwrites = [
         {"id": guild_id, "type": 0, "allow": "0", "deny": str(VOICE_CHANNEL_PERMISSION_BITS)},
-        {"id": bot_user_id, "type": 1, "allow": str(VOICE_CHANNEL_PERMISSION_BITS), "deny": "0"},
+        {"id": bot_user_id, "type": 1, "allow": str(VOICE_CHANNEL_ALLOW_BITS), "deny": "0"},
     ]
     overwrites.extend(
-        {"id": user_id, "type": 1, "allow": str(VOICE_CHANNEL_PERMISSION_BITS), "deny": "0"}
+        {"id": user_id, "type": 1, "allow": str(VOICE_CHANNEL_ALLOW_BITS), "deny": "0"}
         for user_id in member_user_ids
     )
     body = {"name": name, "type": 2, "permission_overwrites": overwrites}
@@ -377,10 +381,42 @@ def format_thread_confirmation_prompt(date: datetime, count: int) -> str:
     )
 
 
+def format_voice_channel_topics(group_topics: list[dict[str, Any]], nicknames: list[str], group_id: str) -> str:
+    lines = ["🐾 ここがみんなの通話部屋だにゃ♪ 話のきっかけに使ってください", ""]
+    lines.extend(matching.format_group_topic_lines(group_topics, nicknames))
+    lines.append("")
+    lines.append(f"🗨️ 共通タグや関連ニュース: {matching.SITE_BASE_URL}/?view=yuru-talk&group={group_id}")
+    return "\n".join(lines)
+
+
+def post_topics_to_voice_channel(
+    supabase_url: str, service_role_key: str, group_id: str, nicknames: list[str], voice_channel_id: str, bot_token: str,
+) -> None:
+    """ゆるトークのリンクを開かない人も多いので、通話部屋のチャット欄にも話題を置いておく。
+
+    話題はマッチング時にmember_match_group_topics.group_topicsへ保存済みのものを使う
+    (ここで作り直すと告知と内容がずれるため)。group_topics導入前のグループで空のときは何もしない。
+    失敗しても開催決定自体は止めない。
+    """
+    try:
+        rows = matching.supabase_request(
+            "GET",
+            f"{supabase_url}/rest/v1/member_match_group_topics?group_id=eq.{group_id}&select=group_topics",
+            service_role_key,
+        )
+        group_topics = (rows[0].get("group_topics") if rows else None) or []
+        if not group_topics:
+            return
+        matching.discord_post(voice_channel_id, bot_token, format_voice_channel_topics(group_topics, nicknames, group_id))
+    except RuntimeError as exc:
+        print(f"  posting topics to voice channel failed: {exc}")
+
+
 def confirm_schedule_date(
     supabase_url: str,
     service_role_key: str,
     schedule_id: str,
+    group_id: str,
     guild_id: str,
     post_channel_id: str,
     bot_token: str,
@@ -414,6 +450,7 @@ def confirm_schedule_date(
                 )
             except RuntimeError as exc:
                 print(f"  scheduled event creation failed: {exc}")
+            post_topics_to_voice_channel(supabase_url, service_role_key, group_id, nicknames, voice_channel_id, bot_token)
 
         mention_prefix = " ".join(f"<@{user_id}>" for user_id in sorted(target_user_ids))
         date_line = (
@@ -729,7 +766,7 @@ def confirm_schedules(
         if best_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
             confirmed_user_ids = date_reactors[best_date]
             confirm_schedule_date(
-                supabase_url, service_role_key, schedule["id"], guild_id, channel_id, bot_token,
+                supabase_url, service_role_key, schedule["id"], group_id, guild_id, channel_id, bot_token,
                 bot_user_id, nicknames, group_user_ids, confirmed_user_ids, best_date, best_count, "reaction_poll", dry_run,
             )
             continue
@@ -741,7 +778,7 @@ def confirm_schedules(
             confirm_count = len(reactors)
             if confirm_count >= matching.SCHEDULE_CONFIRM_THRESHOLD:
                 confirm_schedule_date(
-                    supabase_url, service_role_key, schedule["id"], guild_id, thread_id, bot_token,
+                    supabase_url, service_role_key, schedule["id"], group_id, guild_id, thread_id, bot_token,
                     bot_user_id, nicknames, group_user_ids, reactors, thread_confirmation_date, confirm_count,
                     "thread_confirmation", dry_run,
                 )

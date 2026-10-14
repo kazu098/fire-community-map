@@ -8233,7 +8233,7 @@ async function renderYuruTalkView(groupId) {
   try {
     const [membersRes, topicsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/member_match_group_members?group_id=eq.${encodeURIComponent(groupId)}&select=member_nickname`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/member_match_group_topics?group_id=eq.${encodeURIComponent(groupId)}&select=group_topic,pair_topics,common_tags`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/member_match_group_topics?group_id=eq.${encodeURIComponent(groupId)}&select=group_topic,group_topics,pair_topics,common_tags`, { headers }),
     ]);
     members = await membersRes.json();
     topicsRows = await topicsRes.json();
@@ -8303,7 +8303,26 @@ async function renderYuruTalkView(groupId) {
   });
   body.appendChild(memberRow);
 
-  if (topics.group_topic || (topics.pair_topics || []).length) {
+  // 2026-10-14以降のグループはgroup_topics(3人以上が乗れる話題を文章で4〜5個)を持つ。
+  // それ以前のグループだけ、従来のgroup_topic/pair_topics表示にフォールバックする。
+  const groupTopics = Array.isArray(topics.group_topics) ? topics.group_topics : [];
+  if (groupTopics.length) {
+    const topicCard = document.createElement('div');
+    topicCard.className = 'yuru-talk-card';
+    const heading = document.createElement('p');
+    heading.className = 'yuru-talk-card-title';
+    heading.textContent = '💬 みんなで話せそうな話題';
+    topicCard.appendChild(heading);
+    groupTopics.forEach(t => {
+      const line = document.createElement('p');
+      line.className = 'yuru-talk-topic-line';
+      const topicMembers = Array.isArray(t.members) ? t.members : [];
+      const everyone = topicMembers.length === 0 || nicknames.every(n => topicMembers.includes(n));
+      line.textContent = everyone ? t.text : `${t.text}（${topicMembers.map(n => `${n}さん`).join('・')}）`;
+      topicCard.appendChild(line);
+    });
+    body.appendChild(topicCard);
+  } else if (topics.group_topic || (topics.pair_topics || []).length) {
     const topicCard = document.createElement('div');
     topicCard.className = 'yuru-talk-card';
     const heading = document.createElement('p');

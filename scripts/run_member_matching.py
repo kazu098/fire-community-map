@@ -22,13 +22,12 @@ For each member whose matching interval has elapsed (member_matching_settings
   4. Post an announcement to the Discord matching channel, if configured.
 
 The announcement is written in the voice of the community mascot ふぁいにゃ
-(see docs/fainya-persona.md) and includes conversation-starter suggestions
-derived from the group's shared tags (member_tags) and self-introductions
-(member_profiles.self_intro_text): one for the whole group, plus one for
-each 2-member combination within it (shown by default alongside the group
-topic, not only as a fallback -- two members hitting it off while a third
-listens in is part of the fun), so the match feels less like a cold random
-pairing.
+(see docs/fainya-persona.md) and lists 4-5 sentence-level conversation starters
+that at least 3 members of the group can join in on, generated from the
+group's tags (member_tags) and self-introductions (member_profiles.
+self_intro_text) -- see scripts/yuru_talk_group_topics.py. Topics only two
+members share used to be listed per pair, but in a 3-4 person call that left
+the others just listening, so they are no longer shown.
 
 The announcement also links to a ゆるトーク page (index.html, ?view=yuru-talk&
 group=<id>) with the group's shared tags, conversation-starter questions
@@ -63,6 +62,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from topic_news import NEWS_ELIGIBLE_CATEGORIES, get_or_fetch_topic_news
+from yuru_talk_group_topics import build_group_topics, format_topic_line
 from yuru_talk_questions import questions_for_tag
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -443,20 +443,6 @@ def nicknames_with_pending_schedule(
     }
 
 
-def pairwise_topics(members: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
-    """Topic suggestions for every 2-member combination within the group.
-
-    Shown by default alongside the group-wide topic (not only when the group has none) --
-    two members hitting it off while a third listens in is part of the fun.
-    """
-    results = []
-    for a, b in itertools.combinations(members, 2):
-        topic = build_topic_suggestion([a, b])
-        if topic:
-            results.append((a["nickname"], b["nickname"], topic))
-    return results
-
-
 def build_common_tags(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Tags shared by 2+ members of the group, for the ゆるトーク page (docs/yuru-matching.md).
 
@@ -676,10 +662,16 @@ def run_matching(
     return results
 
 
+def format_group_topic_lines(group_topics: list[dict[str, Any]], nicknames: list[str]) -> list[str]:
+    """「💬 みんなで話せそうな話題」の見出し+箇条書き。マッチング告知と通話部屋のチャットで共用。"""
+    if not group_topics:
+        return []
+    return ["💬 みんなで話せそうな話題:"] + [f"- {format_topic_line(t, nicknames)}" for t in group_topics]
+
+
 def format_announcement(
     match: dict[str, Any],
-    group_topic: str | None,
-    pair_topics: list[tuple[str, str, str]],
+    group_topics: list[dict[str, Any]],
     discord_user_ids: dict[str, str] | None = None,
     yuru_talk_url: str | None = None,
 ) -> str:
@@ -703,18 +695,10 @@ def format_announcement(
         f"みんな「{day}曜{hour}時」が空いているみたい",
     ]
 
-    topic_lines = []
-    if group_topic:
-        label = "(全員) " if len(members) > 2 else ""
-        topic_lines.append(f"{label}{group_topic}")
-    for a, b, topic in pair_topics:
-        if topic == group_topic:
-            continue  # already covered by the (全員) line above
-        topic_lines.append(f"({a}さん×{b}さん) {topic}")
+    topic_lines = format_group_topic_lines(group_topics, members)
     if topic_lines:
         lines.append("")
-        lines.append("💡 盛り上がりそうな話題:")
-        lines.extend(f"- {t}" for t in topic_lines)
+        lines.extend(topic_lines)
 
     if match.get("mentor"):
         lines.append("")
@@ -886,7 +870,7 @@ def main() -> int:
     for match in matches:
         member_inputs = [member_topic_input(n) for n in match["members"]]
         match["group_topic"] = build_topic_suggestion(member_inputs)
-        match["pair_topics"] = pairwise_topics(member_inputs) if len(member_inputs) > 2 else []
+        match["group_topics"] = build_group_topics(member_inputs)
         match["common_tags"] = build_common_tags(member_inputs)
         # Generated up front (not by the DB default) so the ゆるトーク link can go in the same
         # Discord announcement message that creates this row -- see the group insert below.
@@ -897,10 +881,8 @@ def main() -> int:
         names = " / ".join(match["members"])
         mentor_note = "  [入会時期ばらけ]" if match.get("mentor") else ""
         print(f"  {names}  ({DAY_LABELS[match['day_of_week']]}曜{match['hour']}時){mentor_note}")
-        if match.get("group_topic"):
-            print(f"    group topic: {match['group_topic']}")
-        for a, b, topic in match.get("pair_topics", []):
-            print(f"    {a} x {b}: {topic}")
+        for topic in match.get("group_topics", []):
+            print(f"    [{topic['source']}] {format_topic_line(topic, match['members'])}")
 
     if args.dry_run:
         print("--dry-run: no writes to Supabase, no Discord post.")
@@ -932,8 +914,7 @@ def main() -> int:
             if channel_id and bot_token:
                 mentioned_ids = [discord_user_ids[n] for n in match["members"] if n in discord_user_ids]
                 content = format_announcement(
-                    match, match.get("group_topic"), match.get("pair_topics", []), discord_user_ids,
-                    yuru_talk_url=yuru_talk_url,
+                    match, match.get("group_topics", []), discord_user_ids, yuru_talk_url=yuru_talk_url,
                 )
                 message_id = discord_post(channel_id, bot_token, content, mentioned_ids)
                 posted_at = datetime.now(timezone.utc).isoformat()
@@ -972,7 +953,7 @@ def main() -> int:
             body=[{
                 "group_id": group_id,
                 "group_topic": match.get("group_topic"),
-                "pair_topics": [{"a": a, "b": b, "topic": t} for a, b, t in match.get("pair_topics", [])],
+                "group_topics": match.get("group_topics", []),
                 "common_tags": common_tags,
             }],
             prefer="return=minimal",

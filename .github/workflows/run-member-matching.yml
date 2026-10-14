@@ -26,8 +26,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 「みんなで話せそうな話題」の文章生成用(scripts/yuru_talk_group_topics.py)。
+      # ANTHROPIC_API_KEYが未設定ならタグの重なりから作るルールベースの話題にフォールバックする。
+      - name: Install Anthropic SDK
+        run: pip install anthropic
+
       - name: Run matching batch
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}

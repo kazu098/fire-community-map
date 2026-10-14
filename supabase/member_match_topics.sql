@@ -25,6 +25,16 @@ comment on column public.member_match_group_topics.pair_topics is
 comment on column public.member_match_group_topics.common_tags is
   'グループ内で2人以上が共有しているタグ。[{"category", "label", "value", "count", "questions": [...], "news": [{"title","url","source","published_at"}]}] の配列。newsは対象カテゴリ(興味・興味あるテーマや話題・投資スタイル・活動/部活)のみ、信頼できる報道系サイトのRSSから取得したキャッシュ(scripts/topic_news.py、14日キャッシュ)。件数はカテゴリを問わず0件のことがある。';
 
+-- みんなで話せそうな話題(2026-10-14追加)。3〜4人で話すと2人だけの共通点は残りが聞き役に
+-- なるため、pair_topicsの書き込みはやめ、グループの3人以上が乗れる話題を文章で4〜5個持つ。
+alter table public.member_match_group_topics
+  add column if not exists group_topics jsonb not null default '[]'::jsonb;
+
+comment on column public.member_match_group_topics.group_topics is
+  'グループの3人以上が乗れる話題。[{"text": "問いかけの文", "members": ["根拠のメンバー", ...], "source": "claude" | "rule"}] の配列(scripts/yuru_talk_group_topics.py)。マッチング告知・通話部屋のチャット・ゆるトーク画面で同じものを表示する。';
+comment on column public.member_match_group_topics.pair_topics is
+  '旧: 2人組ごとの話題候補。[{"a": "...", "b": "...", "topic": "..."}]。2026-10-14以降は書き込まない(group_topicsに置き換え)。';
+
 alter table public.member_match_group_topics enable row level security;
 
 drop policy if exists "member match group topics are publicly readable" on public.member_match_group_topics;
