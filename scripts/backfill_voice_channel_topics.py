@@ -89,6 +89,13 @@ def main() -> int:
         if args.dry_run:
             continue
 
+        # 投稿してから保存する(保存だけ済んで投稿に失敗すると、次回の実行でスキップされて届かなくなるため)。
+        # 古い作りの通話部屋でBotの書き込みが拒否されるなど、1組の失敗で残りを止めない。
+        try:
+            matching.discord_post(schedule["voice_channel_id"], bot_token, content)
+        except RuntimeError as exc:
+            print(f"post failed for {group_id}, not saved (retry later): {exc}")
+            continue
         if existing:
             matching.supabase_request(
                 "PATCH", f"{supabase_url}/rest/v1/member_match_group_topics?group_id=eq.{group_id}", key,
@@ -100,8 +107,7 @@ def main() -> int:
                 body=[{"group_id": group_id, "group_topics": group_topics, "member_hooks": member_hooks}],
                 prefer="return=minimal",
             )
-        matching.discord_post(schedule["voice_channel_id"], bot_token, content)
-        print(f"posted to voice channel {schedule['voice_channel_id']}")
+        print(f"posted to voice channel {schedule['voice_channel_id']} and saved")
 
     if args.dry_run and args.markdown:
         Path(args.markdown).write_text("\n".join(md_lines), encoding="utf-8")
