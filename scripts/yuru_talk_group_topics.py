@@ -6,21 +6,21 @@
 やめ、グループの3人以上(4人グループなら4人中3人以上)が乗れる話題だけを、タグ名ではなく
 「そのまま投げかけられる問いかけの文」として出す。
 
-生成は2段構え:
-  1. ANTHROPIC_API_KEY があれば、メンバーのタグ・自己紹介文をClaudeに渡して文章で生成する
-     (generate_with_claude)。根拠のメンバー名を必ず付けさせ、3人以上に関係しない話題や
-     グループ外の名前が混ざったものはこちらで捨てる。
-  2. キーが無い・API失敗・件数不足のときは、タグの重なりと汎用の話題から機械的に作る
-     (rule_based_topics)。マッチング告知自体を止めないため、こちらは必ず何か返す。
+LLM APIは使わない(従量課金を避ける、かずさんの判断)。タグの値は「旅行/海外旅行/国内旅行/
+世界一周」のように表記がばらけていて、値の完全一致だと3人以上はまず重ならないため、
+タグ値と自己紹介文をキーワードで大きめのテーマ(THEMES)に寄せてから重なりを数える。
+優先順:
+  1. 3人以上で完全一致するタグ(questions_for_tagの質問文)
+  2. FIRE済の人とこれからの人が混ざっている → 経験者に聞いてみる話題
+  3. 3人以上が当てはまるテーマ(テーマごとの問いかけからランダム)
+  4. F研メンバーなら誰でも乗れる汎用の問いかけ(ランダム)で4個まで埋める
 
-各話題は {"text": str, "members": [nickname, ...], "source": "claude" | "rule"}。
+各話題は {"text": str, "members": [nickname, ...], "source": "tag" | "fire_mix" | "theme" | "generic"}。
 members がグループ全員と同じなら表示側で名前を省略する(format_topic_line)。
 """
 
 from __future__ import annotations
 
-import json
-import os
 import random
 from typing import Any
 
@@ -30,14 +30,157 @@ MAX_GROUP_TOPICS = 5
 MIN_GROUP_TOPICS = 4
 # 4人グループなら3人以上。2人だけの共通点は話題にしない(上のdocstring参照)。
 MIN_TOPIC_MEMBERS = 3
-CLAUDE_MODEL = "claude-opus-5-5"
 
-# タグの重なりから作る話題に使うカテゴリ(run_member_matching.TOPIC_TAG_CATEGORIESと同じ並び)。
-# mbti/fire_statusは「3人が同じMBTI」はまず起きないので実質ほぼ出ないが、出たら面白いので残す。
-RULE_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "affiliation", "skill", "fire_status", "mbti"]
+# 完全一致のタグから作る話題に使うカテゴリ(run_member_matching.TOPIC_TAG_CATEGORIESと同じ並び)。
+EXACT_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "affiliation", "skill", "fire_status", "mbti"]
+# テーマ判定に使うカテゴリ。consultation(相談できること)は不妊治療・持病など踏み込んだ内容が
+# 入っているので使わない。mbtiは記号なので対象外。
+THEME_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "affiliation", "skill", "wants_to_know"]
 
-# F研メンバーなら誰でも乗れる話題。タグの重なりだけで4つに届かないときの埋め草。
-# 3人以上で重なるタグは実データではかなり珍しく(2026-10時点の直近グループでほぼ0〜1個)、
+# キーワードはタグ値・自己紹介文への部分一致。自己紹介文にも当てるので、「本」(日本)や「IT」
+# のように別の語に含まれやすい短い語は入れない。健康・家族の踏み込んだ話題(病気・妊活など)は
+# 初対面の雑談に向かないのでテーマにしない。
+THEMES: list[dict[str, Any]] = [
+    {
+        "key": "travel",
+        "label": "旅行",
+        "keywords": ["旅行", "世界一周", "温泉", "百名城", "都道府県", "マイレージ", "観光", "旅"],
+        "questions": [
+            "これまで行った中で、もう一度行きたい場所はどこですか？",
+            "次に行ってみたい旅先や、旅の予定はありますか？",
+            "旅先でのお金の使い方で、ケチらないと決めているものはありますか？",
+        ],
+    },
+    {
+        "key": "exercise",
+        "label": "運動・健康",
+        "keywords": ["筋トレ", "ウォーキング", "ランニング", "マラソン", "水泳", "ヨガ", "ピラティス", "バドミントン",
+                     "テニス", "ゴルフ", "自転車", "ロードバイク", "サーフィン", "ダイエット", "ハイキング", "登山", "散歩"],
+        "questions": [
+            "体を動かす習慣で、続いているものはありますか？",
+            "健康のために、お金や時間をかけていることはありますか？",
+        ],
+    },
+    {
+        "key": "reading",
+        "label": "本・マンガ",
+        "keywords": ["読書", "マンガ", "漫画", "読書部", "書道", "文学"],
+        "questions": [
+            "最近読んでよかった本やマンガはありますか？",
+            "人生やお金の考え方が変わった一冊はありますか？",
+        ],
+    },
+    {
+        "key": "writing",
+        "label": "発信・執筆",
+        "keywords": ["note", "ブログ", "YouTube", "X運用", "発信", "Kindle", "kindle", "出版", "ラジオ", "執筆"],
+        "questions": [
+            "発信や執筆を続けていて、よかったこと・大変なことは何ですか？",
+            "書いたり話したりするネタは、どうやって見つけていますか？",
+        ],
+    },
+    {
+        "key": "food",
+        "label": "食・料理",
+        "keywords": ["料理", "グルメ", "食べ歩き", "ランチ", "カフェ", "ワイン", "お酒", "スナック", "家庭菜園", "調理"],
+        "questions": [
+            "最近おいしかったお店や、よく作る料理はありますか？",
+            "食費はどこまでかける派・どこで抑える派ですか？",
+        ],
+    },
+    {
+        "key": "games",
+        "label": "ゲーム",
+        "keywords": ["ゲーム", "麻雀", "マーダーミステリー", "スプラ", "ボードゲーム"],
+        "questions": [
+            "最近遊んでいるゲームや、みんなでできる遊びはありますか？",
+        ],
+    },
+    {
+        "key": "index",
+        "label": "インデックス投資・積立",
+        "keywords": ["インデックス", "オルカン", "S&P500", "NISA", "iDeCo", "投資信託", "企業型DC", "つみたて"],
+        "questions": [
+            "NISAやiDeCoなどの制度、どう使い分けていますか？",
+            "積立投資を続けるうえで、気持ちの面で工夫していることはありますか？",
+            "暴落のとき、どんなふうに過ごしていましたか？",
+        ],
+    },
+    {
+        "key": "dividend",
+        "label": "高配当・優待",
+        "keywords": ["高配当", "個別株", "優待", "日本株", "配当"],
+        "questions": [
+            "配当や株主優待で、もらってうれしかったものはありますか？",
+            "個別株を選ぶとき、どんなところを見ていますか？",
+        ],
+    },
+    {
+        "key": "living",
+        "label": "暮らし・移住",
+        "keywords": ["移住", "二拠点", "多拠点", "地方", "海外生活", "田舎", "果樹園", "養鶏", "養蜂"],
+        "questions": [
+            "住む場所や暮らし方を変えたこと、変えてみたいことはありますか？",
+            "FIRE後に住んでみたい場所はありますか？",
+        ],
+    },
+    {
+        "key": "real_estate",
+        "label": "不動産・住まい",
+        "keywords": ["不動産", "物件", "賃貸", "持ち家", "住宅ローン"],
+        "questions": [
+            "賃貸派・持ち家派、それぞれどんな理由で選んでいますか？",
+            "住まいにかけるお金は、どのくらいが心地いいと思いますか？",
+        ],
+    },
+    {
+        "key": "work",
+        "label": "副業・起業",
+        "keywords": ["副業", "起業", "法人", "フリーランス", "独立", "経営", "コンサル", "マーケティング", "事務代行"],
+        "questions": [
+            "本業以外で、やっている・やってみたい仕事はありますか？",
+            "会社員以外の稼ぎ方で、気になっているものはありますか？",
+        ],
+    },
+    {
+        "key": "tech",
+        "label": "AI・テック",
+        "keywords": ["AI", "プログラミング", "Vibe coding", "エンジニア", "ITチーム", "開発"],
+        "questions": [
+            "仕事や生活で、AIをどんなふうに使っていますか？",
+        ],
+    },
+    {
+        "key": "culture",
+        "label": "映画・音楽・アート",
+        "keywords": ["音楽", "映画", "美術館", "観劇", "ライブ", "ドラム", "ギター", "ピアノ", "DJ", "アニメ"],
+        "questions": [
+            "最近見てよかった映画やライブ、展示はありますか？",
+        ],
+    },
+    {
+        "key": "outdoor",
+        "label": "アウトドア・畑",
+        "keywords": ["キャンプ", "釣り", "園芸", "アウトドア", "狩猟", "漁業"],
+        "questions": [
+            "休みの日に外で過ごすなら、どんなことをしていますか？",
+        ],
+    },
+    {
+        "key": "parenting",
+        "label": "子育て",
+        "keywords": ["子育て", "育児", "育休"],
+        "questions": [
+            "子育てとお金・時間のバランスで、工夫していることはありますか？",
+        ],
+    },
+]
+
+# fire_statusの値から「FIRE済側」「これから側」を見分ける語。どちらにも当たらない値は無視する。
+FIRE_DONE_WORDS = ["FIRE済", "FI済", "セミリタイア", "コーストFIRE"]
+FIRE_AHEAD_WORDS = ["目指し", "準備", "検討", "会社員"]
+
+# F研メンバーなら誰でも乗れる話題。上の3段で4つに届かないときの埋め草。
 # 毎回同じ文面が並ばないよう、グループごとにここからランダムに選ぶ。
 GENERIC_GROUP_TOPICS = [
     "FIREや資産形成を意識しはじめたきっかけは何でしたか？",
@@ -48,187 +191,123 @@ GENERIC_GROUP_TOPICS = [
     "逆に「これは節約しない」と決めているものはありますか？",
     "休みの日は、どんなふうに過ごすことが多いですか？",
     "お金や働き方について、昔と今で考えが変わったことはありますか？",
-    "最近読んだ本・見た動画で、おすすめしたいものはありますか？",
     "住む場所を自由に選べるとしたら、どこに住んでみたいですか？",
 ]
 
-TAG_CATEGORY_LABELS = {
-    "interest": "興味",
-    "chat_topic": "話したい話題",
-    "investment_style": "投資スタイル",
-    "affiliation": "活動・部活",
-    "skill": "得意なこと",
-    "mbti": "MBTI",
-    "fire_status": "FIREタイプ",
-    "consultation": "相談に乗れること",
-    "wants_to_know": "知りたいこと",
-}
 
-SYSTEM_PROMPT = """\
-あなたはFIRE(経済的自立・早期リタイア)に関心がある人のオンラインコミュニティ「F研」で、
-少人数のボイス雑談「ゆるマッチング」の話題づくりを手伝っています。
-初対面に近い3〜4人が、全員で話を回せるきっかけを考えるのが役割です。
-
-ルール:
-- 話題は、グループのうち少なくとも3人(3人グループなら全員)に関係するものだけにする。
-  2人だけの共通点は、残りの人が聞き役になってしまうので出さない。
-- 各話題は、そのまま場に投げかけられる日本語の問いかけ1文(40〜70字程度、です・ます調)にする。
-  「〇〇の話」のようなタグ名だけの書き方はしない。
-- 根拠は、渡されたプロフィール(タグ・自己紹介文)に書かれている事実だけ。書かれていない興味を推測で足さない。
-- members には、その話題の根拠になったメンバーのニックネームを、渡された表記どおりに入れる。
-- 投資の売買判断や銘柄の推奨を求める聞き方(「買うべき？」など)は避け、経験や感想を聞く形にする。
-- 収入・資産額・健康・家族の事情など踏み込んだ個人情報や、自己紹介文の引用は話題に入れない。
-- 似た話題を重ねず、お金の話・暮らしや趣味の話などテーマを散らす。
-"""
+def _ordered(nicknames: list[str], subset: set[str] | list[str]) -> list[str]:
+    return [n for n in nicknames if n in subset]
 
 
-def _member_profile_text(member: dict[str, Any]) -> str:
-    lines = [f"## {member['nickname']}"]
-    for category, values in (member.get("tags") or {}).items():
-        if values:
-            label = TAG_CATEGORY_LABELS.get(category, category)
-            lines.append(f"- {label}: {'、'.join(values)}")
-    intro = (member.get("intro") or "").strip()
-    if intro:
-        lines.append(f"- 自己紹介文: {intro}")
-    if len(lines) == 1:
-        lines.append("- (プロフィール情報なし)")
-    return "\n".join(lines)
-
-
-TOPICS_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "topics": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "text": {"type": "string"},
-                    "members": {"type": "array", "items": {"type": "string"}},
-                },
-                "required": ["text", "members"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["topics"],
-    "additionalProperties": False,
-}
-
-
-def _valid_topics(raw_topics: list[dict[str, Any]], nicknames: list[str]) -> list[dict[str, Any]]:
-    """グループ外の名前を含むもの・関係者が3人未満のもの・重複を捨てる。"""
-    group = set(nicknames)
-    min_members = min(MIN_TOPIC_MEMBERS, len(nicknames))
-    seen_texts: set[str] = set()
-    topics = []
-    for topic in raw_topics:
-        text = str(topic.get("text") or "").strip()
-        # 「かずさん」のように敬称付きで返ってきても受け付ける
-        raw_members = {
-            m if m in group else str(m).removesuffix("さん") for m in (topic.get("members") or [])
-        }
-        if not raw_members <= group:
-            continue  # グループ外の名前が混ざっている=根拠があやしいので使わない
-        if not text or text in seen_texts or len(raw_members) < min_members:
-            continue
-        members = raw_members
-        seen_texts.add(text)
-        # 表示順をグループの並びにそろえる
-        topics.append({"text": text, "members": [n for n in nicknames if n in members], "source": "claude"})
-    return topics
-
-
-def generate_with_claude(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Claudeで話題を生成する。キーが無い・SDK未インストール・API失敗のときは空リスト。"""
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        return []
-    try:
-        import anthropic
-    except ImportError:
-        print("  anthropic SDK is not installed; using rule-based group topics.")
-        return []
-
-    nicknames = [m["nickname"] for m in members]
-    user_prompt = (
-        f"今回マッチしたのは次の{len(members)}人です。\n\n"
-        + "\n\n".join(_member_profile_text(m) for m in members)
-        + f"\n\n全員で話せそうな話題を{MAX_GROUP_TOPICS}個考えてください。"
-    )
-    client = anthropic.Anthropic()
-    try:
-        response = client.beta.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=16000,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            output_config={
-                "effort": "low",
-                "format": {"type": "json_schema", "schema": TOPICS_SCHEMA},
-            },
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-        )
-    except anthropic.APIConnectionError as exc:
-        print(f"  Claude API connection failed; using rule-based group topics: {exc}")
-        return []
-    except anthropic.APIStatusError as exc:
-        print(f"  Claude API error {exc.status_code}; using rule-based group topics: {exc.message}")
-        return []
-
-    if response.stop_reason in ("refusal", "max_tokens"):
-        print(f"  Claude stopped with {response.stop_reason}; using rule-based group topics.")
-        return []
-    text = next((b.text for b in response.content if b.type == "text"), "")
-    try:
-        raw_topics = json.loads(text).get("topics", [])
-    except json.JSONDecodeError:
-        print("  Claude returned invalid JSON; using rule-based group topics.")
-        return []
-    return _valid_topics(raw_topics, nicknames)[:MAX_GROUP_TOPICS]
-
-
-def rule_based_topics(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """タグの重なり(3人以上)→F研メンバー向けの汎用話題、の順で最大MAX_GROUP_TOPICS個。"""
-    nicknames = [m["nickname"] for m in members]
-    min_members = min(MIN_TOPIC_MEMBERS, len(nicknames))
-    holders: dict[tuple[str, str], list[str]] = {}
-    for category in RULE_TAG_CATEGORIES:
+def _exact_tag_topics(members: list[dict[str, Any]], nicknames: list[str], min_members: int) -> list[dict[str, Any]]:
+    holders: dict[tuple[str, str], set[str]] = {}
+    for category in EXACT_TAG_CATEGORIES:
         for member in members:
             for value in set((member.get("tags") or {}).get(category, [])):
-                holders.setdefault((category, value), []).append(member["nickname"])
-    shared = [
-        (category, value, names) for (category, value), names in holders.items() if len(names) >= min_members
+                holders.setdefault((category, value), set()).add(member["nickname"])
+    shared = [(c, v, names) for (c, v), names in holders.items() if len(names) >= min_members]
+    shared.sort(key=lambda t: (-len(t[2]), EXACT_TAG_CATEGORIES.index(t[0]), t[1]))
+    return [
+        {"text": questions_for_tag(value, category)[0], "members": _ordered(nicknames, names), "source": "tag", "value": value}
+        for category, value, names in shared
     ]
-    # 共有人数が多い順、同数ならカテゴリの優先順
-    shared.sort(key=lambda t: (-len(t[2]), RULE_TAG_CATEGORIES.index(t[0]), t[1]))
 
-    topics: list[dict[str, Any]] = []
-    for category, value, names in shared:
-        question = questions_for_tag(value, category)[0]
-        topics.append({"text": question, "members": [n for n in nicknames if n in names], "source": "rule"})
-        if len(topics) >= MAX_GROUP_TOPICS:
-            return topics
-    for text in random.sample(GENERIC_GROUP_TOPICS, len(GENERIC_GROUP_TOPICS)):
-        if len(topics) >= MIN_GROUP_TOPICS:
+
+def _fire_mix_topic(members: list[dict[str, Any]], nicknames: list[str]) -> dict[str, Any] | None:
+    done, ahead = [], []
+    for member in members:
+        statuses = (member.get("tags") or {}).get("fire_status", [])
+        if any(w in s for s in statuses for w in FIRE_AHEAD_WORDS):
+            ahead.append(member["nickname"])
+        elif any(w in s for s in statuses for w in FIRE_DONE_WORDS):
+            done.append(member["nickname"])
+    if not done or not ahead:
+        return None
+    done_names = "・".join(f"{n}さん" for n in done)
+    return {
+        "text": f"FIRE済の{done_names}に、FIRE前にやっておいてよかったこと・FIRE後に意外だったことを聞いてみませんか？",
+        "members": list(nicknames),
+        "source": "fire_mix",
+    }
+
+
+THEME_BY_KEY = {theme["key"]: theme for theme in THEMES}
+
+
+def themes_in_text(text: str) -> set[str]:
+    """文章にキーワードが含まれるテーマのkey(部分一致)。投稿の取り込み(sync_member_interest_signals.py)でも使う。"""
+    return {theme["key"] for theme in THEMES if any(kw in text for kw in theme["keywords"])}
+
+
+def profile_themes(member: dict[str, Any]) -> set[str]:
+    """タグ値と自己紹介文から判定したテーマ。"""
+    texts = [v for c in THEME_TAG_CATEGORIES for v in (member.get("tags") or {}).get(c, [])]
+    if member.get("intro"):
+        texts.append(member["intro"])
+    return set().union(*(themes_in_text(t) for t in texts)) if texts else set()
+
+
+def member_themes(member: dict[str, Any]) -> set[str]:
+    """プロフィール由来のテーマ + 最近のDiscord/note投稿由来のテーマ(member["recent_themes"])。"""
+    return profile_themes(member) | set(member.get("recent_themes") or [])
+
+
+def _theme_topics(
+    members: list[dict[str, Any]], nicknames: list[str], min_members: int, rng: random.Random, covered_values: list[str],
+) -> list[dict[str, Any]]:
+    holders: dict[str, set[str]] = {}
+    recent_holders: dict[str, set[str]] = {}
+    for member in members:
+        for key in member_themes(member):
+            holders.setdefault(key, set()).add(member["nickname"])
+        for key in set(member.get("recent_themes") or []):
+            recent_holders.setdefault(key, set()).add(member["nickname"])
+    topics = []
+    for index, theme in enumerate(THEMES):
+        names = holders.get(theme["key"], set())
+        if len(names) < min_members:
+            continue
+        # 完全一致タグの話題(例: インデックス投資)で既に出ているテーマは重ねない
+        if any(kw in value for kw in theme["keywords"] for value in covered_values):
+            continue
+        question = rng.choice(theme["questions"])
+        # 2人以上が最近の投稿でもそのテーマに触れていれば「いま」の話題だと分かるように前置きする
+        if len(recent_holders.get(theme["key"], set())) >= 2:
+            question = f"最近のDiscordやnoteでも{theme['label']}の話が出ているみたい。{question}"
+        topics.append((len(names), index, {
+            "text": question,
+            "members": _ordered(nicknames, names),
+            "source": "theme",
+        }))
+    topics.sort(key=lambda t: (-t[0], t[1]))
+    return [t[2] for t in topics]
+
+
+def build_group_topics(members: list[dict[str, Any]], rng: random.Random | None = None) -> list[dict[str, Any]]:
+    """グループの3人以上が乗れる話題を、優先順(モジュールdocstring参照)に最大MAX_GROUP_TOPICS個。"""
+    rng = rng or random.Random()
+    nicknames = [m["nickname"] for m in members]
+    min_members = min(MIN_TOPIC_MEMBERS, len(nicknames))
+
+    topics = _exact_tag_topics(members, nicknames, min_members)
+    fire_mix = _fire_mix_topic(members, nicknames)
+    if fire_mix:
+        topics.append(fire_mix)
+    covered = [t["value"] for t in topics if "value" in t]
+    topics.extend(_theme_topics(members, nicknames, min_members, rng, covered))
+
+    seen: set[str] = set()
+    unique = []
+    for topic in topics:
+        if topic["text"] not in seen:
+            seen.add(topic["text"])
+            unique.append({k: v for k, v in topic.items() if k != "value"})
+    for text in rng.sample(GENERIC_GROUP_TOPICS, len(GENERIC_GROUP_TOPICS)):
+        if len(unique) >= MIN_GROUP_TOPICS:
             break
-        topics.append({"text": text, "members": list(nicknames), "source": "rule"})
-    return topics
-
-
-def build_group_topics(members: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Claudeの生成を優先し、MIN_GROUP_TOPICSに足りない分はルールベースで補う。"""
-    topics = generate_with_claude(members)
-    if len(topics) < MIN_GROUP_TOPICS:
-        seen = {t["text"] for t in topics}
-        for topic in rule_based_topics(members):
-            if len(topics) >= MIN_GROUP_TOPICS:
-                break
-            if topic["text"] not in seen:
-                topics.append(topic)
-                seen.add(topic["text"])
-    return topics[:MAX_GROUP_TOPICS]
+        if text not in seen:
+            unique.append({"text": text, "members": list(nicknames), "source": "generic"})
+    return unique[:MAX_GROUP_TOPICS]
 
 
 def format_topic_line(topic: dict[str, Any], group_nicknames: list[str]) -> str:

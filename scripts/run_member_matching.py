@@ -826,6 +826,14 @@ def main() -> int:
     member_links = get("/rest/v1/member_links?select=member_nickname,label,url")
     member_locations = get("/rest/v1/member_locations?select=nickname,prefecture")
     talk_wishes = get("/rest/v1/member_talk_wishes?select=member_nickname,target_nickname")
+    # 最近のDiscord/noteの投稿から集計した興味(scripts/sync_member_interest_signals.pyが1日1回更新)。
+    # テーブル未作成・取得失敗でも話題がプロフィールだけになるだけなので、マッチングは止めない。
+    try:
+        interest_signals = get("/rest/v1/member_interest_signals?select=member_nickname,recent_themes")
+    except (HTTPError, URLError) as exc:
+        print(f"Could not load member_interest_signals, using profiles only: {exc}")
+        interest_signals = []
+    recent_themes_by_nickname = {row["member_nickname"]: row.get("recent_themes") or [] for row in interest_signals}
 
     pending_nicknames = nicknames_with_pending_schedule(pending_schedules, recent_group_members, now)
     due_nicknames = [
@@ -854,6 +862,7 @@ def main() -> int:
             "links": links_by_nickname.get(nickname, []),
             "prefecture": prefecture_by_nickname.get(nickname),
             "has_avatar": bool(profile.get("avatar_url")),
+            "recent_themes": recent_themes_by_nickname.get(nickname, []),
         }
 
     joined_months = {
@@ -870,7 +879,7 @@ def main() -> int:
     for match in matches:
         member_inputs = [member_topic_input(n) for n in match["members"]]
         match["group_topic"] = build_topic_suggestion(member_inputs)
-        match["group_topics"] = build_group_topics(member_inputs)
+        match["group_topics"] = build_group_topics(member_inputs, rng)
         match["common_tags"] = build_common_tags(member_inputs)
         # Generated up front (not by the DB default) so the ゆるトーク link can go in the same
         # Discord announcement message that creates this row -- see the group insert below.
