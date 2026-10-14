@@ -396,12 +396,15 @@ def format_voice_channel_topics(
         "🗣️ そのあと: 下の話題から1つ選んで話してみましょう（盛り上がったら2つ目もどうぞ）",
         "",
     ]
+    # 告知と同じ並び: みんなで話せそうなネタ → この人に聞いてみたい
+    topic_lines = matching.format_group_topic_lines(group_topics, nicknames)
+    if topic_lines:
+        lines.extend(topic_lines)
+        lines.append("")
     hook_lines = matching.format_member_hook_lines(member_hooks or [])
     if hook_lines:
         lines.extend(hook_lines)
         lines.append("")
-    lines.extend(matching.format_group_topic_lines(group_topics, nicknames))
-    lines.append("")
     lines.append(f"🗨️ 共通タグや関連ニュース: {matching.SITE_BASE_URL}/?view=yuru-talk&group={group_id}")
     return "\n".join(lines)
 
