@@ -64,3 +64,4 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 大曲の花火,秋田県,大仙市,municipality,39.4533,140.4778,manual_alias,大曲の花火の投稿から秋田県大仙市の代表点として扱う
 加賀界,石川県,加賀市,municipality,36.3003,136.3036,manual_alias,星野リゾート 界 加賀の旅行投稿を山代温泉のある石川県加賀市の代表点として扱う
 柴又,東京都,葛飾区,municipality,35.7625,139.8738,manual_alias,柴又帝釈天・矢切の渡しの投稿から東京都葛飾区の代表点として扱う
+くまモン,熊本県,熊本市,municipality,32.8031,130.7079,manual_alias,くまモンに会いに来た旅行投稿を熊本県熊本市の代表点として扱う

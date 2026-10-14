@@ -1,5 +1,26 @@
 [
   {
+    "discord_message_id": "1559424338527133746",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1559424338527133746",
+    "discord_channel_name": "旅行",
+    "nickname": "まさやん",
+    "avatar_path": "data/travel-avatars/b7c7b401cc86.png",
+    "avatarColor": "#f97316",
+    "init": "ま",
+    "prefecture": "熊本県",
+    "municipality_optional": "熊本市",
+    "lat": 32.8031,
+    "lng": 130.7079,
+    "date": "2026/10/13",
+    "posted_at": "2026-10-13T04:35:35.008000+00:00",
+    "comment": "くまモンに会いに来ました",
+    "photos": [
+      "data/travel-photos/1559424338527133746-1.jpg",
+      "data/travel-photos/1559424338527133746-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1559353514386264080",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1559353514386264080",
     "discord_channel_name": "旅行",
