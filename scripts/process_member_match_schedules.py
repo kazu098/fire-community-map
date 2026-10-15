@@ -729,13 +729,16 @@ def confirm_schedules(
 
     guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(bot_token, guild_id)
     name_overrides = matching.load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
+    linked_user_ids = matching.fetch_linked_discord_user_ids(get)
     bot_user_id = fetch_bot_user_id(bot_token)
 
     for schedule in schedules:
         group_id = schedule["group_id"]
         members = get(f"/rest/v1/member_match_group_members?group_id=eq.{group_id}&select=member_nickname")
         nicknames = [m["member_nickname"] for m in members]
-        discord_user_ids = matching.resolve_discord_user_ids(nicknames, guild_display_name_ids, name_overrides)
+        discord_user_ids = matching.resolve_discord_user_ids(
+            nicknames, guild_display_name_ids, name_overrides, linked_user_ids,
+        )
         group_user_ids = set(discord_user_ids.values())
 
         # Supabase/PostgREST always returns timestamptz as UTC; convert back to JST so the
@@ -931,6 +934,7 @@ class GroupDirectory:
         self._guild_id = guild_id
         self._guild_display_name_ids: dict[str, str] | None = None
         self._name_overrides: dict[str, str] | None = None
+        self._linked_user_ids: dict[str, str] | None = None
 
     def members(self, group_id: str) -> tuple[list[str], dict[str, str]]:
         rows = self._get(f"/rest/v1/member_match_group_members?group_id=eq.{group_id}&select=member_nickname")
@@ -938,7 +942,10 @@ class GroupDirectory:
         if self._guild_display_name_ids is None:
             self._guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(self._bot_token, self._guild_id)
             self._name_overrides = matching.load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
-        user_ids = matching.resolve_discord_user_ids(nicknames, self._guild_display_name_ids, self._name_overrides or {})
+            self._linked_user_ids = matching.fetch_linked_discord_user_ids(self._get)
+        user_ids = matching.resolve_discord_user_ids(
+            nicknames, self._guild_display_name_ids, self._name_overrides or {}, self._linked_user_ids,
+        )
         return nicknames, user_ids
 
 
