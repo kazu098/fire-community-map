@@ -360,16 +360,36 @@ def load_discord_name_overrides(path: Path) -> dict[str, str]:
     return overrides
 
 
+def fetch_linked_discord_user_ids(get: Any) -> dict[str, str]:
+    """Site nickname -> Discord user id stored on member_profiles (set at Discord login / by sync_member_discord_ids).
+
+    `get` is a callable taking a PostgREST path and returning parsed JSON. Failures are non-fatal:
+    resolve_discord_user_ids still falls back to display-name matching.
+    """
+    try:
+        rows = get("/rest/v1/member_profiles?select=nickname,discord_user_id&discord_user_id=not.is.null")
+    except (HTTPError, URLError) as exc:
+        print(f"Could not load linked Discord ids, falling back to display-name matching: {exc}")
+        return {}
+    return {row["nickname"]: str(row["discord_user_id"]) for row in rows if row.get("discord_user_id")}
+
+
 def resolve_discord_user_ids(
     nicknames: list[str],
     guild_display_name_ids: dict[str, str],
     name_overrides: dict[str, str],
+    linked_user_ids: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Site nickname -> Discord user id, trying exact, normalized, then curated override matches."""
+    """Site nickname -> Discord user id.
+
+    A Discord id already linked to the member's profile wins; otherwise try exact, normalized,
+    then curated override display-name matches.
+    """
     resolved: dict[str, str] = {}
+    linked_user_ids = linked_user_ids or {}
     dedecorated_name_ids = _dedecorated_unique_name_ids(guild_display_name_ids)
     for nickname in nicknames:
-        user_id = guild_display_name_ids.get(nickname)
+        user_id = linked_user_ids.get(nickname) or guild_display_name_ids.get(nickname)
         if not user_id:
             dedecorated_nickname = _strip_trailing_decoration(nickname)
             user_id = dedecorated_name_ids.get(dedecorated_nickname)
@@ -952,7 +972,9 @@ def main() -> int:
     if args.post_to_discord and bot_token and guild_id:
         guild_display_name_ids = fetch_guild_member_ids_by_display_name(bot_token, guild_id)
         name_overrides = load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
-        discord_user_ids = resolve_discord_user_ids(due_nicknames, guild_display_name_ids, name_overrides)
+        discord_user_ids = resolve_discord_user_ids(
+            due_nicknames, guild_display_name_ids, name_overrides, fetch_linked_discord_user_ids(get),
+        )
 
     for match in matches:
         group_id = match["group_id"]
