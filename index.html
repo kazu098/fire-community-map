@@ -348,6 +348,8 @@
     .guide-dots { display: flex; gap: 8px; }
     .guide-dot { width: 9px; height: 9px; border-radius: 50%; border: none; background: #d1d5db; padding: 0; cursor: pointer; }
     .guide-dot.active { background: #f59e0b; }
+    /* 画面が低いPCでも「スキップ」「Discordでログイン」のボタン行がはみ出さないよう、画像の高さを画面に収める */
+    #guide-modal .guide-slide img { max-height: calc(100vh - 120px); max-height: calc(100dvh - 120px); }
     #guide-modal .guide-dot { background: rgba(255,255,255,0.45); }
     #guide-modal .guide-dot.active { background: #fbbf24; }
     .guide-modal-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
