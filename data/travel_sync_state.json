@@ -3,16 +3,16 @@
     "旅行": {
       "channel_id": "1453995203060043787",
       "last_scanned_message_id": "1560197737830551644",
-      "last_imported_message_id": "1559353514386264080",
-      "last_synced_at": "2026-10-15T23:14:11.241207+00:00"
+      "last_imported_message_id": "1560188483547435078",
+      "last_synced_at": "2026-10-16T00:13:25.730763+00:00"
     },
     "グルメ・料理": {
       "channel_id": "1398934575803273288",
       "last_scanned_message_id": "1560277320332218479",
       "last_imported_message_id": "1558039482001784832",
-      "last_synced_at": "2026-10-15T23:14:11.518552+00:00"
+      "last_synced_at": "2026-10-16T00:13:26.411799+00:00"
     }
   },
-  "last_imported_message_id": "1559424338527133746",
-  "last_synced_at": "2026-10-15T23:14:11.520343+00:00"
+  "last_imported_message_id": "1560188483547435078",
+  "last_synced_at": "2026-10-16T00:13:26.414750+00:00"
 }

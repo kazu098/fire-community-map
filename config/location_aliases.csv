@@ -65,3 +65,5 @@ input,prefecture,municipality_optional,location_level,lat,lng,geocode_source,not
 加賀界,石川県,加賀市,municipality,36.3003,136.3036,manual_alias,星野リゾート 界 加賀の旅行投稿を山代温泉のある石川県加賀市の代表点として扱う
 柴又,東京都,葛飾区,municipality,35.7625,139.8738,manual_alias,柴又帝釈天・矢切の渡しの投稿から東京都葛飾区の代表点として扱う
 くまモン,熊本県,熊本市,municipality,32.8031,130.7079,manual_alias,くまモンに会いに来た旅行投稿を熊本県熊本市の代表点として扱う
+太宰府,福岡県,太宰府市,municipality,33.5219,130.5345,manual_alias,太宰府天満宮周辺の旅行投稿から福岡県太宰府市の代表点として扱う
+まさやんさんとニアミス,福岡県,太宰府市,municipality,33.5219,130.5345,manual_alias,お石の茶屋(太宰府天満宮近く)での投稿。本文に地名記載がないため画像の背景(五重塔風の建物)から同時期のまさやんさんの太宰府投稿と同じ場所と判断
