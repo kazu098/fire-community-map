@@ -214,6 +214,11 @@ def main() -> int:
     availability = matching.build_slot_index(
         supabase(supabase_url, key, "GET", "member_availability?select=member_nickname,day_of_week,hour")
     )
+    unavailable_by_nickname = matching.build_unavailable_index(supabase(
+        supabase_url, key, "GET",
+        "member_availability_overrides?select=member_nickname,override_date,hour,is_available"
+        f"&is_available=eq.false&override_date=gte.{now.astimezone(matching.JST).date().isoformat()}",
+    ))
     bot_user_id = schedules.fetch_bot_user_id(bot_token)
 
     for request in requests:
@@ -273,7 +278,8 @@ def main() -> int:
                 }])
                 supabase(supabase_url, key, "POST", "member_match_group_members",
                          [{"group_id": group_id, "member_nickname": n} for n in members])
-                dates = matching.next_occurrences(slot[0], slot[1], now)
+                group_unavailable = set().union(*(unavailable_by_nickname.get(n, set()) for n in members))
+                dates = matching.next_occurrences(slot[0], slot[1], now, unavailable=group_unavailable)
                 schedule_message_id = matching.discord_post(
                     channel_id, bot_token, matching.format_schedule_proposal(slot[0], slot[1], dates),
                 )
