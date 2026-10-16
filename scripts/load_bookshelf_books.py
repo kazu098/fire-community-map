@@ -81,7 +81,7 @@ FIRE_LAB_BOOKS: list[dict[str, Any]] = [
         "author_name": "FIRE研究所ほか4名",
         "amazon_url": "https://amzn.asia/d/0bSfC9Hw",
         "thumbnail_url": f"{BOOKSHELF_COVERS_BASE}/fire-zukan-vol2.jpg",
-        "drive_pdf_url": "https://drive.google.com/file/d/14b4ohuDqjKouCz99f0YhOtu9lZOy5Knu/view",
+        "drive_pdf_url": "https://drive.google.com/file/d/1om8UuJX3Zkof4Cnq-CE6ZSdlOEG1acEV/view",
         "sort_order": 4,
     },
 ]
