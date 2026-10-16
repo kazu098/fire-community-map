@@ -27,6 +27,13 @@ together on a schedule:
    feedback form link once. Whether they actually joined isn't known, so the
    whole confirmed group gets it.
 
+5. Walk-in (issue #402): at the reminder time (19:00 JST the day before), a
+   4-member group with only 3 reactions on its confirmed date gets a 🙋
+   recruitment post in the matching channel. A later run picks one applicant
+   at random (opted-in members not already busy at that time), adds them to
+   the group (is_walk_in), opens the voice channel to them, and introduces
+   them in the thread. Topics aren't regenerated.
+
 Members whose DMs are closed (Discord error 50007) are skipped silently for
 both DMs -- no fallback mention elsewhere, by design.
 """
@@ -36,6 +43,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 import time
 from datetime import datetime, timedelta, timezone
@@ -76,6 +84,14 @@ ABSENCE_RE = re.compile(r"(?:欠席|休みます|お休みします|行けませ
 # A group this short of its original 4 is considered at risk of an early-disband, low-turnout
 # event (issue #360's survey complaint).
 LOW_ATTENDANCE_MAX_REMAINING = 2
+# 飛び入り(issue #402): 前日19時の時点で確定日にリアクションしているのが4人中3人以下なら、
+# マッチングチャンネルで1名だけ募集する。4人そろっているグループは5人になって多すぎるので募集しない。
+WALK_IN_EMOJI = "🙋"
+# 募集から抽選までに最低1回はバッチ(1日4回)が回るよう、開催まで最低これだけ空いているときだけ募集する。
+WALK_IN_MIN_LEAD_HOURS = 3
+# 歓迎メッセージに載せるタグ。所属チーム(affiliation)は内輪ネタになるので使わない。
+WALK_IN_TAG_CATEGORIES = ["interest", "chat_topic", "investment_style", "fire_status", "skill"]
+WALK_IN_MAX_TAGS = 3
 DATE_RE = re.compile(r"(?:(20\d{2})\s*[年/.-]\s*)?(\d{1,2})\s*(?:月|/|-)\s*(\d{1,2})\s*日?")
 DAY_ONLY_RE = re.compile(r"(?<![月/\-\d])(\d{1,2})\s*日")
 
@@ -131,7 +147,7 @@ def fetch_reactors(channel_id: str, message_id: str, emoji: str, token: str) -> 
     return {str(u["id"]) for u in users}
 
 
-def discord_post_json(path: str, token: str, payload: dict[str, Any]) -> Any:
+def discord_post_json(path: str, token: str, payload: dict[str, Any], method: str = "POST") -> Any:
     req = Request(
         f"{DISCORD_API_BASE}{path}",
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
@@ -140,7 +156,7 @@ def discord_post_json(path: str, token: str, payload: dict[str, Any]) -> Any:
             "User-Agent": USER_AGENT,
             "Content-Type": "application/json",
         },
-        method="POST",
+        method=method,
     )
     while True:
         try:
@@ -155,9 +171,9 @@ def discord_post_json(path: str, token: str, payload: dict[str, Any]) -> Any:
                 except Exception:
                     time.sleep(1.0)
                 continue
-            raise DiscordAPIError(exc.code, body_text, f"POST {path}") from exc
+            raise DiscordAPIError(exc.code, body_text, f"{method} {path}") from exc
         except URLError as exc:
-            raise RuntimeError(f"Discord API request failed for POST {path}: {exc}") from exc
+            raise RuntimeError(f"Discord API request failed for {method} {path}: {exc}") from exc
 
 
 class DiscordAPIError(RuntimeError):
@@ -939,14 +955,16 @@ class GroupDirectory:
     def members(self, group_id: str) -> tuple[list[str], dict[str, str]]:
         rows = self._get(f"/rest/v1/member_match_group_members?group_id=eq.{group_id}&select=member_nickname")
         nicknames = [row["member_nickname"] for row in rows]
+        return nicknames, self.user_ids(nicknames)
+
+    def user_ids(self, nicknames: list[str]) -> dict[str, str]:
         if self._guild_display_name_ids is None:
             self._guild_display_name_ids = matching.fetch_guild_member_ids_by_display_name(self._bot_token, self._guild_id)
             self._name_overrides = matching.load_discord_name_overrides(Path("config/member_discord_name_map.csv"))
             self._linked_user_ids = matching.fetch_linked_discord_user_ids(self._get)
-        user_ids = matching.resolve_discord_user_ids(
+        return matching.resolve_discord_user_ids(
             nicknames, self._guild_display_name_ids, self._name_overrides or {}, self._linked_user_ids,
         )
-        return nicknames, user_ids
 
 
 def dm_group(
@@ -1019,6 +1037,248 @@ def send_surveys(
         )
 
 
+def confirmed_date_reactors(
+    schedule: dict[str, Any], channel_id: str, group_user_ids: set[str], bot_token: str,
+) -> set[str] | None:
+    """Group members who reacted to the confirmed date: the 1️⃣/2️⃣/3️⃣ option for a reaction-poll
+    confirmation, the ✅ prompt for a thread confirmation. None when it can't be told."""
+    confirmed_date = datetime.fromisoformat(schedule["confirmed_date"])
+    if schedule.get("confirmed_source") == "reaction_poll" and schedule.get("discord_message_id"):
+        for date, emoji in zip(schedule.get("proposed_dates") or [], matching.DATE_OPTION_EMOJI):
+            if datetime.fromisoformat(date) == confirmed_date:
+                return fetch_reactors(channel_id, schedule["discord_message_id"], emoji, bot_token) & group_user_ids
+        return None
+    if schedule.get("thread_id") and schedule.get("thread_confirmation_message_id"):
+        return fetch_reactors(
+            schedule["thread_id"], schedule["thread_confirmation_message_id"], THREAD_CONFIRM_EMOJI, bot_token,
+        ) & group_user_ids
+    return None
+
+
+def fetch_group_topics(get: Any, group_id: str) -> list[dict[str, Any]]:
+    rows = get(f"/rest/v1/member_match_group_topics?group_id=eq.{group_id}&select=group_topics")
+    return (rows[0].get("group_topics") if rows else None) or []
+
+
+def format_walk_in_recruitment(
+    event_time: datetime, nicknames: list[str], group_topics: list[dict[str, Any]], thread_id: str | None = None,
+) -> str:
+    lines = [
+        "🙋 飛び入り募集だにゃ！",
+        f"📅 {format_event_time(event_time)} のゆるマッチングに、1人分の空きがあります",
+        f"👥 {'、'.join(nicknames)}さん",
+    ]
+    if thread_id:
+        lines.append(f"🧵 このグループのスレッド: <#{thread_id}>")
+    topic_lines = matching.format_group_topic_lines(group_topics[:matching.ANNOUNCEMENT_MAX_TOPICS], nicknames)
+    if topic_lines:
+        lines.append("")
+        lines.extend(topic_lines)
+    lines.append("")
+    lines.append(
+        f"参加してみたい人は {WALK_IN_EMOJI} を押してください。応募が多いときは抽選で1名です"
+        "（ゆるマッチングに参加中の人が対象）。決まった人にはふぁいにゃからDMでお知らせします。"
+    )
+    return "\n".join(lines)
+
+
+def format_walk_in_welcome(walk_in: str, hook: str | None, tags: list[str]) -> str:
+    """1人増えても話題は作り直さず(告知で見たネタが当日変わると混乱するため)、新しい人の紹介だけ足す。"""
+    lines = [f"🎉 {walk_in}さんが飛び入りで参加します！"]
+    if hook:
+        lines.append(f"🎤 {walk_in}さんに聞いてみたい：{hook}")
+    if tags:
+        lines.append(f"🏷️ {'・'.join(tags)}")
+    return "\n".join(lines)
+
+
+def format_walk_in_dm(event_time: datetime, nicknames: list[str], voice_channel_id: str | None, group_id: str) -> str:
+    lines = [
+        "🐾 ふぁいにゃです。ゆるマッチングへの飛び入り参加が決まりました！",
+        f"📅 {format_event_time(event_time)}",
+        f"👥 {'、'.join(nicknames)}さん",
+    ]
+    if voice_channel_id:
+        lines.append(f"🎙️ 当日はこちらの専用通話部屋からどうぞ: <#{voice_channel_id}>")
+    lines.append(f"💬 話題のきっかけ: {matching.SITE_BASE_URL}/?view=yuru-talk&group={group_id}")
+    lines.append("都合が悪くなったときは、ゆるマッチングのスレッドでひとこと伝えてもらえると助かります。")
+    return "\n".join(lines)
+
+
+def walk_in_profile(get: Any, nickname: str, now: datetime, rng: random.Random) -> tuple[str | None, list[str]]:
+    """歓迎メッセージ用に「この人に聞いてみたい」1つとタグ数個。どちらも無ければ空。"""
+    hook_rows = get(
+        f"/rest/v1/member_conversation_hooks?member_nickname=eq.{quote(nickname)}&select=member_nickname,hooks"
+        f"&updated_at=gte.{quote((now - timedelta(days=matching.HOOK_MAX_AGE_DAYS)).isoformat())}"
+    )
+    picked = matching.pick_member_hooks(
+        [nickname], {row["member_nickname"]: row.get("hooks") or [] for row in hook_rows}, rng,
+    )
+    tag_rows = get(f"/rest/v1/member_tags?member_nickname=eq.{quote(nickname)}&select=category,value")
+    tags = [
+        row["value"]
+        for category in WALK_IN_TAG_CATEGORIES
+        for row in tag_rows if row["category"] == category
+    ][:WALK_IN_MAX_TAGS]
+    return (picked[0]["text"] if picked else None), tags
+
+
+def recruit_walk_ins(
+    supabase_url: str, service_role_key: str, directory: GroupDirectory, get: Any, channel_id: str, bot_token: str,
+    now: datetime, dry_run: bool,
+) -> None:
+    """前日19時(リマインドと同じタイミング)に、確定日に3人以下しかリアクションしていない4人グループで
+    飛び入りを1名募集する(issue #402)。相談テーママッチングのグループは悩み相談なので対象外。"""
+    schedules = get(
+        "/rest/v1/member_match_schedules"
+        "?select=id,group_id,proposed_dates,discord_message_id,confirmed_date,confirmed_source,thread_id,"
+        "thread_confirmation_message_id"
+        f"&status=eq.confirmed&walk_in_message_id=is.null&confirmed_date=gt.{quote(now.isoformat())}"
+    )
+    if not schedules:
+        return
+    consultation_group_ids = {
+        row["group_id"] for row in get("/rest/v1/consultation_requests?select=group_id&group_id=not.is.null")
+    }
+    for schedule in schedules:
+        event_time = datetime.fromisoformat(schedule["confirmed_date"])
+        if not reminder_due(event_time, now) or event_time - now < timedelta(hours=WALK_IN_MIN_LEAD_HOURS):
+            continue
+        if schedule["group_id"] in consultation_group_ids:
+            continue
+        nicknames, user_ids = directory.members(schedule["group_id"])
+        if len(nicknames) != matching.GROUP_SIZE:
+            continue
+        reactors = confirmed_date_reactors(schedule, channel_id, set(user_ids.values()), bot_token)
+        if reactors is None or len(reactors) >= matching.GROUP_SIZE:
+            continue
+        print(f"Recruiting a walk-in for schedule {schedule['id']}: {nicknames} ({len(reactors)} reacted)")
+        if dry_run:
+            continue
+        content = format_walk_in_recruitment(
+            event_time, nicknames, fetch_group_topics(get, schedule["group_id"]), schedule.get("thread_id"),
+        )
+        # どのマッチングの募集か分かるよう、そのグループの「マッチしたにゃ♪」告知への返信として投稿する
+        # (Discordが元の告知を引用表示し、クリックでそこへ飛べる)。
+        group_rows = get(f"/rest/v1/member_match_groups?id=eq.{schedule['group_id']}&select=discord_message_id")
+        announcement_id = group_rows[0].get("discord_message_id") if group_rows else None
+        payload: dict[str, Any] = {"content": content, "allowed_mentions": {"parse": [], "replied_user": False}}
+        if announcement_id:
+            payload["message_reference"] = {"message_id": announcement_id, "fail_if_not_exists": False}
+        message = discord_post_json(f"/channels/{channel_id}/messages", bot_token, payload)
+        message_id = (message or {}).get("id")
+        if not message_id:
+            continue
+        matching.discord_add_reaction(channel_id, message_id, bot_token, WALK_IN_EMOJI)
+        requests_patch(
+            supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+            {"walk_in_message_id": message_id},
+        )
+        if schedule.get("thread_id"):
+            matching.discord_post(
+                schedule["thread_id"], bot_token,
+                "🐾 今のところ3人の予定なので、マッチングチャンネルで飛び入りを1名募集してみます。決まったらここでお知らせします！",
+            )
+
+
+def pick_walk_ins(
+    supabase_url: str, service_role_key: str, directory: GroupDirectory, get: Any, channel_id: str, bot_token: str,
+    now: datetime, rng: random.Random, dry_run: bool,
+) -> None:
+    """募集中の飛び入りに🙋した人から1名を抽選し、グループに加えて通話部屋に招待する。
+
+    Discordのリアクション一覧は押した順に並ばないので先着ではなく抽選。応募できるのはゆるマッチングを
+    ONにしていて、そのグループにも同じ時間の別グループにもいない人。開催時刻を過ぎたら締め切る。
+    """
+    schedules = get(
+        "/rest/v1/member_match_schedules"
+        "?select=id,group_id,confirmed_date,thread_id,voice_channel_id,walk_in_message_id"
+        "&status=eq.confirmed&walk_in_message_id=not.is.null&walk_in_closed_at=is.null"
+    )
+    if not schedules:
+        return
+    bot_user_id = fetch_bot_user_id(bot_token)
+    opted_in = [
+        row["member_nickname"]
+        for row in get("/rest/v1/member_matching_settings?select=member_nickname&opted_in=eq.true")
+    ]
+    nickname_by_user_id = {user_id: nickname for nickname, user_id in directory.user_ids(opted_in).items()}
+
+    for schedule in schedules:
+        event_time = datetime.fromisoformat(schedule["confirmed_date"])
+        message_id = schedule["walk_in_message_id"]
+        nicknames, user_ids = directory.members(schedule["group_id"])
+
+        def close(closed_text: str) -> None:
+            try:
+                discord_post_json(
+                    f"/channels/{channel_id}/messages/{message_id}", bot_token, {"content": closed_text}, method="PATCH",
+                )
+            except RuntimeError as exc:
+                print(f"  could not edit walk-in recruitment for {schedule['id']}: {exc}")
+            requests_patch(
+                supabase_url, service_role_key, f"/rest/v1/member_match_schedules?id=eq.{schedule['id']}",
+                {"walk_in_closed_at": now.isoformat()},
+            )
+
+        if event_time <= now:
+            print(f"Closing walk-in recruitment for schedule {schedule['id']} with no applicant")
+            if not dry_run:
+                close(f"🙋 {format_event_time(event_time)} の飛び入り募集は締め切りました。")
+            continue
+
+        busy = set(nicknames)
+        same_time = get(
+            "/rest/v1/member_match_schedules?select=group_id&status=eq.confirmed"
+            f"&confirmed_date=eq.{quote(event_time.isoformat())}&id=neq.{schedule['id']}"
+        )
+        for other in same_time:
+            busy.update(directory.members(other["group_id"])[0])
+        applicants = sorted(
+            nickname
+            for user_id in fetch_reactors(channel_id, message_id, WALK_IN_EMOJI, bot_token) - {bot_user_id}
+            if (nickname := nickname_by_user_id.get(user_id)) and nickname not in busy
+        )
+        if not applicants:
+            continue
+        walk_in = rng.choice(applicants)
+        walk_in_user_id = directory.user_ids([walk_in])[walk_in]
+        print(f"Walk-in for schedule {schedule['id']}: {walk_in} (from {applicants})")
+        if dry_run:
+            continue
+
+        matching.supabase_request(
+            "POST", f"{supabase_url}/rest/v1/member_match_group_members", service_role_key,
+            body=[{"group_id": schedule["group_id"], "member_nickname": walk_in, "is_walk_in": True}],
+            prefer="return=minimal",
+        )
+        voice_channel_id = schedule.get("voice_channel_id")
+        if voice_channel_id:
+            try:
+                discord_post_json(
+                    f"/channels/{voice_channel_id}/permissions/{walk_in_user_id}", bot_token,
+                    {"type": 1, "allow": str(VOICE_CHANNEL_ALLOW_BITS), "deny": "0"}, method="PUT",
+                )
+            except RuntimeError as exc:
+                print(f"  could not open the voice channel to {walk_in}: {exc}")
+        hook, tags = walk_in_profile(get, walk_in, now, rng)
+        welcome = format_walk_in_welcome(walk_in, hook, tags)
+        mention_ids = sorted({*user_ids.values(), walk_in_user_id})
+        for target, mentions in ((schedule.get("thread_id"), mention_ids), (voice_channel_id, [])):
+            if not target:
+                continue
+            prefix = " ".join(f"<@{user_id}>" for user_id in mentions)
+            try:
+                matching.discord_post(target, bot_token, f"{prefix}\n{welcome}" if prefix else welcome, mentions)
+            except RuntimeError as exc:
+                print(f"  could not post walk-in welcome for {schedule['id']}: {exc}")
+        dm_group(
+            "walk-in", schedule["id"], [walk_in], {walk_in: walk_in_user_id},
+            format_walk_in_dm(event_time, [*nicknames, walk_in], voice_channel_id, schedule["group_id"]), bot_token,
+        )
+        close(f"🙋 {format_event_time(event_time)} の飛び入り募集は締め切りました（{walk_in}さんに決まりました）。")
+
+
 def requests_patch(supabase_url: str, service_role_key: str, path: str, body: dict[str, Any]) -> None:
     req = Request(
         f"{supabase_url}{path}",
@@ -1063,6 +1323,9 @@ def main() -> int:
 
     confirm_schedules(supabase_url, service_role_key, channel_id, guild_id, bot_token, now, args.dry_run)
     send_reminders(supabase_url, service_role_key, directory, get, bot_token, now, args.dry_run)
+    # 抽選を先に回す(募集した直後の同じ実行ではまだ誰も🙋していないので)。
+    pick_walk_ins(supabase_url, service_role_key, directory, get, channel_id, bot_token, now, random.Random(), args.dry_run)
+    recruit_walk_ins(supabase_url, service_role_key, directory, get, channel_id, bot_token, now, args.dry_run)
     cleanup_voice_channels(supabase_url, service_role_key, bot_token, now, args.dry_run)
     send_surveys(supabase_url, service_role_key, directory, get, bot_token, now, survey_form_url, args.dry_run)
     return 0

@@ -161,6 +161,12 @@ create table if not exists public.member_match_group_members (
 comment on table public.member_match_group_members is
   'Members belonging to each member_match_groups row. Every 2-member combination within a group counts toward the re-match cooldown, not just the pair that happened to be grouped together this time.';
 
+alter table public.member_match_group_members
+  add column if not exists is_walk_in boolean not null default false;
+
+comment on column public.member_match_group_members.is_walk_in is
+  'true = joined as a walk-in (issue #402: a group expected to be 3 the day before recruited 1 more in the matching channel), not by the matching batch. Counts toward the cooldown and gets the survey DM like any other member.';
+
 create index if not exists member_match_group_members_nickname_idx on public.member_match_group_members (member_nickname);
 
 alter table public.member_match_groups enable row level security;
