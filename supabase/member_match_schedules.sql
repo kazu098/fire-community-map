@@ -40,7 +40,9 @@ alter table public.member_match_schedules
   add column if not exists thread_confirmation_reaction_count integer,
   add column if not exists reminder_sent_at timestamptz,
   add column if not exists survey_sent_at timestamptz,
-  add column if not exists merge_offered_at timestamptz;
+  add column if not exists merge_offered_at timestamptz,
+  add column if not exists walk_in_message_id text,
+  add column if not exists walk_in_closed_at timestamptz;
 
 comment on table public.member_match_schedules is
   'Date-scheduling follow-up for one member_match_groups row: 3 proposed dates posted as a reaction poll, confirmed once 3+ group members react to the same option, with an optional temporary voice channel for the confirmed date. Written by the matching batch scripts with the service role key only.';
@@ -68,6 +70,10 @@ comment on column public.member_match_schedules.voice_channel_id is
   'Temporary Discord voice channel created for the confirmed date, scoped to just this group via permission overwrites. Deleted (and voice_channel_deleted_at set) after the event has passed.';
 comment on column public.member_match_schedules.merge_offered_at is
   'When a same-day low-attendance merge was offered to this group (issue #360: 2+ members posted an absence message in the thread on the event day, so another confirmed group at the exact same confirmed_date was suggested as a fallback). Null = not offered. Set on both groups involved so neither is offered twice.';
+comment on column public.member_match_schedules.walk_in_message_id is
+  'The 🙋 walk-in recruitment post in the matching channel (issue #402), made at 19:00 JST the day before when only 3 of the 4 members had reacted to the confirmed date. Null = never recruited.';
+comment on column public.member_match_schedules.walk_in_closed_at is
+  'When the walk-in recruitment was closed: someone was picked (they are added to member_match_group_members with is_walk_in = true), or the event started with no applicant.';
 
 drop trigger if exists set_member_match_schedules_updated_at on public.member_match_schedules;
 create trigger set_member_match_schedules_updated_at
