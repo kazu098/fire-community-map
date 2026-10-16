@@ -1060,12 +1060,16 @@ def fetch_group_topics(get: Any, group_id: str) -> list[dict[str, Any]]:
     return (rows[0].get("group_topics") if rows else None) or []
 
 
-def format_walk_in_recruitment(event_time: datetime, nicknames: list[str], group_topics: list[dict[str, Any]]) -> str:
+def format_walk_in_recruitment(
+    event_time: datetime, nicknames: list[str], group_topics: list[dict[str, Any]], thread_id: str | None = None,
+) -> str:
     lines = [
         "🙋 飛び入り募集だにゃ！",
         f"📅 {format_event_time(event_time)} のゆるマッチングに、1人分の空きがあります",
         f"👥 {'、'.join(nicknames)}さん",
     ]
+    if thread_id:
+        lines.append(f"🧵 このグループのスレッド: <#{thread_id}>")
     topic_lines = matching.format_group_topic_lines(group_topics[:matching.ANNOUNCEMENT_MAX_TOPICS], nicknames)
     if topic_lines:
         lines.append("")
@@ -1151,8 +1155,18 @@ def recruit_walk_ins(
         print(f"Recruiting a walk-in for schedule {schedule['id']}: {nicknames} ({len(reactors)} reacted)")
         if dry_run:
             continue
-        content = format_walk_in_recruitment(event_time, nicknames, fetch_group_topics(get, schedule["group_id"]))
-        message_id = matching.discord_post(channel_id, bot_token, content)
+        content = format_walk_in_recruitment(
+            event_time, nicknames, fetch_group_topics(get, schedule["group_id"]), schedule.get("thread_id"),
+        )
+        # どのマッチングの募集か分かるよう、そのグループの「マッチしたにゃ♪」告知への返信として投稿する
+        # (Discordが元の告知を引用表示し、クリックでそこへ飛べる)。
+        group_rows = get(f"/rest/v1/member_match_groups?id=eq.{schedule['group_id']}&select=discord_message_id")
+        announcement_id = group_rows[0].get("discord_message_id") if group_rows else None
+        payload: dict[str, Any] = {"content": content, "allowed_mentions": {"parse": [], "replied_user": False}}
+        if announcement_id:
+            payload["message_reference"] = {"message_id": announcement_id, "fail_if_not_exists": False}
+        message = discord_post_json(f"/channels/{channel_id}/messages", bot_token, payload)
+        message_id = (message or {}).get("id")
         if not message_id:
             continue
         matching.discord_add_reaction(channel_id, message_id, bot_token, WALK_IN_EMOJI)
