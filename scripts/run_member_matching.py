@@ -762,16 +762,46 @@ def format_announcement(
     return "\n".join(lines)
 
 
-def next_occurrences(day_of_week: str, hour: int, now: datetime, count: int = 3) -> list[datetime]:
-    """The next `count` occurrences of day_of_week at the given clock hour (JST), one week
-    apart, starting from the first one at least a day out (so there's notice to plan)."""
+# 「特定日の例外」で×にした日を飛ばして候補日を探すとき、何週先まで見るか。
+PROPOSAL_MAX_WEEKS_AHEAD = 8
+
+
+def build_unavailable_index(overrides: list[dict[str, Any]]) -> dict[str, set[tuple[str, int]]]:
+    """member_nickname -> set of (override_date "YYYY-MM-DD", hour) marked unavailable
+    (member_availability_overrides.is_available = false)."""
+    index: dict[str, set[tuple[str, int]]] = {}
+    for row in overrides:
+        if row.get("is_available") is False:
+            index.setdefault(row["member_nickname"], set()).add((row["override_date"], row["hour"]))
+    return index
+
+
+def next_occurrences(
+    day_of_week: str,
+    hour: int,
+    now: datetime,
+    count: int = 3,
+    unavailable: set[tuple[str, int]] | None = None,
+) -> list[datetime]:
+    """The next `count` occurrences of day_of_week at the given clock hour (JST), starting from
+    the first one at least a day out (so there's notice to plan).
+
+    `unavailable` is the union of the group's date-specific "can't make it" overrides
+    ((date, hour) pairs); those dates are skipped. 以前はこれを見ておらず、「特定日の例外」で
+    ×にした日がそのまま候補日に出ていた(アンケート 2026-10「設定したつもりのない時間でマッチ」)。
+    If every date within PROPOSAL_MAX_WEEKS_AHEAD is blocked, falls back to the unfiltered dates
+    rather than proposing nothing.
+    """
     now_jst = now.astimezone(JST)
     target_weekday = DAY_TO_WEEKDAY[day_of_week]
     days_ahead = (target_weekday - now_jst.weekday()) % 7
     first = now_jst.replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
     if first <= now_jst + timedelta(days=1):
         first += timedelta(days=7)
-    return [first + timedelta(weeks=i) for i in range(count)]
+    candidates = [first + timedelta(weeks=i) for i in range(PROPOSAL_MAX_WEEKS_AHEAD)]
+    unavailable = unavailable or set()
+    dates = [d for d in candidates if (d.date().isoformat(), hour) not in unavailable][:count]
+    return dates or candidates[:count]
 
 
 WEEKDAY_KANJI = ["月", "火", "水", "木", "金", "土", "日"]
@@ -845,6 +875,10 @@ def main() -> int:
 
     settings = get("/rest/v1/member_matching_settings?select=member_nickname,opted_in,interval_days,last_matched_at&opted_in=eq.true")
     availability = get("/rest/v1/member_availability?select=member_nickname,day_of_week,hour")
+    unavailable_by_nickname = build_unavailable_index(get(
+        "/rest/v1/member_availability_overrides?select=member_nickname,override_date,hour,is_available"
+        f"&is_available=eq.false&override_date=gte.{now.astimezone(JST).date().isoformat()}"
+    ))
     recent_groups = get(
         f"/rest/v1/member_match_groups?select=id&created_at=gte.{quote((now - timedelta(days=COOLDOWN_DAYS)).isoformat())}"
     )
@@ -1037,7 +1071,8 @@ def main() -> int:
         )
 
         if args.post_to_discord and channel_id and bot_token and message_id:
-            dates = next_occurrences(match["day_of_week"], match["hour"], now)
+            group_unavailable = set().union(*(unavailable_by_nickname.get(n, set()) for n in match["members"]))
+            dates = next_occurrences(match["day_of_week"], match["hour"], now, unavailable=group_unavailable)
             schedule_content = format_schedule_proposal(match["day_of_week"], match["hour"], dates)
             schedule_message_id = discord_post(channel_id, bot_token, schedule_content)
             for emoji in DATE_OPTION_EMOJI[: len(dates)]:
