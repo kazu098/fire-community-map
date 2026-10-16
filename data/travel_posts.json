@@ -1,5 +1,47 @@
 [
   {
+    "discord_message_id": "1560188483547435078",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1560188483547435078",
+    "discord_channel_name": "旅行",
+    "nickname": "モンチ",
+    "avatar_path": "data/travel-avatars/19d9e7785f9c.png",
+    "avatarColor": "#f97316",
+    "init": "モ",
+    "prefecture": "福岡県",
+    "municipality_optional": "太宰府市",
+    "lat": 33.5219,
+    "lng": 130.5345,
+    "date": "2026/10/15",
+    "posted_at": "2026-10-15T07:12:01.378000+00:00",
+    "comment": "まさやんさんとニアミスか…",
+    "photos": [
+      "data/travel-photos/1560188483547435078-1.jpg",
+      "data/travel-photos/1560188483547435078-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
+    "discord_message_id": "1560168036407836732",
+    "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1560168036407836732",
+    "discord_channel_name": "旅行",
+    "nickname": "まさやん",
+    "avatar_path": "data/travel-avatars/aa9d1f79ed0f.png",
+    "avatarColor": "#f97316",
+    "init": "ま",
+    "prefecture": "福岡県",
+    "municipality_optional": "太宰府市",
+    "lat": 33.5219,
+    "lng": 130.5345,
+    "date": "2026/10/15",
+    "posted_at": "2026-10-15T05:50:46.400000+00:00",
+    "comment": "ノンビリ太宰府　新しくなった本殿素敵でした\n\nで、裏庭を抜けてお石の茶屋によって梅ヶ枝餅食べてます😉",
+    "photos": [
+      "data/travel-photos/1560168036407836732-1.jpg",
+      "data/travel-photos/1560168036407836732-2.jpg"
+    ],
+    "location_source": "manual_alias"
+  },
+  {
     "discord_message_id": "1559424338527133746",
     "discord_permalink": "https://discord.com/channels/1389921372683112539/1453995203060043787/1559424338527133746",
     "discord_channel_name": "旅行",
